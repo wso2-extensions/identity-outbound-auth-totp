@@ -73,9 +73,27 @@
         stsProperties[0] = stsProperty;
         passiveStsFedAuthn.setProperties(stsProperties);
 
-        FederatedAuthenticatorConfig[] federatedAuthenticators = new FederatedAuthenticatorConfig[2];
+        FederatedAuthenticatorConfig totpFedAuthn = new FederatedAuthenticatorConfig();
+        totpFedAuthn.setName(IdentityApplicationConstants.Authenticator.TOTP.NAME);
+        Property[] totpProperties = new Property[3];
+        Property totpProperty = new Property();
+        totpProperty.setName(IdentityApplicationConstants.Authenticator.TOTP.ENCODING_METHOD);
+        totpProperty.setValue(request.getParameter("totpEncodingID"));
+        Property timeStepSize = new Property();
+        timeStepSize.setName(IdentityApplicationConstants.Authenticator.TOTP.TIME_STEP_SIZE);
+        timeStepSize.setValue(request.getParameter("timeStepSize"));
+        Property windowSize = new Property();
+        windowSize.setName(IdentityApplicationConstants.Authenticator.TOTP.WINDOW_SIZE);
+        windowSize.setValue(request.getParameter("windowSize"));
+        totpProperties[0] = totpProperty;
+        totpProperties[1] = timeStepSize;
+        totpProperties[2] = windowSize;
+        totpFedAuthn.setProperties(totpProperties);
+
+        FederatedAuthenticatorConfig[] federatedAuthenticators = new FederatedAuthenticatorConfig[3];
         federatedAuthenticators[0] = samlFedAuthn;
         federatedAuthenticators[1] = passiveStsFedAuthn;
+        federatedAuthenticators[2] = totpFedAuthn;
         identityProvider.setFederatedAuthenticatorConfigs(federatedAuthenticators);
 
         IdentityProviderProperty[] idpProperties = new IdentityProviderProperty[2];

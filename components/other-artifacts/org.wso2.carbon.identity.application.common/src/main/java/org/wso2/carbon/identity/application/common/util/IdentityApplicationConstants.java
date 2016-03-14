@@ -181,6 +181,14 @@ public class IdentityApplicationConstants {
             public static final String FIDO_AUTH = "FidoAuth";
         }
 
+        public static class TOTP {
+
+            public static final String NAME = "totp";
+            public static final String ENCODING_METHOD = "encodingMethod";
+            public static final String TIME_STEP_SIZE = "timeStepSize";
+            public static final String WINDOW_SIZE = "windowSize";
+
+        }
     }
 
     public static class OAuth10A {

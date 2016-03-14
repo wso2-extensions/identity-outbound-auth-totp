@@ -29,6 +29,8 @@
 <%@ page import="java.util.List" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="carbon" uri="http://wso2.org/projects/carbon/taglibs/carbontags.jar"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"  %>
+<%@ page isELIgnored="false" %>
 
 <carbon:breadcrumb label="identity.providers" resourceBundle="org.wso2.carbon.idp.mgt.ui.i18n.Resources"
                    topPage="true" request="<%=request%>" />
@@ -57,6 +59,11 @@
     String stsUrl = null;
     String sessionIdleTimeout = null;
     String rememberMeTimeout = null;
+    String encodingMethod = null;
+    String[] encodingMethodOptions = {"Base32","Base64"};
+    String timeStepSize = null;
+    String windowSize = null;
+
     List<Property> destinationURLList = new ArrayList<Property>();
     FederatedAuthenticatorConfig[] federatedAuthenticators = residentIdentityProvider.getFederatedAuthenticatorConfigs();
     for(FederatedAuthenticatorConfig federatedAuthenticator : federatedAuthenticators){
@@ -101,6 +108,13 @@
         } else if(IdentityApplicationConstants.Authenticator.WSTrust.NAME.equals(federatedAuthenticator.getName())){
             stsUrl = IdPManagementUIUtil.getProperty(properties,
                     IdentityApplicationConstants.Authenticator.WSTrust.IDENTITY_PROVIDER_URL).getValue();
+        } else if(IdentityApplicationConstants.Authenticator.TOTP.NAME.equals(federatedAuthenticator.getName())){
+            encodingMethod = IdPManagementUIUtil.getProperty(properties,
+                IdentityApplicationConstants.Authenticator.TOTP.ENCODING_METHOD).getValue();
+            timeStepSize = IdPManagementUIUtil.getProperty(properties,
+                        IdentityApplicationConstants.Authenticator.TOTP.TIME_STEP_SIZE).getValue();
+            windowSize = IdPManagementUIUtil.getProperty(properties,
+                        IdentityApplicationConstants.Authenticator.TOTP.WINDOW_SIZE).getValue();
         }
     }
     String scimUserEp = null;
@@ -133,6 +147,9 @@
         }
     }
 
+    request.setAttribute("encodingMethod", encodingMethod);
+    request.setAttribute("timeStepSize", timeStepSize);
+    request.setAttribute("windowSize", windowSize);
     session.setAttribute("returnToPath", "../idpmgt/idp-mgt-edit-local.jsp");
     session.setAttribute("cancelLink", "../idpmgt/idp-mgt-edit-local.jsp");
     session.setAttribute("backLink", "../idpmgt/idp-mgt-edit-local.jsp");
@@ -493,37 +510,74 @@ jQuery(document).ready(function(){
                     </table>
                     </div>
 
-                        <h2 id="stsconfighead"  class="sectionSeperator trigger active" style="background-color: beige;">
-                            <a href="#"><fmt:message key='sts.local.config'/></a>
-                        </h2>
-                        <div class="toggle_container sectionSub" style="margin-bottom:10px;display:none" id="stsconfig">
-                            <table class="carbonFormTable">
-                                <tr>
-                                    <td class="leftCol-med labelField" style="padding-top: 5px"><fmt:message key='sts.url'/>:</td>
-                                    <td>
-                                        <a href="javascript:document.location.href='<%=
-                                        Encode.forUriComponent(stsUrl)+"?wsdl"%>'"
-                                           class="icon-link"
-                                           style="background-image:url(images/sts.gif);margin-left: 0"><%=Encode.forHtmlContent(stsUrl)%>
-                                        </a>
-                                    </td>
-                                    <td>
-                                        <a href="javascript:document.location.href='../securityconfig/index.jsp?serviceName=wso2carbon-sts'"
-                                           class="icon-link"
-                                           style="background-image:url(images/configure.gif);margin-right: 300px">
-                                            <fmt:message key='apply.security.policy'/>
-                                        </a>
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
+                    <h2 id="totpconfighead"  class="sectionSeperator trigger active" style="background-color: beige;">
+                        <a href="#">TOTP Configuration</a>
+                    </h2>
+                    <div class="toggle_container sectionSub" style="margin-bottom:10px;display:none" id="totpconfighead">
+                        <table class="carbonFormTable">
+                            <tr>
+                                <td class="leftCol-med labelField"><fmt:message key='totp.secretkey.encoding'/>:</td>
+                                <td>
+                                    <select id="totpEncodingID" name="totpEncodingID">
+                                        <c:forEach var="encodingVal" items="<%=encodingMethodOptions%>">
+                                            <option value="<c:out value="${encodingVal}"/>"
+                                                ${encodingVal==encodingMethod ? 'selected' : ''}><c:out value="${encodingVal}"/></option>
+                                        </c:forEach>
+                                    </select>
+
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="leftCol-med labelField"><fmt:message key='totp.token.time.step'/>:</td>
+                                <td>
+                                    <input id="timeStepSize" name="timeStepSize" type="text" value="${timeStepSize}"/>
+                                    <div class="sectionHelp">
+                                        <fmt:message key='totp.time.step.size.help'/>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="leftCol-med labelField"><fmt:message key='totp.token.window.size'/>:</td>
+                                <td>
+                                    <input id="windowSize" name="windowSize" type="text" value="${windowSize}"/>
+                                    <div class="sectionHelp">
+                                        <fmt:message key='totp.window.size.help'/>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <h2 id="stsconfighead"  class="sectionSeperator trigger active" style="background-color: beige;">
+                        <a href="#"><fmt:message key='sts.local.config'/></a>
+                    </h2>
+                    <div class="toggle_container sectionSub" style="margin-bottom:10px;display:none" id="stsconfig">
+                        <table class="carbonFormTable">
+                            <tr>
+                                <td class="leftCol-med labelField" style="padding-top: 5px"><fmt:message key='sts.url'/>:</td>
+                                <td>
+                                    <a href="javascript:document.location.href='<%=
+                                    Encode.forUriComponent(stsUrl)+"?wsdl"%>'"
+                                       class="icon-link"
+                                       style="background-image:url(images/sts.gif);margin-left: 0"><%=Encode.forHtmlContent(stsUrl)%>
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="javascript:document.location.href='../securityconfig/index.jsp?serviceName=wso2carbon-sts'"
+                                       class="icon-link"
+                                       style="background-image:url(images/configure.gif);margin-right: 300px">
+                                        <fmt:message key='apply.security.policy'/>
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
                 </div>
 
-                    <h2 id="inboundprovisioningconfighead"  class="sectionSeperator trigger active">
-                		<a href="#">Inbound Provisioning Configuration</a>
-            		</h2>
-            		<div class="toggle_container sectionSub" style="margin-bottom:10px;display:none" id="inboundprovisioningconfig">
-            		  <table class="carbonFormTable">
+                <h2 id="inboundprovisioningconfighead"  class="sectionSeperator trigger active">
+                    <a href="#">Inbound Provisioning Configuration</a>
+                </h2>
+                <div class="toggle_container sectionSub" style="margin-bottom:10px;display:none" id="inboundprovisioningconfig">
+                    <table class="carbonFormTable">
                         <tr>
                             <td class="leftCol-med labelField"><fmt:message key='scim.user.endpoint'/>:</td>
                             <td><%=Encode.forHtmlContent(scimUserEp)%></td>
@@ -534,7 +588,7 @@ jQuery(document).ready(function(){
                         </tr>
                     </table>
 
-            		</div>
+                </div>
                 </div>
                 <div class="buttonRow">
                     <input type="button" value="<fmt:message key='update'/>" onclick="idpMgtUpdate();"/>
