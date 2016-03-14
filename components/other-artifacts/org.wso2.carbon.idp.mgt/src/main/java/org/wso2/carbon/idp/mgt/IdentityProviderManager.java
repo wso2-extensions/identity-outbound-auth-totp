@@ -381,6 +381,38 @@ public class IdentityProviderManager {
                 .setProperties(propertiesList.toArray(new Property[propertiesList.size()]));
         fedAuthnCofigs.add(passiveSTSFedAuthn);
 
+        FederatedAuthenticatorConfig totpLocalAuth = IdentityApplicationManagementUtil.
+                getFederatedAuthenticator(identityProvider.getFederatedAuthenticatorConfigs(),
+                        IdentityApplicationConstants.Authenticator.TOTP.NAME);
+        if (totpLocalAuth == null) {
+            totpLocalAuth = new FederatedAuthenticatorConfig();
+            totpLocalAuth.setName(IdentityApplicationConstants.Authenticator.TOTP.NAME);
+        }
+        propertiesList = new ArrayList<Property>(Arrays.asList(totpLocalAuth.getProperties()));
+        if (IdentityApplicationManagementUtil.getProperty(totpLocalAuth.getProperties(),
+                IdentityApplicationConstants.Authenticator.TOTP.ENCODING_METHOD) == null) {
+            Property totpEncodingMethod = new Property();
+            totpEncodingMethod.setName(IdentityApplicationConstants.Authenticator.TOTP.ENCODING_METHOD);
+            totpEncodingMethod.setValue("Base64");
+            propertiesList.add(totpEncodingMethod);
+        }
+        if (IdentityApplicationManagementUtil.getProperty(totpLocalAuth.getProperties(),
+                IdentityApplicationConstants.Authenticator.TOTP.TIME_STEP_SIZE) == null) {
+            Property timeStepSize = new Property();
+            timeStepSize.setName(IdentityApplicationConstants.Authenticator.TOTP.TIME_STEP_SIZE);
+            timeStepSize.setValue("30");
+            propertiesList.add(timeStepSize);
+        }
+        if (IdentityApplicationManagementUtil.getProperty(totpLocalAuth.getProperties(),
+                IdentityApplicationConstants.Authenticator.TOTP.WINDOW_SIZE) == null) {
+            Property windowSize = new Property();
+            windowSize.setName(IdentityApplicationConstants.Authenticator.TOTP.WINDOW_SIZE);
+            windowSize.setValue("3");
+            propertiesList.add(windowSize);
+        }
+        totpLocalAuth.setProperties(propertiesList.toArray(new Property[propertiesList.size()]));
+        fedAuthnCofigs.add(totpLocalAuth);
+
         FederatedAuthenticatorConfig stsFedAuthn = IdentityApplicationManagementUtil
                 .getFederatedAuthenticator(identityProvider.getFederatedAuthenticatorConfigs(),
                         IdentityApplicationConstants.Authenticator.WSTrust.NAME);
@@ -547,9 +579,17 @@ public class IdentityProviderManager {
         passiveStsAuthenticationConfig.setProperties(new Property[] { passiveStsProperty });
         passiveStsAuthenticationConfig.setName(IdentityApplicationConstants.Authenticator.PassiveSTS.NAME);
 
+        FederatedAuthenticatorConfig totpFedAuth = IdentityApplicationManagementUtil.getFederatedAuthenticator
+                (identityProvider.getFederatedAuthenticatorConfigs(),
+                        IdentityApplicationConstants.Authenticator.TOTP.NAME);
+        if(totpFedAuth==null){
+            totpFedAuth = new FederatedAuthenticatorConfig();
+            totpFedAuth.setName(IdentityApplicationConstants.Authenticator.TOTP.NAME);
+        }
 
-        FederatedAuthenticatorConfig[] federatedAuthenticatorConfigs = { saml2SSOResidentAuthenticatorConfig,
-                idpPropertiesResidentAuthenticatorConfig, passiveStsAuthenticationConfig };
+        FederatedAuthenticatorConfig[] federatedAuthenticatorConfigs = {saml2SSOResidentAuthenticatorConfig,
+                idpPropertiesResidentAuthenticatorConfig, passiveStsAuthenticationConfig, totpFedAuth};
+
         identityProvider.setFederatedAuthenticatorConfigs(IdentityApplicationManagementUtil
                 .concatArrays(identityProvider.getFederatedAuthenticatorConfigs(), federatedAuthenticatorConfigs));
 
