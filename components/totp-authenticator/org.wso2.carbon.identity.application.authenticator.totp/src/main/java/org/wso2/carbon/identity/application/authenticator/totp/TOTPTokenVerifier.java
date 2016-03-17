@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package org.wso2.carbon.identity.totp;
+package org.wso2.carbon.identity.application.authenticator.totp;
 
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
@@ -25,10 +25,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.core.util.CryptoException;
+import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
+import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.application.common.IdentityApplicationManagementException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
-import org.wso2.carbon.identity.totp.exception.TOTPException;
-import org.wso2.carbon.identity.totp.util.TOTPUtil;
 import org.wso2.carbon.idp.mgt.IdentityProviderManagementException;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
@@ -75,10 +75,10 @@ public class TOTPTokenVerifier {
 	 */
 	public boolean isValidTokenLocalUser(int token, String username) throws TOTPException {
 		KeyRepresentation encoding = KeyRepresentation.BASE32;
-        long timeStep = Constants.DEFAULT_TIME_STEP_SIZE;
-        int windowSize = Constants.DEFAULT_WINDOW_SIZE;
+        long timeStep = TOTPAuthenticatorConstants.DEFAULT_TIME_STEP_SIZE;
+        int windowSize = TOTPAuthenticatorConstants.DEFAULT_WINDOW_SIZE;
 		try {
-			if (Constants.BASE64.equals(TOTPUtil.getEncodingMethod())) {
+			if (TOTPAuthenticatorConstants.BASE64.equals(TOTPUtil.getEncodingMethod())) {
 				encoding = KeyRepresentation.BASE64;
 			}
             timeStep = TimeUnit.SECONDS.toMillis(TOTPUtil.getTimeStepSize());
@@ -106,7 +106,7 @@ public class TOTPTokenVerifier {
 
 			if (userRealm != null) {
 				UserStoreManager userStoreManager = userRealm.getUserStoreManager();
-				String secretKey = TOTPUtil.decrypt(userStoreManager.getUserClaimValue(username, Constants.SECRET_KEY_CLAIM_URL, null));
+				String secretKey = TOTPUtil.decrypt(userStoreManager.getUserClaimValue(username, TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, null));
 
                 return googleAuthenticator.authorize(secretKey, token);
 			} else {

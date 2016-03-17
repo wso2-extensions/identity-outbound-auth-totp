@@ -16,16 +16,16 @@
  * under the License.
  */
 
-package org.wso2.carbon.identity.totp;
+package org.wso2.carbon.identity.application.authenticator.totp;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.CarbonContext;
+import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
+import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.application.common.IdentityApplicationManagementException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
-import org.wso2.carbon.identity.totp.exception.TOTPException;
-import org.wso2.carbon.identity.totp.util.TOTPUtil;
 import org.wso2.carbon.idp.mgt.IdentityProviderManagementException;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
@@ -62,14 +62,14 @@ public class TOTPAccessController {
 
             username = MultitenantUtils.getTenantAwareUsername(String.valueOf(username));
 			if (userRealm != null) {
-                String secretKey = userRealm.getUserStoreManager().getUserClaimValue(username, Constants.SECRET_KEY_CLAIM_URL, null);
+                String secretKey = userRealm.getUserStoreManager().getUserClaimValue(username, TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, null);
 				String currentEncoding = TOTPUtil.getEncodingMethod();
-				String storedEncoding = userRealm.getUserStoreManager().getUserClaimValue(username, Constants.ENCODING_CLAIM_URL, null);
+				String storedEncoding = userRealm.getUserStoreManager().getUserClaimValue(username, TOTPAuthenticatorConstants.ENCODING_CLAIM_URL, null);
 
                 if (!currentEncoding.equals(storedEncoding)) {
-                    userRealm.getUserStoreManager().setUserClaimValue(username, Constants.SECRET_KEY_CLAIM_URL, "", null);
-                    userRealm.getUserStoreManager().setUserClaimValue(username, Constants.QR_CODE_CLAIM_URL, "", null);
-                    userRealm.getUserStoreManager().setUserClaimValue(username, Constants.ENCODING_CLAIM_URL, "", null);
+                    userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "", null);
+                    userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, "", null);
+                    userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.ENCODING_CLAIM_URL, "", null);
 
 					if (log.isDebugEnabled()) {
 						log.debug("TOTP user claims was cleared of the user : " + username);

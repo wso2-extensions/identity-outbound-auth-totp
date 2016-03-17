@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package org.wso2.carbon.identity.totp.util;
+package org.wso2.carbon.identity.application.authenticator.totp.util;
 
 import org.apache.commons.io.Charsets;
 import org.apache.commons.logging.Log;
@@ -30,10 +30,9 @@ import org.wso2.carbon.identity.application.common.model.IdentityProvider;
 import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.identity.application.common.util.IdentityApplicationConstants;
 import org.wso2.carbon.identity.application.common.util.IdentityApplicationManagementUtil;
-import org.wso2.carbon.identity.totp.Constants;
 import org.wso2.carbon.idp.mgt.IdentityProviderManagementException;
 import org.wso2.carbon.idp.mgt.IdentityProviderManager;
-
+import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
 /**
  * TOTP Util class.
  */
@@ -59,10 +58,10 @@ public class TOTPUtil {
                     getThreadLocalCarbonContext().getTenantId());
 		}
 
-		if (Constants.BASE32.equals(property.getValue())) {
-            return Constants.BASE32;
+		if (TOTPAuthenticatorConstants.BASE32.equals(property.getValue())) {
+            return TOTPAuthenticatorConstants.BASE32;
 		}
-		return Constants.BASE64;
+		return TOTPAuthenticatorConstants.BASE64;
 	}
 
     /**

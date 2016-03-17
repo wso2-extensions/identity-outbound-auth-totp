@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package org.wso2.carbon.identity.totp;
+package org.wso2.carbon.identity.application.authenticator.totp;
 
 public class TOTPDTO {
 

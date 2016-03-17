@@ -23,7 +23,7 @@
             <transport>https</transport>
         </transports>
         <parameter name="ServiceClass">
-            org.wso2.carbon.identity.totp.services.TOTPAdminService
+            org.wso2.carbon.identity.application.authenticator.totp.services.TOTPAdminService
         </parameter>
     </service>
 

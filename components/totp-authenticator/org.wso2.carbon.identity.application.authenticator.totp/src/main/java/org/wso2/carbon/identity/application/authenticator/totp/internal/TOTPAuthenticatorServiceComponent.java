@@ -23,7 +23,8 @@ import org.apache.commons.logging.LogFactory;
 import org.osgi.service.component.ComponentContext;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticator;
-import org.wso2.carbon.identity.totp.TOTPManager;
+import org.wso2.carbon.identity.application.authenticator.totp.TOTPManager;
+import org.wso2.carbon.identity.application.authenticator.totp.TOTPManagerImpl;
 import org.wso2.carbon.user.core.service.RealmService;
 
 import java.util.Hashtable;
@@ -35,7 +36,7 @@ import java.util.Hashtable;
  * interface="org.wso2.carbon.user.core.service.RealmService"cardinality="1..1"
  * policy="dynamic" bind="setRealmService" unbind="unsetRealmService"
  * @scr.reference name="totp.manager"
- * interface="org.wso2.carbon.identity.totp.TOTPManager"cardinality="1..1"
+ * interface="org.wso2.carbon.identity.application.authenticator.totp.TOTPManager"cardinality="1..1"
  * policy="dynamic" bind="setTotpManager" unbind="unsetTotpManager"
  */
 public class TOTPAuthenticatorServiceComponent {
@@ -51,7 +52,11 @@ public class TOTPAuthenticatorServiceComponent {
         Hashtable<String, String> props = new Hashtable<String, String>();
 
         ctxt.getBundleContext().registerService(ApplicationAuthenticator.class.getName(), totpAuth, props);
+        log.info("TOTPAuthenticator bundle is activated");
+        TOTPManagerImpl totpService = new TOTPManagerImpl();
 
+        ctxt.getBundleContext().registerService(TOTPManager.class.getName(), totpService, props);
+        log.info("TOTPManagerImpl bundle is activated");
         if (log.isDebugEnabled()) {
             log.debug("TOTPAuthenticator bundle is activated");
         }

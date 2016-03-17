@@ -759,11 +759,6 @@
                 <version>${encoder.wso2.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.wso2.carbon.identity</groupId>
-                <artifactId>org.wso2.carbon.identity.totp</artifactId>
-                <version>${carbon.identity.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>com.warrenstrange</groupId>
                 <artifactId>googleauth</artifactId>
                 <version>0.5.0</version>
