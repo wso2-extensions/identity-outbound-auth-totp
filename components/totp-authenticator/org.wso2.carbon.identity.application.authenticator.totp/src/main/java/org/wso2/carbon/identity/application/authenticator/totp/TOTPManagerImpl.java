@@ -16,9 +16,10 @@
  * under the License.
  */
 
-package org.wso2.carbon.identity.totp;
+package org.wso2.carbon.identity.application.authenticator.totp;
 
-import org.wso2.carbon.identity.totp.exception.TOTPException;
+
+import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 
 /**
  * TOTPManager implementation class.
@@ -59,12 +60,12 @@ public class TOTPManagerImpl implements TOTPManager {
 
 	@Override
 	public String[] getSupportedEncodingMethods() {
-		return new String[]{Constants.BASE32, Constants.BASE64};
+		return new String[]{TOTPAuthenticatorConstants.BASE32, TOTPAuthenticatorConstants.BASE64};
 	}
 
 	@Override
 	public String[] getSupportedHashingMethods() {
-		return new String[]{Constants.SHA1, Constants.MD5};
+		return new String[]{TOTPAuthenticatorConstants.SHA1, TOTPAuthenticatorConstants.MD5};
 	}
 
 

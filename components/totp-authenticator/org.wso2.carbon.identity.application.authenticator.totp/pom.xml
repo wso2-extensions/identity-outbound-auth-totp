@@ -53,7 +53,7 @@
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon.identity</groupId>
-            <artifactId>org.wso2.carbon.identity.totp</artifactId>
+            <artifactId>org.wso2.carbon.identity.mgt</artifactId>
         </dependency>
     </dependencies>
     <build>
@@ -81,7 +81,10 @@
                             org.wso2.carbon.identity.application.authentication.framework.*;version="${carbon.identity.package.import.version.range}",
                             javax.servlet;version="${imp.pkg.version.javax.servlet}",
                             javax.servlet.http;version="${imp.pkg.version.javax.servlet}",
-                            org.wso2.carbon.identity.totp.*</Import-Package>
+                            com.warrenstrange.googleauth.*,
+                            org.wso2.carbon.identity.core.*; version="${carbon.identity.package.import.version.range}",
+                            org.wso2.carbon.idp.mgt.*; version="${carbon.identity.package.import.version.range}",
+                            org.wso2.carbon.identity.mgt.*; version="${carbon.identity.package.import.version.range}"</Import-Package>
                         <DynamicImport-Package>*</DynamicImport-Package>
                         <Export-Package>!org.wso2.carbon.identity.application.authenticator.totp.internal.*,
                             org.wso2.carbon.identity.application.authenticator.totp.*</Export-Package>

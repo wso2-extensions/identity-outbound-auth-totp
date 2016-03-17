@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package org.wso2.carbon.identity.totp;
+package org.wso2.carbon.identity.application.authenticator.totp;
 
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.codec.binary.Base64;
@@ -24,9 +24,14 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.core.util.CryptoException;
+import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
+import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.application.common.IdentityApplicationManagementException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
-import org.wso2.carbon.identity.mgt.*;
+import org.wso2.carbon.identity.mgt.IdentityMgtConfigException;
+import org.wso2.carbon.identity.mgt.IdentityMgtServiceException;
+import org.wso2.carbon.identity.mgt.NotificationSender;
+import org.wso2.carbon.identity.mgt.NotificationSendingModule;
 import org.wso2.carbon.identity.mgt.config.Config;
 import org.wso2.carbon.identity.mgt.config.ConfigBuilder;
 import org.wso2.carbon.identity.mgt.config.ConfigType;
@@ -36,17 +41,11 @@ import org.wso2.carbon.identity.mgt.mail.DefaultEmailSendingModule;
 import org.wso2.carbon.identity.mgt.mail.Notification;
 import org.wso2.carbon.identity.mgt.mail.NotificationBuilder;
 import org.wso2.carbon.identity.mgt.mail.NotificationData;
-import org.wso2.carbon.identity.totp.exception.TOTPException;
-import org.wso2.carbon.identity.totp.util.TOTPUtil;
 import org.wso2.carbon.idp.mgt.IdentityProviderManagementException;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
-
-import org.apache.axis2.AxisFault;
-import org.apache.axis2.context.ConfigurationContext;
-import org.apache.axis2.context.ConfigurationContextFactory;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -91,7 +90,7 @@ public class TOTPTokenGenerator {
      *
      * @param username username of the user
      * @return TOTP token as a String
-     * @throws TOTPException
+     * @throws org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException
      */
     public String generateTOTPTokenLocal(String username)
             throws TOTPException {
@@ -106,14 +105,15 @@ public class TOTPTokenGenerator {
                 username = MultitenantUtils.getTenantAwareUsername(String.valueOf(username));
 
                 if (userRealm != null) {
-                    String encryptedSecretKey = userRealm.getUserStoreManager().getUserClaimValue(username, Constants.SECRET_KEY_CLAIM_URL, null);
-                    String secretKey = TOTPUtil.decrypt(encryptedSecretKey);
-                    String email = userRealm.getUserStoreManager().getUserClaimValue(username, Constants.EMAIL_CLAIM_URL, null);
+                    String secretKey = TOTPUtil.decrypt(userRealm.getUserStoreManager().getUserClaimValue(username,
+                            TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, null));
+                    String email = userRealm.getUserStoreManager().getUserClaimValue(username,
+                            TOTPAuthenticatorConstants.EMAIL_TEMPLATE_NMAME, null);
 
                     byte[] secretkey;
                     String encoding;
                     encoding = TOTPUtil.getEncodingMethod();
-                    if (Constants.BASE32.equals(encoding)) {
+                    if (TOTPAuthenticatorConstants.BASE32.equals(encoding)) {
                         Base32 codec32 = new Base32();
                         secretkey = codec32.decode(secretKey);
                     } else {
@@ -144,6 +144,41 @@ public class TOTPTokenGenerator {
             } catch (CryptoException e) {
                 throw new TOTPException("Error while decrypting the key", e);
             }
+        }
+        return Long.toString(token);
+    }
+
+    /**
+     * Generate TOTP token for a given Secretkey
+     *
+     * @param secretKey Secret key
+     * @return TOTP token as a string
+     * @throws org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException
+     */
+
+    public String generateTOTPToken(String secretKey) throws TOTPException {
+        long token;
+
+        byte[] secretkey;
+        String encoding;
+        try {
+            encoding = TOTPUtil.getEncodingMethod();
+            if ("Base32".equals(encoding)) {
+                Base32 codec32 = new Base32();
+                secretkey = codec32.decode(secretKey);
+            } else {
+                Base64 code64 = new Base64();
+                secretkey = code64.decode(secretKey);
+            }
+            token = getCode(secretkey, getTimeIndex());
+        } catch (IdentityApplicationManagementException e) {
+            throw new TOTPException("Error when fetching the encoding method", e);
+        } catch (IdentityProviderManagementException e) {
+            throw new TOTPException("Error when getting the resident IDP", e);
+        } catch (NoSuchAlgorithmException e) {
+            throw new TOTPException("TOTPTokenGenerator can't find the configured hashing algorithm", e);
+        } catch (InvalidKeyException e) {
+            throw new TOTPException("Secret key is not valid", e);
         }
         return Long.toString(token);
     }
@@ -182,7 +217,7 @@ public class TOTPTokenGenerator {
      * @return
      */
     private static long getTimeIndex() {
-        long timeStep = Constants.DEFAULT_TIME_STEP_SIZE;
+        long timeStep = TOTPAuthenticatorConstants.DEFAULT_TIME_STEP_SIZE;
         try {
             timeStep = TOTPUtil.getTimeStepSize();
         } catch (IdentityApplicationManagementException e) {
@@ -195,58 +230,57 @@ public class TOTPTokenGenerator {
 
 
     private void sendNotification(String username, String token, String email) throws TOTPException {
-        System.setProperty(Constants.AXIS2, Constants.AXIS2_FILE);
-        try {
-            ConfigurationContext configurationContext =
-                    ConfigurationContextFactory.createConfigurationContextFromFileSystem((String) null, (String) null);
-            if (configurationContext.getAxisConfiguration().getTransportsOut()
-                    .containsKey(Constants.TRANSPORT_MAILTO)) {
+//        System.setProperty(Constants.AXIS2, Constants.AXIS2_FILE);
+//        try {
+//            ConfigurationContext configurationContext =
+//                    ConfigurationContextFactory.createConfigurationContextFromFileSystem(Constants.AXIS2_FILE);
+//            if (configurationContext.getAxisConfiguration().getTransportsOut()
+//                    .containsKey(Constants.TRANSPORT_MAILTO)) {
                 NotificationSender notificationSender = new NotificationSender();
                 NotificationDataDTO notificationData = new NotificationDataDTO();
                 Notification emailNotification;
                 NotificationData emailNotificationData = new NotificationData();
                 ConfigBuilder configBuilder = ConfigBuilder.getInstance();
                 String tenantDomain = MultitenantUtils.getTenantDomain(username);
+                NotificationSendingModule module = new DefaultEmailSendingModule();
                 int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
                 String emailTemplate;
                 Config config;
 
                 try {
-                    config = configBuilder.loadConfiguration(ConfigType.EMAIL,
-                            StorageType.REGISTRY, tenantId);
+                    config = configBuilder.loadConfiguration(ConfigType.EMAIL, StorageType.REGISTRY, tenantId);
                 } catch (IdentityMgtConfigException e) {
-                    throw new TOTPException("Error occurred while loading email templates for user : "
-                            + username, e);
+                    throw new TOTPException("Error occurred while loading email templates for user : " + username, e);
                 }
 
                 emailNotificationData.setTagData(USER_NAME, username);
                 emailNotificationData.setTagData(TOTP_TOKEN, token);
                 emailNotificationData.setSendTo(email);
-                emailTemplate = config.getProperty(Constants.EMAIL_TEMPLATE_NMAME);
+                if (config.getProperties().containsKey(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)) {
+                    emailTemplate = config.getProperty(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
+                    try {
+                        emailNotification = NotificationBuilder.createNotification("EMAIL", emailTemplate,
+                                emailNotificationData);
+                    } catch (IdentityMgtServiceException e) {
+                        log.error("Error occurred while creating notification from email template : " + emailTemplate, e);
+                        throw new TOTPException("Error occurred while creating notification from email template : "
+                                + emailTemplate, e);
+                    }
 
-                try {
-                    emailNotification = NotificationBuilder.createNotification("EMAIL", emailTemplate, emailNotificationData);
-                } catch (IdentityMgtServiceException e) {
-                    throw new TOTPException("Error occurred while creating notification from email template : "
-                            + emailTemplate, e);
-                }
-                notificationData.setNotificationAddress(email);
-                NotificationSendingModule module = new DefaultEmailSendingModule();
+                    notificationData.setNotificationAddress(email);
 
-                if (IdentityMgtConfig.getInstance().isNotificationInternallyManaged()) {
                     module.setNotificationData(notificationData);
                     module.setNotification(emailNotification);
                     notificationSender.sendNotification(module);
                     notificationData.setNotificationSent(true);
                 } else {
-                    notificationData.setNotificationSent(false);
-                    notificationData.setNotificationCode(token);
+                    throw new TOTPException("Unable find the email template");
                 }
-            } else {
-                throw new TOTPException("MAILTO transport sender is not defined in axis2 configuration file");
-            }
-        } catch (AxisFault axisFault) {
-            throw new TOTPException("Error while getting the SMTP configuration");
-        }
+//            } else {
+//                throw new TOTPException("MAILTO transport sender is not defined in axis2 configuration file");
+//            }
+//        } catch (AxisFault axisFault) {
+//            throw new TOTPException("Error while getting the SMTP configuration");
+//        }
     }
 }

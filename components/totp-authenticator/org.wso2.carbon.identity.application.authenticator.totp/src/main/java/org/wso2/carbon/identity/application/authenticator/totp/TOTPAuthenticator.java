@@ -27,10 +27,11 @@ import org.wso2.carbon.identity.application.authentication.framework.config.Conf
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.exception.LogoutFailedException;
-import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
-import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPAuthenticatorServiceComponent;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
-import org.wso2.carbon.identity.totp.exception.TOTPException;
+import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
+//import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
+import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
+import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPAuthenticatorServiceComponent;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -102,9 +103,9 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			throw new AuthenticationFailedException("Error when redirecting the totp login response, " +
 			                                        "user : " + username, e);
 		} catch (TOTPException e) {
-			throw new AuthenticationFailedException("Error when checking totp enabled for the user : " + username, e);
-		}
-	}
+            throw new AuthenticationFailedException("Error while checking TOTP enabled for the user", e);
+        }
+    }
 
 	@Override
 	protected void processAuthenticationResponse(HttpServletRequest request,
@@ -116,16 +117,16 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 		String username = getLoggedInUser(context);
 
 		if (token != null) {
-			try {
-				int tokenvalue = Integer.parseInt(token);
+            int tokenvalue = Integer.parseInt(token);
 
-				if (!TOTPAuthenticatorServiceComponent.getTotpManager().isValidTokenLocalUser(tokenvalue, username)) {
-					throw new AuthenticationFailedException("Authentication failed, user :  " + username);
-				}
-                context.setSubject(AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username));
-			} catch (TOTPException e) {
-				throw new AuthenticationFailedException("TOTP Authentication process failed for user " + username, e);
-			}
+            try {
+                if (!TOTPAuthenticatorServiceComponent.getTotpManager().isValidTokenLocalUser(tokenvalue, username)) {
+                    throw new AuthenticationFailedException("Authentication failed, user :  " + username);
+                }
+            } catch (TOTPException e) {
+                throw new AuthenticationFailedException("Error while validating the token");
+            }
+            context.setSubject(AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username));
 		}
 	}
 
@@ -166,17 +167,17 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 	}
 
 
-	private boolean generateTOTPToken(AuthenticationContext context) {
+	private boolean generateTOTPToken(AuthenticationContext context) throws AuthenticationFailedException {
 		String username = getLoggedInUser(context);
-		try {
-			TOTPAuthenticatorServiceComponent.getTotpManager().generateTOTPTokenLocal(username);
-			if (log.isDebugEnabled()) {
-				log.debug("TOTP Token is generated");
-			}
-		} catch (TOTPException e) {
-			log.error("Error when generating the totp token", e);
-			return false;
-		}
+        try {
+            TOTPAuthenticatorServiceComponent.getTotpManager().generateTOTPTokenLocal(username);
+        } catch (TOTPException e) {
+            throw new AuthenticationFailedException("Error while generating the token");
+        }
+        if (log.isDebugEnabled()) {
+            log.debug("TOTP Token is generated");
+        }
+
         return true;
 	}
 

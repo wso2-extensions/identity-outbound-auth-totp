@@ -23,4 +23,18 @@ public abstract class TOTPAuthenticatorConstants {
     public static final String AUTHENTICATOR_NAME = "TOTPAuthenticator";
     public static final String AUTHENTICATOR_FRIENDLY_NAME = "totp";
     public static final String AUTHENTICATOR_STATUS = "TOTPAuthenticatorStatus";
+    public static final String QR_CODE_CLAIM_URL = "http://wso2.org/claims/identity/qrcodeurl";
+    public static final String SECRET_KEY_CLAIM_URL = "http://wso2.org/claims/identity/secretkey";
+    public static final String ENCODING_CLAIM_URL = "http://wso2.org/claims/identity/encoding";
+    public static final String BASE32 = "Base32";
+    public static final String BASE64 = "Base64";
+    public static final String SHA1 = "SHA-1";
+    public static final String MD5 = "MD5";
+    public static final long DEFAULT_TIME_STEP_SIZE = 30;
+    public static final int DEFAULT_WINDOW_SIZE = 30;
+    public static final String EMAIL_TEMPLATE_NMAME = "totp";
+    public static final String AXIS2 = "axis2.xml";
+    public static final String AXIS2_FILE = "repository/conf/axis2/axis2.xml";
+    public static final String TRANSPORT_MAILTO = "mailto";
+    public static final String EMAIL_CLAIM_URL = "http://wso2.org/claims/emailaddress";
 }

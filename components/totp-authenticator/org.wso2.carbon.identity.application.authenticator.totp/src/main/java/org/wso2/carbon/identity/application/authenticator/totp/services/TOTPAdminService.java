@@ -15,13 +15,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.wso2.carbon.identity.totp.services;
+package org.wso2.carbon.identity.application.authenticator.totp.services;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.carbon.identity.totp.TOTPDTO;
-import org.wso2.carbon.identity.totp.TOTPKeyGenerator;
-import org.wso2.carbon.identity.totp.exception.TOTPException;
+import org.wso2.carbon.identity.application.authenticator.totp.TOTPDTO;
+import org.wso2.carbon.identity.application.authenticator.totp.TOTPKeyGenerator;
+import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.user.api.UserStoreException;
 
 public class TOTPAdminService {

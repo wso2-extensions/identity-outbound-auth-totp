@@ -16,7 +16,7 @@
  * under the License.
  */
 
-package org.wso2.carbon.identity.totp;
+package org.wso2.carbon.identity.application.authenticator.totp;
 
 import com.warrenstrange.googleauth.*;
 import org.apache.commons.lang.StringUtils;
@@ -24,10 +24,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.core.util.CryptoException;
+import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
+import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.application.common.IdentityApplicationManagementException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
-import org.wso2.carbon.identity.totp.exception.TOTPException;
-import org.wso2.carbon.identity.totp.util.TOTPUtil;
 import org.wso2.carbon.idp.mgt.IdentityProviderManagementException;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
@@ -86,10 +86,10 @@ public class TOTPKeyGenerator {
 
             if (userRealm != null) {
                 secretkey = TOTPUtil.encrypt(key.getKey());
-                userRealm.getUserStoreManager().setUserClaimValue(username, Constants.SECRET_KEY_CLAIM_URL, secretkey, null);
-                userRealm.getUserStoreManager().setUserClaimValue(username, Constants.QR_CODE_CLAIM_URL, qrCodeURL, null);
+                userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, secretkey, null);
+                userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, qrCodeURL, null);
                 String encoding = TOTPUtil.getEncodingMethod();
-                userRealm.getUserStoreManager().setUserClaimValue(username, Constants.ENCODING_CLAIM_URL, encoding, null);
+                userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.ENCODING_CLAIM_URL, encoding, null);
             }
         } catch (UserStoreException e) {
             throw new TOTPException("TOTPKeyGenerator failed while trying to access userRealm for the user : " +
@@ -126,18 +126,18 @@ public class TOTPKeyGenerator {
             username = MultitenantUtils.getTenantAwareUsername(String.valueOf(username));
 
             if (userRealm != null) {
-                secretKey = userRealm.getUserStoreManager().getUserClaimValue(username, Constants.SECRET_KEY_CLAIM_URL, null);
+                secretKey = userRealm.getUserStoreManager().getUserClaimValue(username, TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, null);
                 if(StringUtils.isEmpty(secretKey)){
                     GoogleAuthenticatorKey key = generateKey();
                     secretKey = key.getKey();
-                    userRealm.getUserStoreManager().setUserClaimValue(username, Constants.SECRET_KEY_CLAIM_URL,TOTPUtil.encrypt(secretKey), null);
+                    userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,TOTPUtil.encrypt(secretKey), null);
                     String encoding = TOTPUtil.getEncodingMethod();
-                    userRealm.getUserStoreManager().setUserClaimValue(username, Constants.ENCODING_CLAIM_URL, encoding, null);
+                    userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.ENCODING_CLAIM_URL, encoding, null);
                 } else {
                     secretKey = TOTPUtil.decrypt(secretKey);
                 }
                 qrCodeURL = "otpauth://totp/" + tenantDomain + ":" + username + "?secret=" + secretKey + "&issuer=" + tenantDomain;
-                userRealm.getUserStoreManager().setUserClaimValue(username, Constants.QR_CODE_CLAIM_URL, qrCodeURL, null);
+                userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, qrCodeURL, null);
             }
         } catch (UserStoreException e) {
             throw new TOTPException("TOTPKeyGenerator failed while trying to access userRealm for the user : " +
@@ -170,9 +170,9 @@ public class TOTPKeyGenerator {
             username = MultitenantUtils.getTenantAwareUsername(String.valueOf(username));
 
 			if (userRealm != null) {
-                userRealm.getUserStoreManager().setUserClaimValue(username, Constants.QR_CODE_CLAIM_URL, "", null);
-                userRealm.getUserStoreManager().setUserClaimValue(username, Constants.ENCODING_CLAIM_URL, "", null);
-                userRealm.getUserStoreManager().setUserClaimValue(username, Constants.SECRET_KEY_CLAIM_URL, "", null);
+                userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, "", null);
+                userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.ENCODING_CLAIM_URL, "", null);
+                userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "", null);
 				return true;
 			} else {
 				throw new TOTPException("Can not find the user realm for the given tenant domain : " + CarbonContext.
@@ -192,7 +192,7 @@ public class TOTPKeyGenerator {
 	private GoogleAuthenticatorKey generateKey() throws TOTPException {
         KeyRepresentation encoding = KeyRepresentation.BASE32;
 		try {
-			if (Constants.BASE64.equals(TOTPUtil.getEncodingMethod())) {
+			if (TOTPAuthenticatorConstants.BASE64.equals(TOTPUtil.getEncodingMethod())) {
 				encoding = KeyRepresentation.BASE64;
 			}
 		} catch (IdentityApplicationManagementException e) {

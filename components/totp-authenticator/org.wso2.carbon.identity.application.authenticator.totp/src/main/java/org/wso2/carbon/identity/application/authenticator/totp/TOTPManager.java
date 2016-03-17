@@ -16,10 +16,10 @@
  * under the License.
  */
 
-package org.wso2.carbon.identity.totp;
+package org.wso2.carbon.identity.application.authenticator.totp;
 
-import org.wso2.carbon.identity.totp.exception.TOTPException;
 
+import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 
 public interface TOTPManager {
     /***
