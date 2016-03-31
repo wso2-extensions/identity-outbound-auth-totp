@@ -22,48 +22,54 @@ import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPExc
 
 
 public interface TOTPManager {
-    /***
+    /**
      * Generate the totp key for a local user
+     *
      * @param username user name
      * @return return TOTP Data transfer object
      * @throws TOTPException
      */
-	public String generateTOTPKeyLocal(String username) throws TOTPException;
+    public String generateTOTPKeyLocal(String username) throws TOTPException;
 
-    /***
+    /**
      * Generate the totp token for a local user
+     *
      * @param username user name
      * @return totp token
      * @throws TOTPException
      */
-	public String generateTOTPTokenLocal(String username) throws TOTPException;
+    public String generateTOTPTokenLocal(String username) throws TOTPException;
 
-    /***
+    /**
      * Check whether totp is enabled for a given local user
+     *
      * @param username user name
      * @return true or false
      * @throws TOTPException
      */
-	public boolean isTOTPEnabledForLocalUser(String username) throws TOTPException;
+    public boolean isTOTPEnabledForLocalUser(String username) throws TOTPException;
 
-    /***
+    /**
      * is given token is valid for a local user
-     * @param token token
+     *
+     * @param token    token
      * @param username user name
      * @return true or false
      * @throws TOTPException
      */
-	public boolean isValidTokenLocalUser(int token, String username) throws TOTPException;
+    public boolean isValidTokenLocalUser(int token, String username) throws TOTPException;
 
-    /***
+    /**
      * Get the supported encoding method
+     *
      * @return String value of the encoding method
      */
-	public String[] getSupportedEncodingMethods();
+    public String[] getSupportedEncodingMethods();
 
-    /***
+    /**
      * Get the supported hashing method
+     *
      * @return String value of the hashing method
      */
-	public String[] getSupportedHashingMethods();
+    public String[] getSupportedHashingMethods();
 }

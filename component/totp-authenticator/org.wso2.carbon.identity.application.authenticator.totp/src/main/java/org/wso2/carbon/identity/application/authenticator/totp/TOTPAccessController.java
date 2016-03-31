@@ -32,24 +32,24 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 public class TOTPAccessController {
 
-	private static Log log = LogFactory.getLog(TOTPAccessController.class);
-	private static volatile TOTPAccessController instance;
+    private static Log log = LogFactory.getLog(TOTPAccessController.class);
+    private static volatile TOTPAccessController instance;
 
-	private TOTPAccessController() {
-	}
+    private TOTPAccessController() {
+    }
 
-	public static TOTPAccessController getInstance() {
-		if (instance == null) {
-			synchronized (TOTPAccessController.class) {
-				if (instance == null) {
-					instance = new TOTPAccessController();
-				}
-			}
-		}
-		return instance;
-	}
+    public static TOTPAccessController getInstance() {
+        if (instance == null) {
+            synchronized (TOTPAccessController.class) {
+                if (instance == null) {
+                    instance = new TOTPAccessController();
+                }
+            }
+        }
+        return instance;
+    }
 
-	public boolean isTOTPEnabledForLocalUser(String username) throws TOTPException {
+    public boolean isTOTPEnabledForLocalUser(String username) throws TOTPException {
         UserRealm userRealm;
         try {
             String tenantDomain = MultitenantUtils.getTenantDomain(username);
@@ -58,17 +58,17 @@ public class TOTPAccessController {
             userRealm = realmService.getTenantUserRealm(tenantId);
 
             username = MultitenantUtils.getTenantAwareUsername(String.valueOf(username));
-			if (userRealm != null) {
+            if (userRealm != null) {
                 String secretKey = userRealm.getUserStoreManager().getUserClaimValue(username,
                         TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, null);
                 return StringUtils.isNotBlank(secretKey);
-			} else {
-				throw new TOTPException("Cannot find the user realm for the given tenant domain : " + CarbonContext
-						.getThreadLocalCarbonContext().getTenantDomain());
-			}
-		} catch (UserStoreException e) {
-			throw new TOTPException("TOTPAccessController failed while trying to access userRealm of the user : " + 
-			                        username, e);
-		}
+            } else {
+                throw new TOTPException("Cannot find the user realm for the given tenant domain : " + CarbonContext
+                        .getThreadLocalCarbonContext().getTenantDomain());
+            }
+        } catch (UserStoreException e) {
+            throw new TOTPException("TOTPAccessController failed while trying to access userRealm of the user : " +
+                    username, e);
+        }
     }
 }

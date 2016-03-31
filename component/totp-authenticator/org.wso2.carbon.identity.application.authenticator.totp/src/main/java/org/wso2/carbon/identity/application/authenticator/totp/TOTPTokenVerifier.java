@@ -41,38 +41,38 @@ import java.util.concurrent.TimeUnit;
  */
 public class TOTPTokenVerifier {
 
-	private static Log log = LogFactory.getLog(TOTPTokenVerifier.class);
-	private static volatile TOTPTokenVerifier instance;
+    private static Log log = LogFactory.getLog(TOTPTokenVerifier.class);
+    private static volatile TOTPTokenVerifier instance;
 
-	private TOTPTokenVerifier() {
-	}
+    private TOTPTokenVerifier() {
+    }
 
-	/**
-	 * Singleton method to get instance of TOTPTokenVerifier.
-	 *
-	 * @return instance of TOTPTokenVerifier
-	 */
-	public static TOTPTokenVerifier getInstance() {
-		if (instance == null) {
-			synchronized (TOTPTokenVerifier.class) {
-				if (instance == null) {
-					instance = new TOTPTokenVerifier();
-				}
-			}
-		}
-		return instance;
-	}
+    /**
+     * Singleton method to get instance of TOTPTokenVerifier.
+     *
+     * @return instance of TOTPTokenVerifier
+     */
+    public static TOTPTokenVerifier getInstance() {
+        if (instance == null) {
+            synchronized (TOTPTokenVerifier.class) {
+                if (instance == null) {
+                    instance = new TOTPTokenVerifier();
+                }
+            }
+        }
+        return instance;
+    }
 
-	/**
-	 * Verify whether a given token is valid for a stored local user.
-	 *
-	 * @param token    TOTP Token
-	 * @param username Username of the user
-	 * @return true if token is valid otherwise false
-	 * @throws TOTPException
-	 */
-	public boolean isValidTokenLocalUser(int token, String username) throws TOTPException {
-		KeyRepresentation encoding = KeyRepresentation.BASE32;
+    /**
+     * Verify whether a given token is valid for a stored local user.
+     *
+     * @param token    TOTP Token
+     * @param username Username of the user
+     * @return true if token is valid otherwise false
+     * @throws TOTPException
+     */
+    public boolean isValidTokenLocalUser(int token, String username) throws TOTPException {
+        KeyRepresentation encoding = KeyRepresentation.BASE32;
         long timeStep;
         int windowSize;
         if (TOTPAuthenticatorConstants.BASE64.equals(TOTPUtil.getEncodingMethod())) {
@@ -82,33 +82,33 @@ public class TOTPTokenVerifier {
         windowSize = TOTPUtil.getWindowSize();
 
         GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder gacb = new GoogleAuthenticatorConfig
-				.GoogleAuthenticatorConfigBuilder()
-				.setKeyRepresentation(encoding)
+                .GoogleAuthenticatorConfigBuilder()
+                .setKeyRepresentation(encoding)
                 .setWindowSize(windowSize)
                 .setTimeStepSizeInMillis(timeStep);
 
-		GoogleAuthenticator googleAuthenticator = new GoogleAuthenticator(gacb.build());
+        GoogleAuthenticator googleAuthenticator = new GoogleAuthenticator(gacb.build());
         UserRealm userRealm;
-		try {
+        try {
             String tenantDomain = MultitenantUtils.getTenantDomain(username);
             int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
             RealmService realmService = IdentityTenantUtil.getRealmService();
             userRealm = realmService.getTenantUserRealm(tenantId);
             username = MultitenantUtils.getTenantAwareUsername(String.valueOf(username));
 
-			if (userRealm != null) {
-				UserStoreManager userStoreManager = userRealm.getUserStoreManager();
-				String secretKey = TOTPUtil.decrypt(userStoreManager.getUserClaimValue(username, TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, null));
+            if (userRealm != null) {
+                UserStoreManager userStoreManager = userRealm.getUserStoreManager();
+                String secretKey = TOTPUtil.decrypt(userStoreManager.getUserClaimValue(username, TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, null));
 
                 return googleAuthenticator.authorize(secretKey, token);
-			} else {
-				throw new TOTPException("Cannot find the user realm for the given tenant domain : " + CarbonContext
-						.getThreadLocalCarbonContext().getTenantDomain());
-			}
-		} catch (UserStoreException e) {
-			throw new TOTPException("TOTPTokenVerifier failed while trying to access userRealm of the user : " +
-			                        username, e);
-		} catch (CryptoException e) {
+            } else {
+                throw new TOTPException("Cannot find the user realm for the given tenant domain : " + CarbonContext
+                        .getThreadLocalCarbonContext().getTenantDomain());
+            }
+        } catch (UserStoreException e) {
+            throw new TOTPException("TOTPTokenVerifier failed while trying to access userRealm of the user : " +
+                    username, e);
+        } catch (CryptoException e) {
             throw new TOTPException("Error while decrypting the key", e);
         }
     }
