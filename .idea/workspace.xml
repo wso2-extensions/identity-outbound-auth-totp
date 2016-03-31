@@ -2,316 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="0e9289e6-d0e3-4f6e-a591-afaefd5a8b68" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint.util/pom.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint.util/src/main/java/org/wso2/carbon/identity/application/authentication/endpoint/util/AuthenticationEndpointUtil.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint.util/src/main/java/org/wso2/carbon/identity/application/authentication/endpoint/util/AuthenticationException.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint.util/src/main/java/org/wso2/carbon/identity/application/authentication/endpoint/util/Constants.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint.util/src/main/java/org/wso2/carbon/identity/application/authentication/endpoint/util/TenantDataManager.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint.util/src/main/java/org/wso2/carbon/identity/application/authentication/endpoint/util/TenantMgtAdminServiceClient.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint.util/src/main/java/org/wso2/carbon/identity/application/authentication/endpoint/util/UserRegistrationAdminServiceClient.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint.util/src/main/java/org/wso2/carbon/identity/application/authentication/endpoint/util/filter/AuthenticationEndpointFilter.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint.util/src/main/java/org/wso2/carbon/identity/application/authentication/endpoint/util/listener/AuthenticationEndpointContextListener.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint.util/src/main/resources/TenantConfig.properties" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint.util/src/main/resources/org/wso2/carbon/identity/application/authentication/endpoint/i18n/Resources.properties" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/pom.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/resources/EndpointConfig.properties" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/resources/org/wso2/carbon/identity/application/authentication/endpoint/i18n/Resources.properties" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/WEB-INF/web.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/assets/css/bootstrap.min.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/assets/img/glyphicons-halflings-white.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/assets/img/glyphicons-halflings.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/assets/js/html5.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/assets/js/jquery-1.7.1.min.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/basicauth.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/create-account.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/css/Roboto.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/css/custom-common.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/css/localstyles-ie7.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/css/localstyles.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/css/openid-provider.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/domain.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/fido-auth.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/fonts/Roboto/Roboto-Bold-webfont.svg" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/fonts/Roboto/Roboto-Bold-webfont.ttf" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/fonts/Roboto/Roboto-Bold-webfont.woff" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/generic-exception-response.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/images/U2F.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/images/body-back.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/images/container-back.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/images/favicon.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/images/icon-default.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/images/login-icon.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/images/logo-inverse.svg" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/images/logo.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/images/openid-input.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/images/repeat.jpg" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/js/scripts.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/js/u2f-api.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/libs/bootstrap_3.3.5/css/bootstrap-theme.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/libs/bootstrap_3.3.5/css/bootstrap-theme.css.map" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/libs/bootstrap_3.3.5/css/bootstrap-theme.min.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/libs/bootstrap_3.3.5/css/bootstrap.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/libs/bootstrap_3.3.5/css/bootstrap.css.map" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/libs/bootstrap_3.3.5/css/bootstrap.min.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/libs/bootstrap_3.3.5/fonts/glyphicons-halflings-regular.eot" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/libs/bootstrap_3.3.5/fonts/glyphicons-halflings-regular.svg" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/libs/bootstrap_3.3.5/fonts/glyphicons-halflings-regular.ttf" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/libs/bootstrap_3.3.5/fonts/glyphicons-halflings-regular.woff" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/libs/bootstrap_3.3.5/fonts/glyphicons-halflings-regular.woff2" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/libs/bootstrap_3.3.5/js/bootstrap.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/libs/bootstrap_3.3.5/js/bootstrap.min.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/libs/bootstrap_3.3.5/js/npm.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/libs/jquery_1.11.3/jquery-1.11.3.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/login.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/logout.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/oauth2_authz.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/oauth2_consent.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/oauth2_error.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/openid.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/openid_profile.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/registration.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/retry.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/samlsso_notification.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/samlsso_redirect.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/tenant_refresh_endpoint.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/tenantauth.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/totp.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.authentication.endpoint/src/main/webapp/totp_error.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/pom.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/ApplicationAuthenticatorService.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/IdentityApplicationManagementException.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/ProvisioningConnectorService.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/cache/BaseCache.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/cache/CacheEntry.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/cache/CacheKey.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/cache/RandomPasswordContainerCache.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/cache/RandomPasswordContainerCacheEntry.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/cache/RandomPasswordContainerCacheKey.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/listener/AbstractCacheListener.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/ApplicationBasicInfo.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/ApplicationPermission.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/AuthenticationStep.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/CertData.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/Claim.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/ClaimConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/ClaimMapping.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/FacebookFederatedAuthenticatorConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/FederatedAuthenticatorConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/GoogleAppsProvisioningConnectorConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/IdentityProvider.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/IdentityProviderProperty.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/InboundAuthenticationConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/InboundAuthenticationConnector.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/InboundAuthenticationRequestConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/InboundProvisioningConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/InboundProvisioningConnector.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/JustInTimeProvisioningConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/LocalAndOutboundAuthenticationConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/LocalAuthenticatorConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/LocalRole.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/OpenIDConnectFederatedAuthenticatorConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/OpenIDFederatedAuthenticatorConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/OutboundProvisioningConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/PassiveSTSFederatedAuthenticatorConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/PermissionsAndRoleConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/Property.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/ProvisioningConnectorConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/ProvisioningServiceProviderType.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/RandomPassword.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/RandomPasswordContainer.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/RequestPathAuthenticatorConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/RoleMapping.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/SAML2SSOFederatedAuthenticatorConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/SCIMProvisioningConnectorConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/SPMLProvisioningConnectorConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/SalesforceProvisioningConnectorConfig.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/ServiceProvider.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/ServiceProviderProperty.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/ThreadLocalProvisioningServiceProvider.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/model/User.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/processors/RandomPasswordProcessor.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/util/IdentityApplicationConstants.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/main/java/org/wso2/carbon/identity/application/common/util/IdentityApplicationManagementUtil.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.identity.application.common/src/test/java/org/wso2/carbon/identity/application/common/model/test/ProvisioningConnectorConfigTest.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/pom.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/java/org/wso2/carbon/idp/mgt/ui/client/IdentityProviderMgtServiceClient.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/java/org/wso2/carbon/idp/mgt/ui/util/IdPManagementUIUtil.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/META-INF/component.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/org/wso2/carbon/idp/mgt/ui/i18n/Resources.properties" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/css/idpmgt.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/docs/userguide.html" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/idp-mgt-add-finish.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/idp-mgt-delete-finish.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/idp-mgt-edit-finish-local.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/idp-mgt-edit-finish.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/idp-mgt-edit-load-local.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/idp-mgt-edit-load.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/idp-mgt-edit-local.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/idp-mgt-edit.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/idp-mgt-list-load.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/idp-mgt-list.jsp" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/add.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/configure.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/delete.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/disable.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/edit.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/enable.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/enable2.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/idp-list.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/idp-mgt-1.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/idp-mgt-10.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/idp-mgt-2.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/idp-mgt-3.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/idp-mgt-4.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/idp-mgt-5.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/idp-mgt-6.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/idp-mgt-7.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/idp-mgt-8.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/idp-mgt-9.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/key.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/list.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/ok.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/res-idp-1.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/res-idp-2.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/resident-idp.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/sts.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt.ui/src/main/resources/web/idpmgt/images/trust.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/pom.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/IdentityProviderManagementException.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/IdentityProviderManagementService.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/IdentityProviderManager.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/cache/IdPAuthPropertyCacheKey.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/cache/IdPCacheByAuthProperty.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/cache/IdPCacheByHRI.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/cache/IdPCacheByName.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/cache/IdPCacheEntry.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/cache/IdPHomeRealmIdCacheKey.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/cache/IdPNameCacheKey.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/dao/CacheBackedIdPMgtDAO.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/dao/FileBasedIdPMgtDAO.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/dao/IdPManagementDAO.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/internal/IdPManagementServiceComponent.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/internal/TenantManagementListener.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/internal/UserStoreListener.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/listener/AbstractIdentityProviderMgtListener.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/listener/IDPMgtAuditLogger.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/listener/IdPMgtValidationListener.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/listener/IdentityProviderMgtListener.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/util/IdPManagementConstants.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/java/org/wso2/carbon/idp/mgt/util/IdPManagementUtil.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/org.wso2.carbon.idp.mgt/src/main/resources/META-INF/services.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/other-artifacts/pom.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/totp-authenticator/org.wso2.carbon.identity.application.authenticator.totp/pom.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/totp-authenticator/org.wso2.carbon.identity.application.authenticator.totp/src/main/java/org/wso2/carbon/identity/application/authenticator/totp/TOTPAccessController.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/totp-authenticator/org.wso2.carbon.identity.application.authenticator.totp/src/main/java/org/wso2/carbon/identity/application/authenticator/totp/TOTPAuthenticator.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/totp-authenticator/org.wso2.carbon.identity.application.authenticator.totp/src/main/java/org/wso2/carbon/identity/application/authenticator/totp/TOTPAuthenticatorConstants.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/totp-authenticator/org.wso2.carbon.identity.application.authenticator.totp/src/main/java/org/wso2/carbon/identity/application/authenticator/totp/TOTPDTO.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/totp-authenticator/org.wso2.carbon.identity.application.authenticator.totp/src/main/java/org/wso2/carbon/identity/application/authenticator/totp/TOTPKeyGenerator.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/totp-authenticator/org.wso2.carbon.identity.application.authenticator.totp/src/main/java/org/wso2/carbon/identity/application/authenticator/totp/TOTPManager.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/totp-authenticator/org.wso2.carbon.identity.application.authenticator.totp/src/main/java/org/wso2/carbon/identity/application/authenticator/totp/TOTPManagerImpl.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/totp-authenticator/org.wso2.carbon.identity.application.authenticator.totp/src/main/java/org/wso2/carbon/identity/application/authenticator/totp/TOTPTokenGenerator.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/totp-authenticator/org.wso2.carbon.identity.application.authenticator.totp/src/main/java/org/wso2/carbon/identity/application/authenticator/totp/TOTPTokenVerifier.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/totp-authenticator/org.wso2.carbon.identity.application.authenticator.totp/src/main/java/org/wso2/carbon/identity/application/authenticator/totp/exception/TOTPException.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/totp-authenticator/org.wso2.carbon.identity.application.authenticator.totp/src/main/java/org/wso2/carbon/identity/application/authenticator/totp/internal/TOTPAuthenticatorServiceComponent.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/totp-authenticator/org.wso2.carbon.identity.application.authenticator.totp/src/main/java/org/wso2/carbon/identity/application/authenticator/totp/services/TOTPAdminService.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/totp-authenticator/org.wso2.carbon.identity.application.authenticator.totp/src/main/java/org/wso2/carbon/identity/application/authenticator/totp/util/TOTPUtil.java" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/totp-authenticator/org.wso2.carbon.identity.application.authenticator.totp/src/main/resources/META-INF/services.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/totp-authenticator/org.wso2.carbon.identity.application.authenticator.totp/src/main/resources/totp.properties" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/controllers/my-profile/edit-finish.jag" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/controllers/my-profile/fido-check.jag" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/controllers/my-profile/fido-finish.jag" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/controllers/my-profile/fido-metadata.jag" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/controllers/my-profile/fido-remove.jag" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/controllers/my-profile/fido-start.jag" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/controllers/my-profile/profileClient.jag" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/controllers/my-profile/totp-init.jag" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/controllers/my-profile/totp-refresh.jag" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/controllers/my-profile/totp-reset.jag" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/controllers/payloadFactory.jag" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/controllers/wsUtil.jag" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/gadget.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/index.jag" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/gadget.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/jquery.min.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/main.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/modal.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/qrCodeGenerator.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/u2f-api.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/404.html" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/crossdomain.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/bootstrap-missing.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/bootstrap-theme.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/bootstrap-theme.min.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/bootstrap.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/bootstrap.min.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/dialog.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/main.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/222222_11x11_icon_close.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/222222_11x11_icon_resize_se.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/222222_7x7_arrow_left.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/222222_7x7_arrow_right.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/454545_11x11_icon_close.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/454545_7x7_arrow_left.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/454545_7x7_arrow_right.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/888888_11x11_icon_close.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/888888_7x7_arrow_left.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/888888_7x7_arrow_right.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/animated-overlay.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/dadada_40x100_textures_02_glass_75.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/e6e6e6_40x100_textures_02_glass_75.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/ffffff_40x100_textures_01_flat_0.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/ffffff_40x100_textures_02_glass_65.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/ui-bg_flat_0_aaaaaa_40x100.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/ui-bg_flat_75_ffffff_40x100.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/ui-bg_glass_55_fbf9ee_1x400.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/ui-bg_glass_65_ffffff_1x400.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/ui-bg_glass_75_dadada_1x400.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/ui-bg_glass_75_e6e6e6_1x400.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/ui-bg_glass_95_fef1ec_1x400.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/ui-bg_highlight-soft_75_cccccc_1x100.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/ui-icons_222222_256x240.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/ui-icons_2e83ff_256x240.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/ui-icons_454545_256x240.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/ui-icons_888888_256x240.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/images/ui-icons_cd0a0a_256x240.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/jquery-ui-1.10.3.custom.min.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/css/smoothness/jqueryui-themeroller.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/font-awesome/css/font-awesome-ie7.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/font-awesome/css/font-awesome-ie7.min.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/font-awesome/css/font-awesome.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/font-awesome/css/font-awesome.min.css" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/font-awesome/font/FontAwesome.otf" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/font-awesome/font/fontawesome-webfont.eot" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/font-awesome/font/fontawesome-webfont.svg" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/font-awesome/font/fontawesome-webfont.ttf" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/font-awesome/font/fontawesome-webfont.woff" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/fonts/glyphicons-halflings-regular.eot" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/fonts/glyphicons-halflings-regular.svg" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/fonts/glyphicons-halflings-regular.ttf" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/fonts/glyphicons-halflings-regular.woff" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/img/add.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/img/background.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/img/confirm.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/img/delete.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/img/error.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/img/identity-logo.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/img/info.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/img/link-sep.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/img/overlay.png" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/img/repeat.jpg" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/img/warning.gif" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/js/main.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/js/vendor/bootstrap.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/js/vendor/bootstrap.min.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/js/vendor/jquery-1.10.1.min.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/js/vendor/jquery-ui-1.10.3.custom.min.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/js/vendor/jquery.validate.min.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/js/vendor/modal.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/js/ui/js/vendor/modernizr-2.6.2-respond-1.1.0.min.js" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/serverinfo.jag" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/util/constants.jag" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/components/user_profile/util/utility.jag" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/pom.xml" afterPath="$PROJECT_DIR$/pom.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.gitignore" afterPath="$PROJECT_DIR$/.gitignore" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="org.wso2.carbon.extension.identity.authenticator.totp.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -338,11 +30,21 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="pom.xml" pinned="false" current-in-tab="true">
+      <file leaf-file-name="pom.xml" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/pom.xml">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-25.714285" vertical-offset="11850" max-vertical-offset="16890">
+            <state vertical-scroll-proportion="0.0" vertical-offset="12135" max-vertical-offset="16890">
               <caret line="34" column="100" selection-start-line="34" selection-start-column="100" selection-end-line="34" selection-end-column="100" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name=".gitignore" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/.gitignore">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.7932692" vertical-offset="135" max-vertical-offset="555">
+              <caret line="31" column="4" selection-start-line="31" selection-start-column="4" selection-end-line="31" selection-end-column="4" />
               <folding />
             </state>
           </provider>
@@ -430,6 +132,7 @@
         <option value="$PROJECT_DIR$/component/totp-authenticator/org.wso2.carbon.identity.application.authenticator.totp/pom.xml" />
         <option value="$PROJECT_DIR$/pom.xml" />
         <option value="$PROJECT_DIR$/component/authentication-endpoint/src/main/webapp/js/scripts.js" />
+        <option value="$PROJECT_DIR$/.gitignore" />
       </list>
     </option>
   </component>
@@ -826,8 +529,16 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/pom.xml">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-25.714285" vertical-offset="11850" max-vertical-offset="16890">
+        <state vertical-scroll-proportion="0.0" vertical-offset="12135" max-vertical-offset="16890">
           <caret line="34" column="100" selection-start-line="34" selection-start-column="100" selection-end-line="34" selection-end-column="100" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/.gitignore">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.7932692" vertical-offset="135" max-vertical-offset="555">
+          <caret line="31" column="4" selection-start-line="31" selection-start-column="4" selection-end-line="31" selection-end-column="4" />
           <folding />
         </state>
       </provider>
