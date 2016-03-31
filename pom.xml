@@ -17,10 +17,10 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.wso2.carbon.identity</groupId>
+    <groupId>org.wso2.carbon.extension.identity.authenticator</groupId>
     <artifactId>org.wso2.carbon.extension.identity.authenticator.totp</artifactId>
     <packaging>pom</packaging>
-    <version>5.0.7</version>
+    <version>1.0.0</version>
     <name>WSO2 Carbon Extension - Platform Aggregator Pom</name>
     <url>http://wso2.org</url>
 
@@ -31,11 +31,8 @@
     </parent>
 
     <modules>
-        <!-- 
-<module>components/other-artifacts</module>
-        <module>components/totp-authenticator/org.wso2.carbon.identity.application.authenticator.totp</module>
-        <module>components/totp/org.wso2.carbon.identity.totp</module>
- -->
+        <module>component/authentication-endpoint</module>
+        <module>component/totp-authenticator/org.wso2.carbon.identity.application.authenticator.totp</module>
     </modules>
 
     <repositories>
@@ -757,6 +754,11 @@
                 <groupId>org.wso2.orbit.org.owasp.encoder</groupId>
                 <artifactId>encoder</artifactId>
                 <version>${encoder.wso2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity</groupId>
+                <artifactId>org.wso2.carbon.identity.totp</artifactId>
+                <version>${carbon.identity.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.warrenstrange</groupId>

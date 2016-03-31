@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: org.apache.axis2.transport:axis2-transport-mail:1.1.0-wso2v13">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/axis2/transport/axis2-transport-mail/1.1.0-wso2v13/axis2-transport-mail-1.1.0-wso2v13.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/axis2/transport/axis2-transport-mail/1.1.0-wso2v13/axis2-transport-mail-1.1.0-wso2v13-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/axis2/transport/axis2-transport-mail/1.1.0-wso2v13/axis2-transport-mail-1.1.0-wso2v13-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
