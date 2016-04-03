@@ -18,7 +18,11 @@
 
 package org.wso2.carbon.identity.application.authenticator.totp;
 
-import com.warrenstrange.googleauth.*;
+import com.warrenstrange.googleauth.GoogleAuthenticator;
+import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
+import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
+import com.warrenstrange.googleauth.KeyRepresentation;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -108,7 +112,7 @@ public class TOTPKeyGenerator {
     public String getQRCodeURL(String username) throws TOTPException {
         //check for user store domain
         String secretKey;
-        String qrCodeURL = null;
+        String encodedQRCodeURL = null;
         String encoding;
 
         UserRealm userRealm;
@@ -130,8 +134,9 @@ public class TOTPKeyGenerator {
                 } else {
                     secretKey = TOTPUtil.decrypt(secretKey);
                 }
-                qrCodeURL = "otpauth://totp/" + tenantDomain + ":" + username + "?secret=" + secretKey + "&issuer=" + tenantDomain;
-                userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, qrCodeURL, null);
+                String qrCodeURL = "otpauth://totp/" + tenantDomain + ":" + username + "?secret=" + secretKey + "&issuer=" + tenantDomain;
+                encodedQRCodeURL = Base64.encodeBase64String(qrCodeURL.getBytes());
+                userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, encodedQRCodeURL, null);
             }
         } catch (UserStoreException e) {
             throw new TOTPException("TOTPKeyGenerator failed while trying to access userRealm for the user : " +
@@ -139,7 +144,7 @@ public class TOTPKeyGenerator {
         } catch (CryptoException e) {
             throw new TOTPException("TOTPKeyGenerator failed while decrypting", e);
         }
-        return qrCodeURL;
+        return encodedQRCodeURL;
     }
 
     /**
@@ -185,7 +190,6 @@ public class TOTPKeyGenerator {
         if (TOTPAuthenticatorConstants.BASE64.equals(TOTPUtil.getEncodingMethod())) {
             encoding = KeyRepresentation.BASE64;
         }
-
         GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder gacb = new GoogleAuthenticatorConfig
                 .GoogleAuthenticatorConfigBuilder()
                 .setKeyRepresentation(encoding);
