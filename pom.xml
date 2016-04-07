@@ -73,7 +73,12 @@
         </repository>
 
     </repositories>
-
+	<scm>
+        <connection>scm:git:https://github.com/wso2-extensions/identity-outbound-auth-totp.git</connection>
+        <url>https://github.com/wso2-extensions/identity-outbound-auth-totp.git</url>
+        <developerConnection>scm:git:https://github.com/wso2-extensions/identity-outbound-auth-totp.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
     <pluginRepositories>
         <pluginRepository>
             <id>wso2.releases</id>
