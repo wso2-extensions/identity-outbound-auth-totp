@@ -103,4 +103,8 @@
             </plugin>
         </plugins>
     </build>
+
+  <scm>
+    <tag>org.wso2.carbon.extension.identity.authenticator.totp-1.0.0</tag>
+  </scm>
 </project>
