@@ -355,8 +355,9 @@ function getSecretKey(url){
 
 function loadQRCode(url){
     var key = jQuery.parseJSON(url).return;
+    var decodedKey = atob(key);
     setupqr();
-    doqr(key);
+    doqr(decodedKey);
 }
 
 function removeQRCode(){
