@@ -25,9 +25,12 @@ import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.core.util.CryptoUtil;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
+import org.wso2.carbon.utils.CarbonUtils;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Properties;
 
 /**
@@ -86,17 +89,28 @@ public class TOTPUtil {
      * @throws TOTPException
      */
     public static Properties getTOTPConfiguration() throws TOTPException {
-        String resourceName = TOTPAuthenticatorConstants.PROPERTIES_FILE;
-        ClassLoader loader = Thread.currentThread().getContextClassLoader();
-        Properties prop = new Properties();
+        FileInputStream fileInputStream = null;
+        String configPath = CarbonUtils.getCarbonConfigDirPath() + File.separator;
 
-        InputStream resourceStream = loader.getResourceAsStream(resourceName);
         try {
-            prop.load(resourceStream);
+            configPath = configPath + TOTPAuthenticatorConstants.PROPERTIES_FILE;
+            fileInputStream = new FileInputStream(new File(configPath));
+            Properties properties = new Properties();
+            properties.load(fileInputStream);
+            return properties;
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(TOTPAuthenticatorConstants.PROPERTIES_FILE + " file not found in " + configPath, e);
         } catch (IOException e) {
-            throw new TOTPException("Can not find the file", e);
+            throw new RuntimeException(TOTPAuthenticatorConstants.PROPERTIES_FILE + " file reading error from " + configPath, e);
+        } finally {
+            if (fileInputStream != null) {
+                try {
+                    fileInputStream.close();
+                } catch (Exception e) {
+                    log.error("Error occurred while closing stream :" + e);
+                }
+            }
         }
-        return prop;
     }
 
     public static String encrypt(String plainText) throws CryptoException {
