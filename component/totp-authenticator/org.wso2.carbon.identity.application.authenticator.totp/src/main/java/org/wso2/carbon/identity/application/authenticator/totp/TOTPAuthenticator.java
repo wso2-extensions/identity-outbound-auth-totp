@@ -28,7 +28,6 @@ import org.wso2.carbon.identity.application.authentication.framework.context.Aut
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.exception.LogoutFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
-import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 
 import javax.servlet.http.HttpServletRequest;
@@ -54,16 +53,30 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                                            AuthenticationContext context)
             throws AuthenticationFailedException, LogoutFailedException {
 
-        if (context.isLogoutRequest()) {
-            return AuthenticatorFlowStatus.SUCCESS_COMPLETED;
-        } else if (request.getParameter("sendToken") != null) {
-            if (generateTOTPToken(context)) {
-                return AuthenticatorFlowStatus.INCOMPLETE;
+        TOTPManager totpManager = new TOTPManagerImpl();
+        String username = getLoggedInUser(context);
+        try {
+            boolean isTOTPEnabled = totpManager.isTOTPEnabledForLocalUser(username);
+
+            if (context.isLogoutRequest()) {
+                return AuthenticatorFlowStatus.SUCCESS_COMPLETED;
+
+            } else if (isTOTPEnabled){
+                if (request.getParameter("sendToken") != null) {
+                    if (generateTOTPToken(context)) {
+                        return AuthenticatorFlowStatus.INCOMPLETE;
+                    } else {
+                        return AuthenticatorFlowStatus.FAIL_COMPLETED;
+                    }
+                } else {
+                    return super.process(request, response, context);
+                }
             } else {
-                return AuthenticatorFlowStatus.FAIL_COMPLETED;
+                context.setSubject(AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username));
+                return AuthenticatorFlowStatus.SUCCESS_COMPLETED;
             }
-        } else {
-            return super.process(request, response, context);
+        }  catch (TOTPException e) {
+            throw new AuthenticationFailedException("Error when checking totp enabled for the user : " + username, e);
         }
     }
 
@@ -72,34 +85,21 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                                                  HttpServletResponse response,
                                                  AuthenticationContext context)
             throws AuthenticationFailedException {
-        TOTPManager totpManager = new TOTPManagerImpl();
         String loginPage = ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
                 .replace("authenticationendpoint/login.do", TOTPAuthenticatorConstants.LOGIN_PAGE);
         String retryParam = "";
         String username = getLoggedInUser(context);
 
-        String queryParams = FrameworkUtils.getQueryStringWithFrameworkContextId(context.getQueryParams(),
-                context.getCallerSessionKey(),
-                context.getContextIdentifier());
         try {
             if (context.isRetrying()) {
                 retryParam = "&authFailure=true&authFailureMsg=login.fail.message";
             }
-            boolean isTOTPEnabled = totpManager.isTOTPEnabledForLocalUser(username);
-            if (isTOTPEnabled) {
-                response.sendRedirect(response.encodeRedirectURL(loginPage + ("?sessionDataKey="
-                        + request.getParameter("sessionDataKey"))) + "&authenticators=" + getName() + "&type=totp"
-                        + retryParam + "&username=" + username);
-            } else {
-                response.sendRedirect(response.encodeRedirectURL(loginPage + ("?sessionDataKey="
-                        + request.getParameter("sessionDataKey"))) + "&authenticators=" + getName() + "&type=totp_error"
-                        + retryParam + "&username=" + username);
-            }
+            response.sendRedirect(response.encodeRedirectURL(loginPage + ("?sessionDataKey="
+                    + request.getParameter("sessionDataKey"))) + "&authenticators=" + getName() + "&type=totp"
+                    + retryParam + "&username=" + username);
         } catch (IOException e) {
             throw new AuthenticationFailedException("Error when redirecting the totp login response, " +
                     "user : " + username, e);
-        } catch (TOTPException e) {
-            throw new AuthenticationFailedException("Error when checking totp enabled for the user : " + username, e);
         }
     }
 
