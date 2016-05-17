@@ -122,4 +122,18 @@ public class TOTPUtil {
         return new String(CryptoUtil.getDefaultCryptoUtil().base64DecodeAndDecrypt(
                 cipherText), Charsets.UTF_8);
     }
+
+    /**
+     * Check the totp enabled by admin
+     *
+     * @return enableTOTP
+     * @throws TOTPException
+     */
+    public static boolean checkTOTPEnableByAdmin() throws TOTPException {
+        Properties prop = getTOTPConfiguration();
+        if (log.isDebugEnabled()) {
+            log.debug("Read the values of enableTOTP from properties file");
+        }
+        return Boolean.parseBoolean(prop.getProperty("enableTOTP"));
+    }
 }

@@ -23,6 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
+import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
@@ -70,5 +71,15 @@ public class TOTPAccessController {
             throw new TOTPException("TOTPAccessController failed while trying to access userRealm of the user : " +
                     username, e);
         }
+    }
+
+    /**
+     * Get the value whether totp is enabled by admin
+     *
+     * @return enableTOTP value
+     * @throws TOTPException
+     */
+    public boolean isTOTPEnabledByAdmin() throws TOTPException {
+        return TOTPUtil.checkTOTPEnableByAdmin();
     }
 }
