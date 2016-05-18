@@ -72,4 +72,12 @@ public interface TOTPManager {
      * @return String value of the hashing method
      */
     public String[] getSupportedHashingMethods();
+
+    /**
+     * Check whether totp is enabled by admin
+     *
+     * @return true or false
+     * @throws TOTPException
+     */
+    public boolean isTOTPEnabledByAdmin() throws TOTPException;
 }

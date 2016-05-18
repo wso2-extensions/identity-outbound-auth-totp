@@ -24,10 +24,12 @@ import org.wso2.carbon.identity.application.authentication.framework.AbstractApp
 import org.wso2.carbon.identity.application.authentication.framework.AuthenticatorFlowStatus;
 import org.wso2.carbon.identity.application.authentication.framework.LocalApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authentication.framework.config.ConfigurationFacade;
+import org.wso2.carbon.identity.application.authentication.framework.config.model.StepConfig;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.exception.LogoutFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
+import org.wso2.carbon.identity.application.authentication.framework.model.CommonAuthResponseWrapper;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 
@@ -43,8 +45,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     @Override
     public boolean canHandle(HttpServletRequest request) {
 
-        String token = request.getParameter("token");
-        String action = request.getParameter("sendToken");
+        String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
+        String action = request.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN);
         return (token != null || action != null);
     }
 
@@ -56,17 +58,35 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
         if (context.isLogoutRequest()) {
             return AuthenticatorFlowStatus.SUCCESS_COMPLETED;
-        } else if (request.getParameter("sendToken") != null) {
+        } else if (request.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN) != null) {
             if (generateTOTPToken(context)) {
                 return AuthenticatorFlowStatus.INCOMPLETE;
             } else {
                 return AuthenticatorFlowStatus.FAIL_COMPLETED;
             }
+        } else if (request.getParameter(TOTPAuthenticatorConstants.TOKEN) == null) {
+            initiateAuthenticationRequest(request, response, context);
+            if (((CommonAuthResponseWrapper) response).getRedirectURL()!=null) {
+                if (((CommonAuthResponseWrapper) response).getRedirectURL()
+                        .contains(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION)) {
+                    return AuthenticatorFlowStatus.INCOMPLETE;
+                }
+            } else {
+                return AuthenticatorFlowStatus.SUCCESS_COMPLETED;
+            }
+            return AuthenticatorFlowStatus.INCOMPLETE;
         } else {
             return super.process(request, response, context);
         }
     }
 
+    /**
+     * Initiate authentication request.
+     *
+     * @param request  the request
+     * @param response the response
+     * @param context  the authentication context
+     */
     @Override
     protected void initiateAuthenticationRequest(HttpServletRequest request,
                                                  HttpServletResponse response,
@@ -75,25 +95,39 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         TOTPManager totpManager = new TOTPManagerImpl();
         String loginPage = ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
                 .replace("authenticationendpoint/login.do", TOTPAuthenticatorConstants.LOGIN_PAGE);
+        String errorPage = ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
+                .replace("authenticationendpoint/login.do", TOTPAuthenticatorConstants.ERROR_PAGE);
         String retryParam = "";
         String username = getLoggedInUser(context);
-
-        String queryParams = FrameworkUtils.getQueryStringWithFrameworkContextId(context.getQueryParams(),
-                context.getCallerSessionKey(),
-                context.getContextIdentifier());
+        // find the authenticated user.
+        AuthenticatedUser authenticatedUser = getUsername(context);
+        if (authenticatedUser == null) {
+            throw new AuthenticationFailedException
+                    ("Authentication failed!. Cannot proceed further without identifying the user");
+        }
         try {
             if (context.isRetrying()) {
                 retryParam = "&authFailure=true&authFailureMsg=login.fail.message";
             }
             boolean isTOTPEnabled = totpManager.isTOTPEnabledForLocalUser(username);
+            if (log.isDebugEnabled()) {
+                log.debug("TOTP is enabled by user: " + isTOTPEnabled);
+            }
+            boolean isTOTPEnabledByAdmin = totpManager.isTOTPEnabledByAdmin();
+            if (log.isDebugEnabled()) {
+                log.debug("TOTP  is enabled by admin: " + isTOTPEnabledByAdmin);
+            }
             if (isTOTPEnabled) {
                 response.sendRedirect(response.encodeRedirectURL(loginPage + ("?sessionDataKey="
                         + request.getParameter("sessionDataKey"))) + "&authenticators=" + getName() + "&type=totp"
                         + retryParam + "&username=" + username);
+            } else if (isTOTPEnabledByAdmin) {
+                response.sendRedirect(response.encodeRedirectURL(errorPage + ("?sessionDataKey="
+                        + request.getParameter("sessionDataKey"))) + "&authenticators=" + getName()
+                        + "&type=totp_error" + retryParam + "&username=" + username);
             } else {
-                response.sendRedirect(response.encodeRedirectURL(loginPage + ("?sessionDataKey="
-                        + request.getParameter("sessionDataKey"))) + "&authenticators=" + getName() + "&type=totp_error"
-                        + retryParam + "&username=" + username);
+                //authentication is now completed in this step. update the authenticated user information.
+                updateAuthenticatedUserInStepConfig(context, authenticatedUser);
             }
         } catch (IOException e) {
             throw new AuthenticationFailedException("Error when redirecting the totp login response, " +
@@ -109,14 +143,13 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                                                  AuthenticationContext context)
             throws AuthenticationFailedException {
 
-        String token = request.getParameter("token");
+        String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
         String username = getLoggedInUser(context);
         TOTPManager totpManager = new TOTPManagerImpl();
         if (token != null) {
             try {
-                int tokenvalue = Integer.parseInt(token);
-
-                if (!totpManager.isValidTokenLocalUser(tokenvalue, username)) {
+                int tokenValue = Integer.parseInt(token);
+                if (!totpManager.isValidTokenLocalUser(tokenValue, username)) {
                     throw new AuthenticationFailedException("Authentication failed, user :  " + username);
                 }
                 context.setSubject(AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username));
@@ -178,4 +211,40 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         return true;
     }
 
+    /**
+     * Update the authenticated user context.
+     *
+     * @param context           the authentication context
+     * @param authenticatedUser the authenticated user's name
+     */
+    private void updateAuthenticatedUserInStepConfig(AuthenticationContext context,
+                                                     AuthenticatedUser authenticatedUser) {
+        for (int i = 1; i <= context.getSequenceConfig().getStepMap().size(); i++) {
+            StepConfig stepConfig = context.getSequenceConfig().getStepMap().get(i);
+            if (stepConfig.getAuthenticatedUser() != null && stepConfig.getAuthenticatedAutenticator()
+                    .getApplicationAuthenticator() instanceof LocalApplicationAuthenticator) {
+                authenticatedUser = stepConfig.getAuthenticatedUser();
+                break;
+            }
+        }
+        context.setSubject(authenticatedUser);
+    }
+
+    /**
+     * Get the username from authentication context.
+     *
+     * @param context the authentication context
+     */
+    private AuthenticatedUser getUsername(AuthenticationContext context) {
+        AuthenticatedUser authenticatedUser = null;
+        for (int i = 1; i <= context.getSequenceConfig().getStepMap().size(); i++) {
+            StepConfig stepConfig = context.getSequenceConfig().getStepMap().get(i);
+            if (stepConfig.getAuthenticatedUser() != null && stepConfig.getAuthenticatedAutenticator()
+                    .getApplicationAuthenticator() instanceof LocalApplicationAuthenticator) {
+                authenticatedUser = stepConfig.getAuthenticatedUser();
+                break;
+            }
+        }
+        return authenticatedUser;
+    }
 }
