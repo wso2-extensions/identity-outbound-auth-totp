@@ -99,9 +99,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 .replace("authenticationendpoint/login.do", TOTPAuthenticatorConstants.ERROR_PAGE);
         String retryParam = "";
         String username = getLoggedInUser(context);
-        String queryParams = FrameworkUtils.getQueryStringWithFrameworkContextId(context.getQueryParams(),
-                context.getCallerSessionKey(),
-                context.getContextIdentifier());
         // find the authenticated user.
         AuthenticatedUser authenticatedUser = getUsername(context);
         if (authenticatedUser == null) {
@@ -120,25 +117,17 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             if (log.isDebugEnabled()) {
                 log.debug("TOTP  is enabled by admin: " + isTOTPEnabledByAdmin);
             }
-            if (isTOTPEnabledByAdmin) {
-                if (isTOTPEnabled) {
-                    response.sendRedirect(response.encodeRedirectURL(loginPage + ("?sessionDataKey="
-                            + request.getParameter("sessionDataKey"))) + "&authenticators=" + getName() + "&type=totp"
-                            + retryParam + "&username=" + username);
-                } else {
-                    response.sendRedirect(response.encodeRedirectURL(errorPage + ("?sessionDataKey="
-                            + request.getParameter("sessionDataKey"))) + "&authenticators=" + getName()
-                            + "&type=totp_error" + retryParam + "&username=" + username);
-                }
+            if (isTOTPEnabled) {
+                response.sendRedirect(response.encodeRedirectURL(loginPage + ("?sessionDataKey="
+                        + request.getParameter("sessionDataKey"))) + "&authenticators=" + getName() + "&type=totp"
+                        + retryParam + "&username=" + username);
+            } else if (isTOTPEnabledByAdmin) {
+                response.sendRedirect(response.encodeRedirectURL(errorPage + ("?sessionDataKey="
+                        + request.getParameter("sessionDataKey"))) + "&authenticators=" + getName()
+                        + "&type=totp_error" + retryParam + "&username=" + username);
             } else {
-                if (isTOTPEnabled) {
-                    response.sendRedirect(response.encodeRedirectURL(loginPage + ("?sessionDataKey="
-                            + request.getParameter("sessionDataKey"))) + "&authenticators=" + getName() + "&type=totp"
-                            + retryParam + "&username=" + username);
-                } else {
-                    //authentication is now completed in this step. update the authenticated user information.
-                    updateAuthenticatedUserInStepConfig(context, authenticatedUser);
-                }
+                //authentication is now completed in this step. update the authenticated user information.
+                updateAuthenticatedUserInStepConfig(context, authenticatedUser);
             }
         } catch (IOException e) {
             throw new AuthenticationFailedException("Error when redirecting the totp login response, " +
