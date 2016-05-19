@@ -22,7 +22,6 @@
         <artifactId>org.wso2.carbon.extension.identity.authenticator.totp</artifactId>
         <version>1.0.2-SNAPSHOT</version>
     </parent>
-    <groupId>org.wso2.carbon.extension.identity.authenticator</groupId>
     <artifactId>org.wso2.carbon.extension.identity.authenticator.totp.feature</artifactId>
     <version>1.0.2-SNAPSHOT</version>
     <packaging>pom</packaging>
