@@ -29,8 +29,6 @@ import org.wso2.carbon.identity.application.authentication.framework.context.Aut
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.exception.LogoutFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
-import org.wso2.carbon.identity.application.authentication.framework.model.CommonAuthResponseWrapper;
-import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 
 import javax.servlet.http.HttpServletRequest;
@@ -66,15 +64,12 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             }
         } else if (request.getParameter(TOTPAuthenticatorConstants.TOKEN) == null) {
             initiateAuthenticationRequest(request, response, context);
-            if (((CommonAuthResponseWrapper) response).getRedirectURL()!=null) {
-                if (((CommonAuthResponseWrapper) response).getRedirectURL()
-                        .contains(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION)) {
-                    return AuthenticatorFlowStatus.INCOMPLETE;
-                }
+            if (context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION)
+                    .equals(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)) {
+                return AuthenticatorFlowStatus.INCOMPLETE;
             } else {
                 return AuthenticatorFlowStatus.SUCCESS_COMPLETED;
             }
-            return AuthenticatorFlowStatus.INCOMPLETE;
         } else {
             return super.process(request, response, context);
         }
@@ -99,6 +94,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 .replace("authenticationendpoint/login.do", TOTPAuthenticatorConstants.ERROR_PAGE);
         String retryParam = "";
         String username = getLoggedInUser(context);
+        context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
         // find the authenticated user.
         AuthenticatedUser authenticatedUser = getUsername(context);
         if (authenticatedUser == null) {
@@ -128,6 +124,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             } else {
                 //authentication is now completed in this step. update the authenticated user information.
                 updateAuthenticatedUserInStepConfig(context, authenticatedUser);
+                context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION, TOTPAuthenticatorConstants.BASIC);
             }
         } catch (IOException e) {
             throw new AuthenticationFailedException("Error when redirecting the totp login response, " +
