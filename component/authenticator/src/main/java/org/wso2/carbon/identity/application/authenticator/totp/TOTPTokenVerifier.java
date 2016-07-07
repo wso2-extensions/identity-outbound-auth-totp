@@ -18,14 +18,14 @@
 
 package org.wso2.carbon.identity.application.authenticator.totp;
 
-import com.warrenstrange.googleauth.GoogleAuthenticator;
-import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
-import com.warrenstrange.googleauth.KeyRepresentation;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
+import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorConfig;
+import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorImpl;
+import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPKeyRepresentation;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.user.api.UserRealm;
@@ -72,22 +72,22 @@ public class TOTPTokenVerifier {
      * @throws TOTPException
      */
     public boolean isValidTokenLocalUser(int token, String username) throws TOTPException {
-        KeyRepresentation encoding = KeyRepresentation.BASE32;
+        TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;
         long timeStep;
         int windowSize;
         if (TOTPAuthenticatorConstants.BASE64.equals(TOTPUtil.getEncodingMethod())) {
-            encoding = KeyRepresentation.BASE64;
+            encoding = TOTPKeyRepresentation.BASE64;
         }
         timeStep = TimeUnit.SECONDS.toMillis(TOTPUtil.getTimeStepSize());
         windowSize = TOTPUtil.getWindowSize();
 
-        GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder gacb = new GoogleAuthenticatorConfig
-                .GoogleAuthenticatorConfigBuilder()
+        TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder gacb = new TOTPAuthenticatorConfig
+                .TOTPAuthenticatorConfigBuilder()
                 .setKeyRepresentation(encoding)
                 .setWindowSize(windowSize)
                 .setTimeStepSizeInMillis(timeStep);
 
-        GoogleAuthenticator googleAuthenticator = new GoogleAuthenticator(gacb.build());
+        TOTPAuthenticatorImpl totpAuthenticator = new TOTPAuthenticatorImpl(gacb.build());
         UserRealm userRealm;
         try {
             String tenantDomain = MultitenantUtils.getTenantDomain(username);
@@ -100,7 +100,7 @@ public class TOTPTokenVerifier {
                 UserStoreManager userStoreManager = userRealm.getUserStoreManager();
                 String secretKey = TOTPUtil.decrypt(userStoreManager.getUserClaimValue(username, TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, null));
 
-                return googleAuthenticator.authorize(secretKey, token);
+                return totpAuthenticator.authorize(secretKey, token);
             } else {
                 throw new TOTPException("Cannot find the user realm for the given tenant domain : " + CarbonContext
                         .getThreadLocalCarbonContext().getTenantDomain());

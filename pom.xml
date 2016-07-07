@@ -14,7 +14,8 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.wso2.carbon.extension.identity.authenticator</groupId>
     <artifactId>org.wso2.carbon.extension.identity.authenticator.totp</artifactId>
@@ -72,7 +73,7 @@
         <developerConnection>
             scm:git:https://github.com/wso2-extensions/identity-outbound-auth-totp.git
         </developerConnection>
-        <tag>org.wso2.carbon.extension.identity.authenticator.totp-1.0.2</tag>
+        <tag>HEAD</tag>
     </scm>
     <pluginRepositories>
         <pluginRepository>
@@ -539,6 +540,11 @@
             <dependency>
                 <groupId>commons-codec.wso2</groupId>
                 <artifactId>commons-codec</artifactId>
+                <version>${commons-codec.wso2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
                 <version>${commons-codec.version}</version>
             </dependency>
             <dependency>
@@ -721,11 +727,6 @@
                 <groupId>org.wso2.carbon.identity</groupId>
                 <artifactId>org.wso2.carbon.identity.totp</artifactId>
                 <version>${carbon.identity.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.warrenstrange</groupId>
-                <artifactId>googleauth</artifactId>
-                <version>${googleauth.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.wso2.carbon</groupId>
@@ -917,6 +918,7 @@
         <commons-lang.wso2.version>2.6.0.wso2v1</commons-lang.wso2.version>
         <commons-lang.wso2.osgi.version.range>[2.6.0,3.0.0)</commons-lang.wso2.osgi.version.range>
         <commons-pool.wso2.osgi.version.range>[1.5.6,2.0.0)</commons-pool.wso2.osgi.version.range>
+        <!--<commons-codec.wso2.osgi.version.range>[1.1.0,2.0.0)</commons-codec.wso2.osgi.version.range>-->
         <commons-codec.wso2.osgi.version.range>[1.4.0,2.0.0)</commons-codec.wso2.osgi.version.range>
         <commons-collections.wso2.osgi.version.range>[3.2.0,4.0.0)</commons-collections.wso2.osgi.version.range>
         <neethi.osgi.version>2.0.4.wso2v4</neethi.osgi.version>
@@ -928,7 +930,8 @@
         <opensaml.version>2.4.1</opensaml.version>
         <opensaml2.wso2.version>2.4.1.wso2v1</opensaml2.wso2.version>
         <opensaml2.wso2.osgi.version.range>[2.4.1.wso2v1,3.0.0)</opensaml2.wso2.osgi.version.range>
-        <commons-codec.version>1.4.0.wso2v1</commons-codec.version>
+        <commons-codec.wso2.version>1.4.0.wso2v1</commons-codec.wso2.version>
+        <commons-codec.version>1.10</commons-codec.version>
         <commons-codec.wso2.osgi.version.range>[1.4.0,2.0.0)</commons-codec.wso2.osgi.version.range>
         <httpcore.version>4.3.3.wso2v1</httpcore.version>
         <com.google.code.gson.version>2.3.1</com.google.code.gson.version>
@@ -996,7 +999,6 @@
         <javax.xml.parsers.import.pkg.version>[0.0.0, 1.0.0)</javax.xml.parsers.import.pkg.version>
         <ehcache.version>1.5.0.wso2v3</ehcache.version>
         <project.scm.id>my-scm-server</project.scm.id>
-        <googleauth.version>0.6.0</googleauth.version>
     </properties>
     <build>
         <pluginManagement>
