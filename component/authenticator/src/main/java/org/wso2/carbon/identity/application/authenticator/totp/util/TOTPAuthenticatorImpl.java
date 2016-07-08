@@ -35,14 +35,14 @@ public final class TOTPAuthenticatorImpl {
      *
      * @since 0.5.0
      */
-    public static final String RNG_ALGORITHM = "com.warrenstrange.googleauth.rng.algorithm";
+    public static final String RNG_ALGORITHM = "com.wso2.rng.algorithm";
 
     /**
      * The system property to specify the random number generator provider to use.
      *
      * @since 0.5.0
      */
-    public static final String RNG_ALGORITHM_PROVIDER = "com.warrenstrange.googleauth.rng.algorithmProvider";
+    public static final String RNG_ALGORITHM_PROVIDER = "com.wso2.rng.algorithmProvider";
 
     /**
      * The logger for this class.
