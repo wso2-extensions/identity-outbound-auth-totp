@@ -33,14 +33,12 @@ public final class TOTPAuthenticatorImpl {
     /**
      * The system property to specify the random number generator algorithm to use.
      *
-     * @since 0.5.0
      */
     public static final String RNG_ALGORITHM = "com.wso2.rng.algorithm";
 
     /**
      * The system property to specify the random number generator provider to use.
      *
-     * @since 0.5.0
      */
     public static final String RNG_ALGORITHM_PROVIDER = "com.wso2.rng.algorithmProvider";
 
@@ -85,7 +83,6 @@ public final class TOTPAuthenticatorImpl {
      * The default SecureRandom algorithm to use if none is specified.
      *
      * @see java.security.SecureRandom#getInstance(String)
-     * @since 0.5.0
      */
     private static final String DEFAULT_RANDOM_NUMBER_ALGORITHM = "SHA1PRNG";
 
@@ -93,7 +90,6 @@ public final class TOTPAuthenticatorImpl {
      * The default random number algorithm provider to use if none is specified.
      *
      * @see java.security.SecureRandom#getInstance(String)
-     * @since 0.5.0
      */
     private static final String DEFAULT_RANDOM_NUMBER_ALGORITHM_PROVIDER = "SUN";
 
@@ -130,7 +126,6 @@ public final class TOTPAuthenticatorImpl {
 
     /**
      * @return the random number generator algorithm.
-     * @since 0.5.0
      */
     private String getRandomNumberAlgorithm() {
         return System.getProperty(
@@ -140,7 +135,6 @@ public final class TOTPAuthenticatorImpl {
 
     /**
      * @return the random number generator algorithm provider.
-     * @since 0.5.0
      */
     private String getRandomNumberAlgorithmProvider() {
         return System.getProperty(
