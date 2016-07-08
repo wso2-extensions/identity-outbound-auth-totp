@@ -58,7 +58,6 @@ public final class TOTPAuthenticatorImpl {
 
     /**
      * Number of scratch codes to generate during the key generation.
-     * We are using Google's default of providing 5 scratch codes.
      */
     private static final int SCRATCH_CODES = 5;
 
@@ -78,8 +77,7 @@ public final class TOTPAuthenticatorImpl {
     private static final int SCRATCH_CODE_INVALID = -1;
 
     /**
-     * Length in bytes of each scratch code. We're using Google's default of
-     * using 4 bytes per scratch code.
+     * Length in bytes of each scratch code.
      */
     private static final int BYTES_PER_SCRATCH_CODE = 4;
 
@@ -127,7 +125,6 @@ public final class TOTPAuthenticatorImpl {
         if (config == null) {
             throw new IllegalArgumentException("Configuration cannot be null.");
         }
-
         this.config = config;
     }
 
@@ -213,8 +210,7 @@ public final class TOTPAuthenticatorImpl {
             LOGGER.log(Level.SEVERE, ex.getMessage(), ex);
 
             // We're not disclosing internal error details to our clients.
-            throw new TOTPAuthenticatorException("The operation cannot be "
-                    + "performed now.");
+            throw new TOTPAuthenticatorException("The operation cannot be " + "performed now.");
         }
     }
 
@@ -242,7 +238,7 @@ public final class TOTPAuthenticatorImpl {
         byte[] decodedKey = decodeSecret(secret);
 
         // convert unix time into a 30 second "window" as specified by the
-        // TOTP specification. Using Google's default interval of 30 seconds.
+        // TOTP specification. Using default interval of 30 seconds.
         final long timeWindow = getTimeWindowFromTime(timestamp);
 
         // Calculating the verification code of the given key in each of the
@@ -337,13 +333,10 @@ public final class TOTPAuthenticatorImpl {
             throw new IllegalArgumentException(String.format("The provided random byte buffer is too small: %d.",
                     scratchCodeBuffer.length));
         }
-
         int scratchCode = 0;
-
         for (int i = 0; i < BYTES_PER_SCRATCH_CODE; ++i) {
             scratchCode = (scratchCode << 8) + (scratchCodeBuffer[i] & 0xff);
         }
-
         scratchCode = (scratchCode & 0x7FFFFFFF) % SCRATCH_CODE_MODULUS;
 
         // Accept the scratch code only if it has exactly
@@ -389,7 +382,6 @@ public final class TOTPAuthenticatorImpl {
     private int calculateValidationCode(byte[] secretKey) {
         return calculateCode(secretKey, 0);
     }
-
 
     public int getTotpPassword(String secret) {
         return getTotpPassword(secret, new Date().getTime());

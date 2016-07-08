@@ -17,6 +17,7 @@
  */
 
 package org.wso2.carbon.identity.application.authenticator.totp.util;
+
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
@@ -33,7 +34,6 @@ public class TOTPReseedingSecureRandom {
     TOTPReseedingSecureRandom() {
         this.algorithm = null;
         this.provider = null;
-
         buildSecureRandom();
     }
 
@@ -75,22 +75,14 @@ public class TOTPReseedingSecureRandom {
             }
         } catch (NoSuchAlgorithmException e) {
             throw new TOTPAuthenticatorException(
-                    String.format(
-                            "Could not initialise SecureRandom with the specified algorithm: %s. " +
-                                    "Another provider can be chosen setting the %s system property.",
-                            this.algorithm,
-                            TOTPAuthenticatorImpl.RNG_ALGORITHM
-                    ), e
-            );
+                    String.format("Could not initialise SecureRandom with the specified algorithm: %s. " +
+                                    "Another provider can be chosen setting the %s system property.", this.algorithm,
+                            TOTPAuthenticatorImpl.RNG_ALGORITHM), e);
         } catch (NoSuchProviderException e) {
             throw new TOTPAuthenticatorException(
-                    String.format(
-                            "Could not initialise SecureRandom with the specified provider: %s. " +
-                                    "Another provider can be chosen setting the %s system property.",
-                            this.provider,
-                            TOTPAuthenticatorImpl.RNG_ALGORITHM_PROVIDER
-                    ), e
-            );
+                    String.format("Could not initialise SecureRandom with the specified provider: %s. " +
+                                    "Another provider can be chosen setting the %s system property.", this.provider,
+                            TOTPAuthenticatorImpl.RNG_ALGORITHM_PROVIDER), e);
         }
     }
 
@@ -103,7 +95,6 @@ public class TOTPReseedingSecureRandom {
                 }
             }
         }
-
         this.secureRandom.nextBytes(bytes);
     }
 }

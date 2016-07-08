@@ -71,10 +71,6 @@ public class TOTPAuthenticatorConfig {
      * to account for differences between the server and the client clocks.
      * The bigger the window, the more tolerant the library code is about
      * clock skews.
-     * <p/>
-     * We are using Google's default behaviour of using a window size equal
-     * to 3.  The limit on the maximum window size, present in older
-     * versions of this library, has been removed.
      *
      * @return the window size.
      * @see #timeStepSizeInMillis
@@ -102,7 +98,6 @@ public class TOTPAuthenticatorConfig {
             if (codeDigits > 8) {
                 throw new IllegalArgumentException("The maximum number of digits is 8.");
             }
-
             config.codeDigits = codeDigits;
             config.keyModulus = (int) Math.pow(10, codeDigits);
             return this;
@@ -112,7 +107,6 @@ public class TOTPAuthenticatorConfig {
             if (timeStepSizeInMillis <= 0) {
                 throw new IllegalArgumentException("Time step size must be positive.");
             }
-
             config.timeStepSizeInMillis = timeStepSizeInMillis;
             return this;
         }
@@ -121,7 +115,6 @@ public class TOTPAuthenticatorConfig {
             if (windowSize <= 0) {
                 throw new IllegalArgumentException("Window number must be positive.");
             }
-
             config.windowSize = windowSize;
             return this;
         }
@@ -130,7 +123,6 @@ public class TOTPAuthenticatorConfig {
             if (keyRepresentation == null) {
                 throw new IllegalArgumentException("Key representation cannot be null.");
             }
-
             config.keyRepresentation = keyRepresentation;
             return this;
         }
