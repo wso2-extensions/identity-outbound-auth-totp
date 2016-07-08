@@ -18,10 +18,6 @@
 
 package org.wso2.carbon.identity.application.authenticator.totp;
 
-import com.warrenstrange.googleauth.GoogleAuthenticator;
-import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
-import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
-import com.warrenstrange.googleauth.KeyRepresentation;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
@@ -29,12 +25,17 @@ import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
+import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorImpl;
+import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorConfig;
+import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorKey;
+import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPKeyRepresentation;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
+
 
 /**
  * TOTP key generator class.
@@ -75,7 +76,7 @@ public class TOTPKeyGenerator {
         //check for user store domain
         String secretkey = null;
         String qrCodeURL;
-        GoogleAuthenticatorKey key = generateKey();
+        TOTPAuthenticatorKey key = generateKey();
         String tenantDomain = MultitenantUtils.getTenantDomain(username);
 
         UserRealm userRealm;
@@ -126,7 +127,7 @@ public class TOTPKeyGenerator {
             if (userRealm != null) {
                 secretKey = userRealm.getUserStoreManager().getUserClaimValue(username, TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, null);
                 if (StringUtils.isEmpty(secretKey)) {
-                    GoogleAuthenticatorKey key = generateKey();
+                    TOTPAuthenticatorKey key = generateKey();
                     secretKey = key.getKey();
                     encoding = TOTPUtil.getEncodingMethod();
                     userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(secretKey), null);
@@ -180,21 +181,21 @@ public class TOTPKeyGenerator {
     }
 
     /**
-     * Generate GoogleAuthenticator key
+     * Generate TOTPAuthenticator key
      *
-     * @return GoogleAuthenticatorKey object
+     * @return TOTPAuthenticatorKey object
      */
-    private GoogleAuthenticatorKey generateKey() throws TOTPException {
-        KeyRepresentation encoding = KeyRepresentation.BASE32;
+    private TOTPAuthenticatorKey generateKey() throws TOTPException {
+        TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;
 
         if (TOTPAuthenticatorConstants.BASE64.equals(TOTPUtil.getEncodingMethod())) {
-            encoding = KeyRepresentation.BASE64;
+            encoding = TOTPKeyRepresentation.BASE64;
         }
-        GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder gacb = new GoogleAuthenticatorConfig
-                .GoogleAuthenticatorConfigBuilder()
+        TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder gacb = new TOTPAuthenticatorConfig
+                .TOTPAuthenticatorConfigBuilder()
                 .setKeyRepresentation(encoding);
-        GoogleAuthenticator googleAuthenticator = new GoogleAuthenticator(gacb.build());
-        GoogleAuthenticatorKey key = googleAuthenticator.createCredentials();
+        TOTPAuthenticatorImpl totpAuthenticator = new TOTPAuthenticatorImpl(gacb.build());
+        TOTPAuthenticatorKey key = totpAuthenticator.createCredentials();
         return key;
     }
 }
