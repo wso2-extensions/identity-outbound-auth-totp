@@ -34,11 +34,13 @@ import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPExc
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Map;
 
 public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         implements LocalApplicationAuthenticator {
 
     private static Log log = LogFactory.getLog(TOTPAuthenticator.class);
+    private static Map<String, String> totpParameters;
 
     @Override
     public boolean canHandle(HttpServletRequest request) {
@@ -57,7 +59,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         if (context.isLogoutRequest()) {
             return AuthenticatorFlowStatus.SUCCESS_COMPLETED;
         } else if (request.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN) != null) {
-            if (generateTOTPToken(context)) {
+            if (generateTOTPToken(context, totpParameters)) {
                 return AuthenticatorFlowStatus.INCOMPLETE;
             } else {
                 return AuthenticatorFlowStatus.FAIL_COMPLETED;
@@ -72,6 +74,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             }
         } else {
             return super.process(request, response, context);
+
         }
     }
 
@@ -87,7 +90,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                                                  HttpServletResponse response,
                                                  AuthenticationContext context)
             throws AuthenticationFailedException {
-        TOTPManager totpManager = new TOTPManagerImpl();
+        totpParameters = getAuthenticatorConfig().getParameterMap();
+        TOTPManager totpManager = new TOTPManagerImpl(totpParameters);
         String loginPage = ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
                 .replace("authenticationendpoint/login.do", TOTPAuthenticatorConstants.LOGIN_PAGE);
         String errorPage = ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
@@ -109,7 +113,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             if (log.isDebugEnabled()) {
                 log.debug("TOTP is enabled by user: " + isTOTPEnabled);
             }
-            boolean isTOTPEnabledByAdmin = totpManager.isTOTPEnabledByAdmin();
+            boolean isTOTPEnabledByAdmin = totpManager.isTOTPEnabledByAdmin(totpParameters);
             if (log.isDebugEnabled()) {
                 log.debug("TOTP  is enabled by admin: " + isTOTPEnabledByAdmin);
             }
@@ -139,14 +143,13 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                                                  HttpServletResponse response,
                                                  AuthenticationContext context)
             throws AuthenticationFailedException {
-
         String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
         String username = getLoggedInUser(context);
-        TOTPManager totpManager = new TOTPManagerImpl();
+        TOTPManager totpManager = new TOTPManagerImpl(totpParameters);
         if (token != null) {
             try {
                 int tokenValue = Integer.parseInt(token);
-                if (!totpManager.isValidTokenLocalUser(tokenValue, username)) {
+                if (!totpManager.isValidTokenLocalUser(tokenValue, username, totpParameters)) {
                     throw new AuthenticationFailedException("Authentication failed, user :  " + username);
                 }
                 context.setSubject(AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username));
@@ -193,10 +196,10 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     }
 
 
-    private boolean generateTOTPToken(AuthenticationContext context) {
+    private boolean generateTOTPToken(AuthenticationContext context, Map<String, String> totpParameters) {
         String username = getLoggedInUser(context);
         try {
-            TOTPManager totpManager = new TOTPManagerImpl();
+            TOTPManager totpManager = new TOTPManagerImpl(totpParameters);
             totpManager.generateTOTPTokenLocal(username);
             if (log.isDebugEnabled()) {
                 log.debug("TOTP Token is generated");

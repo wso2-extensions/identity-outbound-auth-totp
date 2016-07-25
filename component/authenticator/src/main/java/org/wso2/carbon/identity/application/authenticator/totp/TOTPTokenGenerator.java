@@ -53,6 +53,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Map;
 
 
 /**
@@ -60,10 +61,10 @@ import java.security.NoSuchAlgorithmException;
  */
 public class TOTPTokenGenerator {
 
-    private static Log log = LogFactory.getLog(TOTPTokenGenerator.class);
-    private static volatile TOTPTokenGenerator instance;
     private static final String USER_NAME = "username";
     private static final String TOTP_TOKEN = "totp-token";
+    private static Log log = LogFactory.getLog(TOTPTokenGenerator.class);
+    private static volatile TOTPTokenGenerator instance;
 
     private TOTPTokenGenerator() {
     }
@@ -85,13 +86,22 @@ public class TOTPTokenGenerator {
     }
 
     /**
+     * Get Time steps from unix epoch time.
+     *
+     * @return
+     */
+    private static long getTimeIndex(Map<String, String> totpParameters) throws TOTPException {
+        return System.currentTimeMillis() / 1000 / TOTPUtil.getTimeStepSize(totpParameters);
+    }
+
+    /**
      * Generate TOTP token for a locally stored user.
      *
      * @param username username of the user
      * @return TOTP token as a String
      * @throws org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException
      */
-    public String generateTOTPTokenLocal(String username)
+    public String generateTOTPTokenLocal(String username, Map<String, String> totpParameters)
             throws TOTPException {
         long token = 0;
         if (username != null) {
@@ -109,7 +119,7 @@ public class TOTPTokenGenerator {
 
                     byte[] secretkey;
                     String encoding;
-                    encoding = TOTPUtil.getEncodingMethod();
+                    encoding = TOTPUtil.getEncodingMethod(totpParameters);
                     if (TOTPAuthenticatorConstants.BASE32.equals(encoding)) {
                         Base32 codec32 = new Base32();
                         secretkey = codec32.decode(secretKey);
@@ -118,7 +128,7 @@ public class TOTPTokenGenerator {
                         secretkey = code64.decode(secretKey);
                     }
 
-                    token = getCode(secretkey, getTimeIndex());
+                    token = getCode(secretkey, getTimeIndex(totpParameters));
                     sendNotification(username, Long.toString(token), email);
                     if (log.isDebugEnabled()) {
                         log.debug("Token is sent to via email to the user : " + username);
@@ -149,13 +159,13 @@ public class TOTPTokenGenerator {
      * @throws org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException
      */
 
-    public String generateTOTPToken(String secretKey) throws TOTPException {
+    public String generateTOTPToken(String secretKey, Map<String, String> totpParameters) throws TOTPException {
         long token;
 
         byte[] secretkey;
         String encoding;
         try {
-            encoding = TOTPUtil.getEncodingMethod();
+            encoding = TOTPUtil.getEncodingMethod(totpParameters);
             if ("Base32".equals(encoding)) {
                 Base32 codec32 = new Base32();
                 secretkey = codec32.decode(secretKey);
@@ -163,7 +173,7 @@ public class TOTPTokenGenerator {
                 Base64 code64 = new Base64();
                 secretkey = code64.decode(secretKey);
             }
-            token = getCode(secretkey, getTimeIndex());
+            token = getCode(secretkey, getTimeIndex(totpParameters));
         } catch (NoSuchAlgorithmException e) {
             throw new TOTPException("TOTPTokenGenerator can't find the configured hashing algorithm", e);
         } catch (InvalidKeyException e) {
@@ -199,16 +209,6 @@ public class TOTPTokenGenerator {
         truncatedHash %= 1000000;
         return truncatedHash;
     }
-
-    /**
-     * Get Time steps from unix epoch time.
-     *
-     * @return
-     */
-    private static long getTimeIndex() throws TOTPException {
-        return System.currentTimeMillis() / 1000 / TOTPUtil.getTimeStepSize();
-    }
-
 
     private void sendNotification(String username, String token, String email) throws TOTPException {
         System.setProperty(TOTPAuthenticatorConstants.AXIS2, TOTPAuthenticatorConstants.AXIS2_FILE);

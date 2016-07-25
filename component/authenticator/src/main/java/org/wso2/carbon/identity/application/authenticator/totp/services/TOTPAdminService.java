@@ -23,38 +23,29 @@ import org.wso2.carbon.identity.application.authenticator.totp.TOTPKeyGenerator;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.user.api.UserStoreException;
 
+import java.util.Map;
+
 public class TOTPAdminService {
 
-	private static Log log = LogFactory.getLog(TOTPAdminService.class);
+    private static Log log = LogFactory.getLog(TOTPAdminService.class);
 
-	/**
-	 * Generate TOTP Token for the give user
-	 *
-	 * @param username username of the user
-	 * @return
-	 * @throws TOTPException
-	 */
-	public String initTOTP(String username) throws TOTPException, UserStoreException {
+    /**
+     * Generate TOTP Token for the give user
+     *
+     * @param username username of the user
+     * @return
+     * @throws TOTPException
+     */
+    public String initTOTP(String username, Map<String, String> totpParameters) throws TOTPException, UserStoreException {
         String qrCodeURL;
-		try {
-            qrCodeURL = TOTPKeyGenerator.getInstance().getQRCodeURL(username);
+        try {
+            qrCodeURL = TOTPKeyGenerator.getInstance().getQRCodeURL(username, totpParameters);
             return qrCodeURL;
-		} catch (TOTPException e) {
-			log.error("TOTPAdminService failed to generateTOTP key for the user : " + username, e);
-			throw new TOTPException("TOTPAdminService failed to generateTOTP key for the user : " + username, e);
-		}
-	}
-
-	/**
-	 * reset TOTP credentials of the user
-	 *
-	 * @param username of the user
-	 * @return
-	 * @throws TOTPException
-	 */
-	public boolean resetTOTP(String username) throws TOTPException {
-		return TOTPKeyGenerator.getInstance().resetLocal(username);
-	}
+        } catch (TOTPException e) {
+            log.error("TOTPAdminService failed to generateTOTP key for the user : " + username, e);
+            throw new TOTPException("TOTPAdminService failed to generateTOTP key for the user : " + username, e);
+        }
+    }
 
     /**
      * reset TOTP credentials of the user
@@ -63,10 +54,21 @@ public class TOTPAdminService {
      * @return
      * @throws TOTPException
      */
-    public String refreshSecretKey(String username) throws TOTPException {
+    public boolean resetTOTP(String username) throws TOTPException {
+        return TOTPKeyGenerator.getInstance().resetLocal(username);
+    }
+
+    /**
+     * reset TOTP credentials of the user
+     *
+     * @param username of the user
+     * @return
+     * @throws TOTPException
+     */
+    public String refreshSecretKey(String username, Map<String, String> totpParameters) throws TOTPException {
         String secretKey;
         try {
-            secretKey = TOTPKeyGenerator.getInstance().generateTOTPKeyLocal(username);
+            secretKey = TOTPKeyGenerator.getInstance().generateTOTPKeyLocal(username, totpParameters);
             return secretKey;
         } catch (TOTPException e) {
             log.error("TOTPAdminService failed to generateTOTP key for the user : " + username, e);

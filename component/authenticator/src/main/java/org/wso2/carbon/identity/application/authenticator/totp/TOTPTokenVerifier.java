@@ -34,6 +34,7 @@ import org.wso2.carbon.user.api.UserStoreManager;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -71,15 +72,15 @@ public class TOTPTokenVerifier {
      * @return true if token is valid otherwise false
      * @throws TOTPException
      */
-    public boolean isValidTokenLocalUser(int token, String username) throws TOTPException {
+    public boolean isValidTokenLocalUser(int token, String username, Map<String, String> totpParameters) throws TOTPException {
         TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;
         long timeStep;
         int windowSize;
-        if (TOTPAuthenticatorConstants.BASE64.equals(TOTPUtil.getEncodingMethod())) {
+        if (TOTPAuthenticatorConstants.BASE64.equals(TOTPUtil.getEncodingMethod(totpParameters))) {
             encoding = TOTPKeyRepresentation.BASE64;
         }
-        timeStep = TimeUnit.SECONDS.toMillis(TOTPUtil.getTimeStepSize());
-        windowSize = TOTPUtil.getWindowSize();
+        timeStep = TimeUnit.SECONDS.toMillis(TOTPUtil.getTimeStepSize(totpParameters));
+        windowSize = TOTPUtil.getWindowSize(totpParameters);
 
         TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder gacb = new TOTPAuthenticatorConfig
                 .TOTPAuthenticatorConfigBuilder()

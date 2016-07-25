@@ -34,7 +34,6 @@ public abstract class TOTPAuthenticatorConstants {
     public static final String AXIS2_FILE = "repository/conf/axis2/axis2.xml";
     public static final String TRANSPORT_MAILTO = "mailto";
     public static final String EMAIL_CLAIM_URL = "http://wso2.org/claims/emailaddress";
-    public static final String PROPERTIES_FILE = "totp.properties";
     public static final String LOGIN_PAGE = "totpauthenticationendpoint/totp.jsp";
     public static final String ERROR_PAGE = "totpauthenticationendpoint/totpError.jsp";
     public static final String TOKEN = "token";
