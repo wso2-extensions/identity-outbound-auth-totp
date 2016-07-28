@@ -99,6 +99,12 @@ public class TOTPUtil {
         return Boolean.parseBoolean(getTOTPParameters().get("enableTOTP"));
     }
 
+    /**
+     * Get the user attribute
+     *
+     * @return user attribute
+     * @throws TOTPException
+     */
     public static String getUserAttribute() throws TOTPException {
         if (log.isDebugEnabled()) {
             log.debug("Read the user attribute from properties file");
@@ -106,6 +112,12 @@ public class TOTPUtil {
         return String.valueOf(getTOTPParameters().get("userAttribute"));
     }
 
+    /**
+     * Return the usecase type (local, association, userAttribute, subjectUri)
+     *
+     * @return usecase
+     * @throws TOTPException
+     */
     public static String getUsecase() throws TOTPException {
         if (log.isDebugEnabled()) {
             log.debug("Read the usecase Type from properties file");

@@ -110,7 +110,12 @@ public class TOTPFederetedUsername {
         return null;
     }
 
-
+    /**
+     * Return loggedIn Federated username
+     *
+     * @param context the authentication context
+     * @return federated username
+     */
     public static String getLoggedInFederatedUser(AuthenticationContext context) {
         String username = "";
         for (int i = context.getSequenceConfig().getStepMap().size() - 1; i >= 0; i--) {

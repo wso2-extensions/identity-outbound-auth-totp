@@ -250,7 +250,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
     @Override
     public String getContextIdentifier(HttpServletRequest request) {
-        log.trace("Inside TOTP.getContextIdentifier()");
         return request.getRequestedSessionId();
     }
 
