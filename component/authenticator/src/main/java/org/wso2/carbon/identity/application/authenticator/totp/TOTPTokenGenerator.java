@@ -54,16 +54,15 @@ import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
-
 /**
  * TOTP Token generator class.
  */
 public class TOTPTokenGenerator {
 
-    private static Log log = LogFactory.getLog(TOTPTokenGenerator.class);
-    private static volatile TOTPTokenGenerator instance;
     private static final String USER_NAME = "username";
     private static final String TOTP_TOKEN = "totp-token";
+    private static Log log = LogFactory.getLog(TOTPTokenGenerator.class);
+    private static volatile TOTPTokenGenerator instance;
 
     private TOTPTokenGenerator() {
     }
@@ -82,6 +81,15 @@ public class TOTPTokenGenerator {
             }
         }
         return instance;
+    }
+
+    /**
+     * Get Time steps from unix epoch time.
+     *
+     * @return
+     */
+    private static long getTimeIndex() throws TOTPException {
+        return System.currentTimeMillis() / 1000 / TOTPUtil.getTimeStepSize();
     }
 
     /**
@@ -199,16 +207,6 @@ public class TOTPTokenGenerator {
         truncatedHash %= 1000000;
         return truncatedHash;
     }
-
-    /**
-     * Get Time steps from unix epoch time.
-     *
-     * @return
-     */
-    private static long getTimeIndex() throws TOTPException {
-        return System.currentTimeMillis() / 1000 / TOTPUtil.getTimeStepSize();
-    }
-
 
     private void sendNotification(String username, String token, String email) throws TOTPException {
         System.setProperty(TOTPAuthenticatorConstants.AXIS2, TOTPAuthenticatorConstants.AXIS2_FILE);

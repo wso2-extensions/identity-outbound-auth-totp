@@ -139,7 +139,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                                                  HttpServletResponse response,
                                                  AuthenticationContext context)
             throws AuthenticationFailedException {
-
         String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
         String username = getLoggedInUser(context);
         TOTPManager totpManager = new TOTPManagerImpl();

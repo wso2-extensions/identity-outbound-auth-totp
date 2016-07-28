@@ -25,36 +25,36 @@ import org.wso2.carbon.user.api.UserStoreException;
 
 public class TOTPAdminService {
 
-	private static Log log = LogFactory.getLog(TOTPAdminService.class);
+    private static Log log = LogFactory.getLog(TOTPAdminService.class);
 
-	/**
-	 * Generate TOTP Token for the give user
-	 *
-	 * @param username username of the user
-	 * @return
-	 * @throws TOTPException
-	 */
-	public String initTOTP(String username) throws TOTPException, UserStoreException {
+    /**
+     * Generate TOTP Token for the give user
+     *
+     * @param username username of the user
+     * @return
+     * @throws TOTPException
+     */
+    public String initTOTP(String username) throws TOTPException, UserStoreException {
         String qrCodeURL;
-		try {
+        try {
             qrCodeURL = TOTPKeyGenerator.getInstance().getQRCodeURL(username);
             return qrCodeURL;
-		} catch (TOTPException e) {
-			log.error("TOTPAdminService failed to generateTOTP key for the user : " + username, e);
-			throw new TOTPException("TOTPAdminService failed to generateTOTP key for the user : " + username, e);
-		}
-	}
+        } catch (TOTPException e) {
+            log.error("TOTPAdminService failed to generateTOTP key for the user : " + username, e);
+            throw new TOTPException("TOTPAdminService failed to generateTOTP key for the user : " + username, e);
+        }
+    }
 
-	/**
-	 * reset TOTP credentials of the user
-	 *
-	 * @param username of the user
-	 * @return
-	 * @throws TOTPException
-	 */
-	public boolean resetTOTP(String username) throws TOTPException {
-		return TOTPKeyGenerator.getInstance().resetLocal(username);
-	}
+    /**
+     * reset TOTP credentials of the user
+     *
+     * @param username of the user
+     * @return
+     * @throws TOTPException
+     */
+    public boolean resetTOTP(String username) throws TOTPException {
+        return TOTPKeyGenerator.getInstance().resetLocal(username);
+    }
 
     /**
      * reset TOTP credentials of the user

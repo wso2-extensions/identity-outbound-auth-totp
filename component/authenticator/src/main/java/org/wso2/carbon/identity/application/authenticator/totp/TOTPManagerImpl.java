@@ -25,47 +25,47 @@ import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPExc
  */
 public class TOTPManagerImpl implements TOTPManager {
 
-	private TOTPKeyGenerator totpKeyGenerator;
-	private TOTPTokenGenerator totpTokenGenerator;
-	private TOTPAccessController totpAccessController;
-	private TOTPTokenVerifier totpTokenVerifier;
+    private TOTPKeyGenerator totpKeyGenerator;
+    private TOTPTokenGenerator totpTokenGenerator;
+    private TOTPAccessController totpAccessController;
+    private TOTPTokenVerifier totpTokenVerifier;
 
-	public TOTPManagerImpl() {
-		this.totpKeyGenerator = TOTPKeyGenerator.getInstance();
-		this.totpTokenGenerator = TOTPTokenGenerator.getInstance();
-		this.totpAccessController = TOTPAccessController.getInstance();
-		this.totpTokenVerifier = TOTPTokenVerifier.getInstance();
-	}
+    public TOTPManagerImpl() {
+        this.totpKeyGenerator = TOTPKeyGenerator.getInstance();
+        this.totpTokenGenerator = TOTPTokenGenerator.getInstance();
+        this.totpAccessController = TOTPAccessController.getInstance();
+        this.totpTokenVerifier = TOTPTokenVerifier.getInstance();
+    }
 
-	@Override
-	public String generateTOTPKeyLocal(String username) throws TOTPException {
+    @Override
+    public String generateTOTPKeyLocal(String username) throws TOTPException {
         return totpKeyGenerator.generateTOTPKeyLocal(username);
-	}
+    }
 
-	@Override
-	public String generateTOTPTokenLocal(String username) throws TOTPException {
-		return totpTokenGenerator.generateTOTPTokenLocal(username);
-	}
+    @Override
+    public String generateTOTPTokenLocal(String username) throws TOTPException {
+        return totpTokenGenerator.generateTOTPTokenLocal(username);
+    }
 
-	@Override
-	public boolean isTOTPEnabledForLocalUser(String username) throws TOTPException {
+    @Override
+    public boolean isTOTPEnabledForLocalUser(String username) throws TOTPException {
         return totpAccessController.isTOTPEnabledForLocalUser(username);
-	}
+    }
 
-	@Override
-	public boolean isValidTokenLocalUser(int token, String username) throws TOTPException {
+    @Override
+    public boolean isValidTokenLocalUser(int token, String username) throws TOTPException {
         return totpTokenVerifier.isValidTokenLocalUser(token, username);
-	}
+    }
 
-	@Override
-	public String[] getSupportedEncodingMethods() {
-		return new String[]{TOTPAuthenticatorConstants.BASE32, TOTPAuthenticatorConstants.BASE64};
-	}
+    @Override
+    public String[] getSupportedEncodingMethods() {
+        return new String[]{TOTPAuthenticatorConstants.BASE32, TOTPAuthenticatorConstants.BASE64};
+    }
 
-	@Override
-	public String[] getSupportedHashingMethods() {
-		return new String[]{TOTPAuthenticatorConstants.SHA1, TOTPAuthenticatorConstants.MD5};
-	}
+    @Override
+    public String[] getSupportedHashingMethods() {
+        return new String[]{TOTPAuthenticatorConstants.SHA1, TOTPAuthenticatorConstants.MD5};
+    }
 
     @Override
     public boolean isTOTPEnabledByAdmin() throws TOTPException {

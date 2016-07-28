@@ -23,21 +23,18 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.core.util.CryptoUtil;
+import org.wso2.carbon.identity.application.authentication.framework.config.builder.FileBasedConfigurationBuilder;
+import org.wso2.carbon.identity.application.authentication.framework.config.model.AuthenticatorConfig;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
-import org.wso2.carbon.utils.CarbonUtils;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Properties;
+import java.util.Map;
 
 /**
  * TOTP Util class.
  */
 public class TOTPUtil {
-	private static Log log = LogFactory.getLog(TOTPUtil.class);
+    private static Log log = LogFactory.getLog(TOTPUtil.class);
 
     /**
      * Get locally stored encoding method.
@@ -47,8 +44,7 @@ public class TOTPUtil {
      */
     public static String getEncodingMethod() throws TOTPException {
 
-        Properties prop = getTOTPConfiguration();
-        if (TOTPAuthenticatorConstants.BASE32.equals(prop.getProperty("encodingMethod"))) {
+        if (TOTPAuthenticatorConstants.BASE32.equals(getTOTPParameters().get("encodingMethod"))) {
             return TOTPAuthenticatorConstants.BASE32;
         }
         return TOTPAuthenticatorConstants.BASE64;
@@ -61,11 +57,10 @@ public class TOTPUtil {
      * @throws TOTPException
      */
     public static long getTimeStepSize() throws TOTPException {
-        Properties prop = getTOTPConfiguration();
         if (log.isDebugEnabled()) {
             log.debug("Read the time step size from properties file");
         }
-        return Long.parseLong(prop.getProperty("timeStepSize"));
+        return Long.parseLong(getTOTPParameters().get("timeStepSize"));
     }
 
     /**
@@ -75,46 +70,14 @@ public class TOTPUtil {
      * @throws TOTPException
      */
     public static int getWindowSize() throws TOTPException {
-        Properties prop = getTOTPConfiguration();
         if (log.isDebugEnabled()) {
             log.debug("Read the window size from properties file");
         }
-        return Integer.parseInt(prop.getProperty("windowSize"));
-    }
-
-    /**
-     * Get configuration for TOTP authenticator.
-     *
-     * @return prop
-     * @throws TOTPException
-     */
-    public static Properties getTOTPConfiguration() throws TOTPException {
-        FileInputStream fileInputStream = null;
-        String configPath = CarbonUtils.getCarbonConfigDirPath() + File.separator;
-
-        try {
-            configPath = configPath + TOTPAuthenticatorConstants.PROPERTIES_FILE;
-            fileInputStream = new FileInputStream(new File(configPath));
-            Properties properties = new Properties();
-            properties.load(fileInputStream);
-            return properties;
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(TOTPAuthenticatorConstants.PROPERTIES_FILE + " file not found in " + configPath, e);
-        } catch (IOException e) {
-            throw new RuntimeException(TOTPAuthenticatorConstants.PROPERTIES_FILE + " file reading error from " + configPath, e);
-        } finally {
-            if (fileInputStream != null) {
-                try {
-                    fileInputStream.close();
-                } catch (Exception e) {
-                    log.error("Error occurred while closing stream :" + e);
-                }
-            }
-        }
+        return Integer.parseInt(getTOTPParameters().get("windowSize"));
     }
 
     public static String encrypt(String plainText) throws CryptoException {
-        return  CryptoUtil.getDefaultCryptoUtil().encryptAndBase64Encode(
+        return CryptoUtil.getDefaultCryptoUtil().encryptAndBase64Encode(
                 plainText.getBytes(Charsets.UTF_8));
     }
 
@@ -130,10 +93,15 @@ public class TOTPUtil {
      * @throws TOTPException
      */
     public static boolean checkTOTPEnableByAdmin() throws TOTPException {
-        Properties prop = getTOTPConfiguration();
         if (log.isDebugEnabled()) {
             log.debug("Read the values of enableTOTP from properties file");
         }
-        return Boolean.parseBoolean(prop.getProperty("enableTOTP"));
+        return Boolean.parseBoolean(getTOTPParameters().get("enableTOTP"));
+    }
+
+    public static Map<String, String> getTOTPParameters() {
+        AuthenticatorConfig authConfig = FileBasedConfigurationBuilder.getInstance()
+                .getAuthenticatorBean(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
+        return authConfig.getParameterMap();
     }
 }

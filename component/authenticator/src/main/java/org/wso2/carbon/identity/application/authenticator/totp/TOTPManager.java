@@ -20,7 +20,6 @@ package org.wso2.carbon.identity.application.authenticator.totp;
 
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 
-
 public interface TOTPManager {
     /**
      * Generate the totp key for a local user
