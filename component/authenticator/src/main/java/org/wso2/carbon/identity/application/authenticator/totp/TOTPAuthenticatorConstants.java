@@ -40,4 +40,11 @@ public abstract class TOTPAuthenticatorConstants {
     public static final String SEND_TOKEN = "sendToken";
     public static final String AUTHENTICATION = "authentication";
     public static final String BASIC = "basic";
+    public static final String FEDERETOR = "federator";
+    public static final String TENANT_DOMAIN_COMBINER = "@";
+    public static final String FIRST_USECASE = "local";
+    public static final String SECOND_USECASE = "association";
+    public static final String THIRD_USECASE = "userAttribute";
+    public static final String FOUTH_USECASE = "subjectUri";
+
 }

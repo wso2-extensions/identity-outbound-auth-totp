@@ -99,6 +99,32 @@ public class TOTPUtil {
         return Boolean.parseBoolean(getTOTPParameters().get("enableTOTP"));
     }
 
+    /**
+     * Get the user attribute
+     *
+     * @return user attribute
+     * @throws TOTPException
+     */
+    public static String getUserAttribute() throws TOTPException {
+        if (log.isDebugEnabled()) {
+            log.debug("Read the user attribute from properties file");
+        }
+        return String.valueOf(getTOTPParameters().get("userAttribute"));
+    }
+
+    /**
+     * Return the usecase type (local, association, userAttribute, subjectUri)
+     *
+     * @return usecase
+     * @throws TOTPException
+     */
+    public static String getUsecase() throws TOTPException {
+        if (log.isDebugEnabled()) {
+            log.debug("Read the usecase Type from properties file");
+        }
+        return String.valueOf(getTOTPParameters().get("usecase"));
+    }
+
     public static Map<String, String> getTOTPParameters() {
         AuthenticatorConfig authConfig = FileBasedConfigurationBuilder.getInstance()
                 .getAuthenticatorBean(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
