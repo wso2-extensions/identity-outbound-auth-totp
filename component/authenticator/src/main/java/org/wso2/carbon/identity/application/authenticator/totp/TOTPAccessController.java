@@ -30,8 +30,6 @@ import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
-import java.util.Map;
-
 public class TOTPAccessController {
 
     private static Log log = LogFactory.getLog(TOTPAccessController.class);
@@ -80,7 +78,7 @@ public class TOTPAccessController {
      * @return enableTOTP value
      * @throws TOTPException
      */
-    public boolean isTOTPEnabledByAdmin(Map<String, String> totpParameters) throws TOTPException {
-        return TOTPUtil.checkTOTPEnableByAdmin(totpParameters);
+    public boolean isTOTPEnabledByAdmin() throws TOTPException {
+        return TOTPUtil.checkTOTPEnableByAdmin();
     }
 }

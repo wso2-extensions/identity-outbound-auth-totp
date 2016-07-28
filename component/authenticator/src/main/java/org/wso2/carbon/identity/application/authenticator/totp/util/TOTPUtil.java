@@ -23,6 +23,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.core.util.CryptoUtil;
+import org.wso2.carbon.identity.application.authentication.framework.config.builder.FileBasedConfigurationBuilder;
+import org.wso2.carbon.identity.application.authentication.framework.config.model.AuthenticatorConfig;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 
@@ -40,9 +42,9 @@ public class TOTPUtil {
      * @return encodingMethod
      * @throws TOTPException
      */
-    public static String getEncodingMethod(Map<String, String> totpParameters) throws TOTPException {
+    public static String getEncodingMethod() throws TOTPException {
 
-        if (TOTPAuthenticatorConstants.BASE32.equals(totpParameters.get("encodingMethod"))) {
+        if (TOTPAuthenticatorConstants.BASE32.equals(getTOTPParameters().get("encodingMethod"))) {
             return TOTPAuthenticatorConstants.BASE32;
         }
         return TOTPAuthenticatorConstants.BASE64;
@@ -54,11 +56,11 @@ public class TOTPUtil {
      * @return timeStepSize
      * @throws TOTPException
      */
-    public static long getTimeStepSize(Map<String, String> totpParameters) throws TOTPException {
+    public static long getTimeStepSize() throws TOTPException {
         if (log.isDebugEnabled()) {
             log.debug("Read the time step size from properties file");
         }
-        return Long.parseLong(totpParameters.get("timeStepSize"));
+        return Long.parseLong(getTOTPParameters().get("timeStepSize"));
     }
 
     /**
@@ -67,11 +69,11 @@ public class TOTPUtil {
      * @return windowSize
      * @throws TOTPException
      */
-    public static int getWindowSize(Map<String, String> totpParameters) throws TOTPException {
+    public static int getWindowSize() throws TOTPException {
         if (log.isDebugEnabled()) {
             log.debug("Read the window size from properties file");
         }
-        return Integer.parseInt(totpParameters.get("windowSize"));
+        return Integer.parseInt(getTOTPParameters().get("windowSize"));
     }
 
     public static String encrypt(String plainText) throws CryptoException {
@@ -90,10 +92,16 @@ public class TOTPUtil {
      * @return enableTOTP
      * @throws TOTPException
      */
-    public static boolean checkTOTPEnableByAdmin(Map<String, String> totpParameters) throws TOTPException {
+    public static boolean checkTOTPEnableByAdmin() throws TOTPException {
         if (log.isDebugEnabled()) {
             log.debug("Read the values of enableTOTP from properties file");
         }
-        return Boolean.parseBoolean(totpParameters.get("enableTOTP"));
+        return Boolean.parseBoolean(getTOTPParameters().get("enableTOTP"));
+    }
+
+    public static Map<String, String> getTOTPParameters() {
+        AuthenticatorConfig authConfig = FileBasedConfigurationBuilder.getInstance()
+                .getAuthenticatorBean(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
+        return authConfig.getParameterMap();
     }
 }

@@ -20,9 +20,6 @@ package org.wso2.carbon.identity.application.authenticator.totp;
 
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 
-import java.util.Map;
-
-
 public interface TOTPManager {
     /**
      * Generate the totp key for a local user
@@ -59,7 +56,7 @@ public interface TOTPManager {
      * @return true or false
      * @throws TOTPException
      */
-    public boolean isValidTokenLocalUser(int token, String username, Map<String, String> totpParameters) throws TOTPException;
+    public boolean isValidTokenLocalUser(int token, String username) throws TOTPException;
 
     /**
      * Get the supported encoding method
@@ -81,5 +78,5 @@ public interface TOTPManager {
      * @return true or false
      * @throws TOTPException
      */
-    public boolean isTOTPEnabledByAdmin(Map<String, String> totpParameters) throws TOTPException;
+    public boolean isTOTPEnabledByAdmin() throws TOTPException;
 }

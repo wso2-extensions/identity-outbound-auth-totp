@@ -23,8 +23,6 @@ import org.wso2.carbon.identity.application.authenticator.totp.TOTPKeyGenerator;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.user.api.UserStoreException;
 
-import java.util.Map;
-
 public class TOTPAdminService {
 
     private static Log log = LogFactory.getLog(TOTPAdminService.class);
@@ -36,10 +34,10 @@ public class TOTPAdminService {
      * @return
      * @throws TOTPException
      */
-    public String initTOTP(String username, Map<String, String> totpParameters) throws TOTPException, UserStoreException {
+    public String initTOTP(String username) throws TOTPException, UserStoreException {
         String qrCodeURL;
         try {
-            qrCodeURL = TOTPKeyGenerator.getInstance().getQRCodeURL(username, totpParameters);
+            qrCodeURL = TOTPKeyGenerator.getInstance().getQRCodeURL(username);
             return qrCodeURL;
         } catch (TOTPException e) {
             log.error("TOTPAdminService failed to generateTOTP key for the user : " + username, e);
@@ -65,10 +63,10 @@ public class TOTPAdminService {
      * @return
      * @throws TOTPException
      */
-    public String refreshSecretKey(String username, Map<String, String> totpParameters) throws TOTPException {
+    public String refreshSecretKey(String username) throws TOTPException {
         String secretKey;
         try {
-            secretKey = TOTPKeyGenerator.getInstance().generateTOTPKeyLocal(username, totpParameters);
+            secretKey = TOTPKeyGenerator.getInstance().generateTOTPKeyLocal(username);
             return secretKey;
         } catch (TOTPException e) {
             log.error("TOTPAdminService failed to generateTOTP key for the user : " + username, e);

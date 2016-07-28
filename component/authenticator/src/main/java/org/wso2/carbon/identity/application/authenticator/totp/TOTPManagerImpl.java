@@ -20,8 +20,6 @@ package org.wso2.carbon.identity.application.authenticator.totp;
 
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 
-import java.util.Map;
-
 /**
  * TOTPManager implementation class.
  */
@@ -31,26 +29,22 @@ public class TOTPManagerImpl implements TOTPManager {
     private TOTPTokenGenerator totpTokenGenerator;
     private TOTPAccessController totpAccessController;
     private TOTPTokenVerifier totpTokenVerifier;
-    private Map<String, String> totpParameters;
-    ;
 
-    public TOTPManagerImpl(Map<String, String> totpParameters) {
+    public TOTPManagerImpl() {
         this.totpKeyGenerator = TOTPKeyGenerator.getInstance();
         this.totpTokenGenerator = TOTPTokenGenerator.getInstance();
         this.totpAccessController = TOTPAccessController.getInstance();
         this.totpTokenVerifier = TOTPTokenVerifier.getInstance();
-        this.totpParameters = totpParameters;
-
     }
 
     @Override
     public String generateTOTPKeyLocal(String username) throws TOTPException {
-        return totpKeyGenerator.generateTOTPKeyLocal(username, totpParameters);
+        return totpKeyGenerator.generateTOTPKeyLocal(username);
     }
 
     @Override
     public String generateTOTPTokenLocal(String username) throws TOTPException {
-        return totpTokenGenerator.generateTOTPTokenLocal(username, totpParameters);
+        return totpTokenGenerator.generateTOTPTokenLocal(username);
     }
 
     @Override
@@ -59,8 +53,8 @@ public class TOTPManagerImpl implements TOTPManager {
     }
 
     @Override
-    public boolean isValidTokenLocalUser(int token, String username, Map<String, String> totpParameters) throws TOTPException {
-        return totpTokenVerifier.isValidTokenLocalUser(token, username, totpParameters);
+    public boolean isValidTokenLocalUser(int token, String username) throws TOTPException {
+        return totpTokenVerifier.isValidTokenLocalUser(token, username);
     }
 
     @Override
@@ -74,8 +68,8 @@ public class TOTPManagerImpl implements TOTPManager {
     }
 
     @Override
-    public boolean isTOTPEnabledByAdmin(Map<String, String> totpParameters) throws TOTPException {
-        return totpAccessController.isTOTPEnabledByAdmin(totpParameters);
+    public boolean isTOTPEnabledByAdmin() throws TOTPException {
+        return totpAccessController.isTOTPEnabledByAdmin();
     }
 
 }

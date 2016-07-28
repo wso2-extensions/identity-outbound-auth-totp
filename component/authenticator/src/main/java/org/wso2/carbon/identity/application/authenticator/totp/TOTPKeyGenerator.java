@@ -32,9 +32,6 @@ import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
-import java.util.Map;
-
-
 /**
  * TOTP key generator class.
  */
@@ -70,11 +67,11 @@ public class TOTPKeyGenerator {
      * @return TOTPDTO object containing secret key and QR code url.
      * @throws TOTPException
      */
-    public String generateTOTPKeyLocal(String username, Map<String, String> totpParameters) throws TOTPException {
+    public String generateTOTPKeyLocal(String username) throws TOTPException {
         //check for user store domain
         String secretkey = null;
         String qrCodeURL;
-        TOTPAuthenticatorKey key = generateKey(totpParameters);
+        TOTPAuthenticatorKey key = generateKey();
         String tenantDomain = MultitenantUtils.getTenantDomain(username);
 
         UserRealm userRealm;
@@ -86,10 +83,10 @@ public class TOTPKeyGenerator {
 
             if (userRealm != null) {
                 secretkey = TOTPUtil.encrypt(key.getKey());
-                String encoding = TOTPUtil.getEncodingMethod(totpParameters);
+                String encoding = TOTPUtil.getEncodingMethod();
                 userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, secretkey, null);
                 userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.ENCODING_CLAIM_URL, encoding, null);
-                getQRCodeURL(username, totpParameters);
+                getQRCodeURL(username);
             }
         } catch (UserStoreException e) {
             throw new TOTPException("TOTPKeyGenerator failed while trying to access userRealm for the user : " +
@@ -108,7 +105,7 @@ public class TOTPKeyGenerator {
      * @return TOTPDTO object containing secret key and QR code url.
      * @throws TOTPException
      */
-    public String getQRCodeURL(String username, Map<String, String> totpParameters) throws TOTPException {
+    public String getQRCodeURL(String username) throws TOTPException {
         //check for user store domain
         String secretKey;
         String encodedQRCodeURL = null;
@@ -125,9 +122,9 @@ public class TOTPKeyGenerator {
             if (userRealm != null) {
                 secretKey = userRealm.getUserStoreManager().getUserClaimValue(username, TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, null);
                 if (StringUtils.isEmpty(secretKey)) {
-                    TOTPAuthenticatorKey key = generateKey(totpParameters);
+                    TOTPAuthenticatorKey key = generateKey();
                     secretKey = key.getKey();
-                    encoding = TOTPUtil.getEncodingMethod(totpParameters);
+                    encoding = TOTPUtil.getEncodingMethod();
                     userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(secretKey), null);
                     userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.ENCODING_CLAIM_URL, encoding, null);
                 } else {
@@ -183,10 +180,10 @@ public class TOTPKeyGenerator {
      *
      * @return TOTPAuthenticatorKey object
      */
-    private TOTPAuthenticatorKey generateKey(Map<String, String> totpParameters) throws TOTPException {
+    private TOTPAuthenticatorKey generateKey() throws TOTPException {
         TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;
 
-        if (TOTPAuthenticatorConstants.BASE64.equals(TOTPUtil.getEncodingMethod(totpParameters))) {
+        if (TOTPAuthenticatorConstants.BASE64.equals(TOTPUtil.getEncodingMethod())) {
             encoding = TOTPKeyRepresentation.BASE64;
         }
         TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder gacb = new TOTPAuthenticatorConfig
