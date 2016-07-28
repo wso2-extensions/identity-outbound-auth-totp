@@ -72,7 +72,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             }
         } else {
             return super.process(request, response, context);
-
         }
     }
 
