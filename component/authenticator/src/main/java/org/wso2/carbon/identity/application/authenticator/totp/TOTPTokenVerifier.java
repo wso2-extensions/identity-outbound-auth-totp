@@ -22,6 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.core.util.CryptoException;
+import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorConfig;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorImpl;
@@ -71,15 +72,16 @@ public class TOTPTokenVerifier {
      * @return true if token is valid otherwise false
      * @throws TOTPException
      */
-    public boolean isValidTokenLocalUser(int token, String username) throws TOTPException {
+    public boolean isValidTokenLocalUser(int token, String username, AuthenticationContext context) throws Exception {
         TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;
         long timeStep;
         int windowSize;
-        if (TOTPAuthenticatorConstants.BASE64.equals(TOTPUtil.getEncodingMethod())) {
+        String tenantDomain = MultitenantUtils.getTenantDomain(username);
+        if (TOTPAuthenticatorConstants.BASE64.equals(TOTPUtil.getEncodingMethod(tenantDomain))) {
             encoding = TOTPKeyRepresentation.BASE64;
         }
-        timeStep = TimeUnit.SECONDS.toMillis(TOTPUtil.getTimeStepSize());
-        windowSize = TOTPUtil.getWindowSize();
+        timeStep = TimeUnit.SECONDS.toMillis(TOTPUtil.getTimeStepSize(context));
+        windowSize = TOTPUtil.getWindowSize(context);
 
         TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder gacb = new TOTPAuthenticatorConfig
                 .TOTPAuthenticatorConfigBuilder()
@@ -90,7 +92,6 @@ public class TOTPTokenVerifier {
         TOTPAuthenticatorImpl totpAuthenticator = new TOTPAuthenticatorImpl(gacb.build());
         UserRealm userRealm;
         try {
-            String tenantDomain = MultitenantUtils.getTenantDomain(username);
             int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
             RealmService realmService = IdentityTenantUtil.getRealmService();
             userRealm = realmService.getTenantUserRealm(tenantId);

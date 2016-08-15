@@ -32,13 +32,11 @@ import java.util.logging.Logger;
 public final class TOTPAuthenticatorImpl {
     /**
      * The system property to specify the random number generator algorithm to use.
-     *
      */
     public static final String RNG_ALGORITHM = "com.wso2.rng.algorithm";
 
     /**
      * The system property to specify the random number generator provider to use.
-     *
      */
     public static final String RNG_ALGORITHM_PROVIDER = "com.wso2.rng.algorithmProvider";
 

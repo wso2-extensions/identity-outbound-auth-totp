@@ -18,16 +18,19 @@
 
 package org.wso2.carbon.identity.application.authenticator.totp;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.identity.application.authentication.framework.FederatedApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authentication.framework.config.model.StepConfig;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
+import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
+import org.wso2.carbon.identity.application.common.model.ClaimMapping;
 import org.wso2.carbon.identity.core.util.IdentityDatabaseUtil;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.user.profile.mgt.UserProfileException;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
@@ -38,6 +41,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 
 public class TOTPFederetedUsername {
@@ -49,25 +56,22 @@ public class TOTPFederetedUsername {
      * @param federatedUsername federated authenticator's username
      * @return boolean value
      */
-    public static boolean isExistUserInUserStore(String federatedUsername) throws AuthenticationFailedException {
+    public static boolean isExistUserInUserStore(String federatedUsername) throws AuthenticationFailedException,
+            UserStoreException {
         UserRealm userRealm;
         boolean isExistUser = false;
         String tenantDomain = MultitenantUtils.getTenantDomain(federatedUsername);
-        int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
+        int tenantID = IdentityTenantUtil.getTenantId(tenantDomain);
         RealmService realmService = IdentityTenantUtil.getRealmService();
         try {
-            userRealm = realmService.getTenantUserRealm(tenantId);
+            userRealm = realmService.getTenantUserRealm(tenantID);
         } catch (UserStoreException e) {
             throw new AuthenticationFailedException("Error occurred while loading user manager from user realm", e);
         }
         String tenantAwareFederatedUsername = MultitenantUtils.getTenantAwareUsername(String.valueOf(federatedUsername));
         if (userRealm != null) {
-            try {
-                //Check the federeted username is already exist or not in the user store
-                isExistUser = userRealm.getUserStoreManager().isExistingUser(tenantAwareFederatedUsername);
-            } catch (UserStoreException e) {
-                throw new AuthenticationFailedException("Cannot find the user in User store", e);
-            }
+            //Check the federeted username is already exist or not in the user store
+            isExistUser = userRealm.getUserStoreManager().isExistingUser(tenantAwareFederatedUsername);
         }
         return isExistUser;
     }
@@ -79,7 +83,8 @@ public class TOTPFederetedUsername {
      * @param context           the authentication context
      * @return local username
      */
-    public static String getTOTPLocalUsernameAssociatedWithFederatedUser(String federatedUsername, AuthenticationContext context)
+    public static String getTOTPLocalUsernameAssociatedWithFederatedUser(String federatedUsername,
+                                                                         AuthenticationContext context)
             throws UserProfileException, SQLException {
         String localUsername;
         Connection connection = IdentityDatabaseUtil.getDBConnection();
@@ -87,7 +92,8 @@ public class TOTPFederetedUsername {
         ResultSet resultSet;
         String sql;
         String idpName = context.getProperty("idpName").toString();
-        int tenantID = CarbonContext.getThreadLocalCarbonContext().getTenantId();
+        String tenantDomain = context.getTenantDomain();
+        int tenantID = IdentityTenantUtil.getTenantId(tenantDomain);
         try {
             sql = "SELECT USER_NAME FROM IDN_ASSOCIATED_ID WHERE TENANT_ID = ? AND IDP_ID = (SELECT ID " +
                     "FROM IDP WHERE NAME = ? AND TENANT_ID = ?) AND IDP_USER_ID = ?";
@@ -111,10 +117,164 @@ public class TOTPFederetedUsername {
     }
 
     /**
-     * Return loggedIn Federated username
+     * Get list of secondary user stores
      *
      * @param context the authentication context
-     * @return federated username
+     */
+    public static List<String> listSecondaryUserStores(AuthenticationContext context) throws Exception {
+        List<String> userstores = null;
+        String secondaryUserstore = TOTPUtil.getSecondaryUserStore(context);
+        if (StringUtils.isNotEmpty(secondaryUserstore)) {
+            userstores = Arrays.asList(secondaryUserstore.split(","));
+        }
+        return userstores;
+    }
+
+    /**
+     * Get username from local
+     *
+     * @param context           the authentication context.
+     * @param federatedUsername federated authenticator's username
+     */
+    public static String getUserNameFromLocal(String federatedUsername, AuthenticationContext context) throws Exception {
+        String username = null;
+        List<String> userStores = listSecondaryUserStores(context);
+        if (userStores != null) {
+            for (Object userDomain : userStores) {
+                String federatedUsernameWithDomain;
+                federatedUsernameWithDomain = IdentityUtil.addDomainToName(federatedUsername, String.valueOf(userDomain));
+                try {
+                    if (isExistUserInUserStore(federatedUsernameWithDomain)) {
+                        username = federatedUsernameWithDomain;
+                        break;
+                    }
+                } catch (Exception e) {
+                    log.error(federatedUsernameWithDomain + " is not in the user store.");
+                }
+            }
+        } else {
+            if (isExistUserInUserStore(federatedUsername)) {
+                username = federatedUsername;
+            }
+        }
+        return username;
+    }
+
+    /**
+     * Get username from association
+     *
+     * @param context           the authentication context.
+     * @param federatedUsername federated authenticator's username
+     */
+    public static String getUserNameFromAssociation(String federatedUsername, AuthenticationContext context)
+            throws Exception {
+        String tenantAwareLocalUsername;
+        String username;
+        String tenantAwareFederatedUsername = MultitenantUtils.getTenantAwareUsername(String.valueOf(federatedUsername));
+        //Get associated local username of federated authenticator
+        tenantAwareLocalUsername = getTOTPLocalUsernameAssociatedWithFederatedUser(tenantAwareFederatedUsername, context);
+        String localUsernameTenantDomain = MultitenantUtils.getTenantDomain(federatedUsername);
+        username = tenantAwareLocalUsername + TOTPAuthenticatorConstants.TENANT_DOMAIN_COMBINER + localUsernameTenantDomain;
+        List<String> userStores = listSecondaryUserStores(context);
+        if (userStores != null) {
+            for (Object userDomain : userStores) {
+                String federatedUsernameWithDomain;
+                federatedUsernameWithDomain = IdentityUtil.addDomainToName(username, String.valueOf(userDomain));
+                try {
+                    if (isExistUserInUserStore(federatedUsernameWithDomain)) {
+                        username = federatedUsernameWithDomain;
+                        break;
+                    }
+                } catch (Exception e) {
+                    log.error(federatedUsernameWithDomain + " is not in the user store.");
+                }
+            }
+        }
+        return username;
+    }
+
+    /**
+     * Get username from federated authenticator's user attribute
+     *
+     * @param context           the authentication context.
+     * @param federatedUsername federated authenticator's username
+     */
+    public static String getUserNameFromUserAttributes(String federatedUsername, AuthenticationContext context)
+            throws Exception {
+        Map<ClaimMapping, String> userAttributes;
+        String username = null;
+        userAttributes = context.getCurrentAuthenticatedIdPs().values().iterator().next().getUser().getUserAttributes();
+        Set keySet = userAttributes.keySet();
+        int size = keySet.size();
+        String userAttribute = TOTPUtil.getUserAttribute(context);
+        if (!userAttribute.equals(null) && !userAttribute.equals("")) {
+            for (int k = 0; k < size; k++) {
+                String key = String.valueOf(((ClaimMapping) keySet.toArray()[k]).getLocalClaim().getClaimUri());
+                Object value = userAttributes.values().toArray()[k];
+                if (key.equals(userAttribute)) {
+                    String tenantAwareUsername = String.valueOf(value);
+                    String usernameTenantDomain = context.getCurrentAuthenticatedIdPs().values().iterator().
+                            next().getUser().getTenantDomain();
+                    username = tenantAwareUsername + TOTPAuthenticatorConstants.TENANT_DOMAIN_COMBINER +
+                            usernameTenantDomain;
+                    List<String> userStores = listSecondaryUserStores(context);
+                    if (userStores != null) {
+                        for (Object userDomain : userStores) {
+                            String federatedUsernameWithDomain;
+                            federatedUsernameWithDomain = IdentityUtil.addDomainToName(username,
+                                    String.valueOf(userDomain));
+                            try {
+                                if (isExistUserInUserStore(federatedUsernameWithDomain)) {
+                                    username = federatedUsernameWithDomain;
+                                    break;
+                                }
+                            } catch (Exception e) {
+                                log.error(federatedUsernameWithDomain + " is not in the user store.");
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        return username;
+    }
+
+    /**
+     * Get username from subjectUri of federated authenticator
+     *
+     * @param context           the authentication context.
+     * @param federatedUsername federated authenticator's username
+     */
+    public static String getUserNameFromSbujectURI(String federatedUsername, AuthenticationContext context)
+            throws Exception {
+        String subjectAttribute = context.getCurrentAuthenticatedIdPs().values().iterator().next().
+                getUser().getAuthenticatedSubjectIdentifier();
+        String tenantDomain = MultitenantUtils.getTenantDomain(federatedUsername);
+        String username = subjectAttribute + TOTPAuthenticatorConstants.TENANT_DOMAIN_COMBINER + tenantDomain;
+        List<String> userStores = listSecondaryUserStores(context);
+        if (userStores != null) {
+            for (Object userDomain : userStores) {
+                String federatedUsernameWithDomain;
+                federatedUsernameWithDomain = IdentityUtil.addDomainToName(username, String.valueOf(userDomain));
+                try {
+                    if (isExistUserInUserStore(federatedUsernameWithDomain)) {
+                        username = federatedUsernameWithDomain;
+                        break;
+                    }
+                } catch (Exception e) {
+                    log.error(federatedUsernameWithDomain + " is not in the user store.");
+                }
+            }
+        }
+        return username;
+    }
+
+    /**
+     * Return loggedIn Federated username.
+     *
+     * @param context the authentication context.
+     * @return federated username.
      */
     public static String getLoggedInFederatedUser(AuthenticationContext context) {
         String username = "";

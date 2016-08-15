@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.identity.application.authenticator.totp;
 
+import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 
 public interface TOTPManager {
@@ -28,7 +29,7 @@ public interface TOTPManager {
      * @return return TOTP Data transfer object
      * @throws TOTPException
      */
-    public String generateTOTPKeyLocal(String username) throws TOTPException;
+    public String generateTOTPKeyLocal(String username, AuthenticationContext context) throws Exception;
 
     /**
      * Generate the totp token for a local user
@@ -37,7 +38,7 @@ public interface TOTPManager {
      * @return totp token
      * @throws TOTPException
      */
-    public String generateTOTPTokenLocal(String username) throws TOTPException;
+    public String generateTOTPTokenLocal(String username, AuthenticationContext context) throws Exception;
 
     /**
      * Check whether totp is enabled for a given local user
@@ -46,7 +47,7 @@ public interface TOTPManager {
      * @return true or false
      * @throws TOTPException
      */
-    public boolean isTOTPEnabledForLocalUser(String username) throws TOTPException;
+    public boolean isTOTPEnabledForLocalUser(String username, AuthenticationContext context) throws Exception;
 
     /**
      * is given token is valid for a local user
@@ -56,7 +57,7 @@ public interface TOTPManager {
      * @return true or false
      * @throws TOTPException
      */
-    public boolean isValidTokenLocalUser(int token, String username) throws TOTPException;
+    public boolean isValidTokenLocalUser(int token, String username, AuthenticationContext context) throws Exception;
 
     /**
      * Get the supported encoding method
@@ -78,5 +79,5 @@ public interface TOTPManager {
      * @return true or false
      * @throws TOTPException
      */
-    public boolean isTOTPEnabledByAdmin() throws TOTPException;
+    public boolean isTOTPEnabledByAdmin(AuthenticationContext context) throws Exception;
 }

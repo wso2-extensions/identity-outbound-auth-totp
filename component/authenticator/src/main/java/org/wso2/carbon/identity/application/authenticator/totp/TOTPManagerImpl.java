@@ -18,7 +18,7 @@
 
 package org.wso2.carbon.identity.application.authenticator.totp;
 
-import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
+import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 
 /**
  * TOTPManager implementation class.
@@ -38,23 +38,23 @@ public class TOTPManagerImpl implements TOTPManager {
     }
 
     @Override
-    public String generateTOTPKeyLocal(String username) throws TOTPException {
-        return totpKeyGenerator.generateTOTPKeyLocal(username);
+    public String generateTOTPKeyLocal(String username, AuthenticationContext context) throws Exception {
+        return totpKeyGenerator.generateTOTPKeyLocal(username, context);
     }
 
     @Override
-    public String generateTOTPTokenLocal(String username) throws TOTPException {
-        return totpTokenGenerator.generateTOTPTokenLocal(username);
+    public String generateTOTPTokenLocal(String username, AuthenticationContext context) throws Exception {
+        return totpTokenGenerator.generateTOTPTokenLocal(username, context);
     }
 
     @Override
-    public boolean isTOTPEnabledForLocalUser(String username) throws TOTPException {
-        return totpAccessController.isTOTPEnabledForLocalUser(username);
+    public boolean isTOTPEnabledForLocalUser(String username, AuthenticationContext context) throws Exception {
+        return totpAccessController.isTOTPEnabledForLocalUser(username, context);
     }
 
     @Override
-    public boolean isValidTokenLocalUser(int token, String username) throws TOTPException {
-        return totpTokenVerifier.isValidTokenLocalUser(token, username);
+    public boolean isValidTokenLocalUser(int token, String username, AuthenticationContext context) throws Exception {
+        return totpTokenVerifier.isValidTokenLocalUser(token, username, context);
     }
 
     @Override
@@ -68,8 +68,8 @@ public class TOTPManagerImpl implements TOTPManager {
     }
 
     @Override
-    public boolean isTOTPEnabledByAdmin() throws TOTPException {
-        return totpAccessController.isTOTPEnabledByAdmin();
+    public boolean isTOTPEnabledByAdmin(AuthenticationContext context) throws Exception {
+        return totpAccessController.isTOTPEnabledByAdmin(context);
     }
 
 }

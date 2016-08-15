@@ -46,5 +46,11 @@ public abstract class TOTPAuthenticatorConstants {
     public static final String SECOND_USECASE = "association";
     public static final String THIRD_USECASE = "userAttribute";
     public static final String FOUTH_USECASE = "subjectUri";
-
+    public static final String REGISTRY_PATH = "duo/application-authentication.xml";
+    public static final String SUPER_TENANT_DOMAIN = "carbon.super";
+//    USER_CONFIGURATION,
+//    USER_GOVERNANCE,
+//    SYSTEM_CONFIGURATION,
+//    SYSTEM_GOVERNANCE,
+//    LOCAL_REPOSITORY;
 }

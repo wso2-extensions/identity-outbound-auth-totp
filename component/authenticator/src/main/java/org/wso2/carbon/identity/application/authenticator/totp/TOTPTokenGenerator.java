@@ -27,6 +27,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.core.util.CryptoException;
+import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
@@ -88,8 +89,8 @@ public class TOTPTokenGenerator {
      *
      * @return
      */
-    private static long getTimeIndex() throws TOTPException {
-        return System.currentTimeMillis() / 1000 / TOTPUtil.getTimeStepSize();
+    private static long getTimeIndex(AuthenticationContext context) throws Exception {
+        return System.currentTimeMillis() / 1000 / TOTPUtil.getTimeStepSize(context);
     }
 
     /**
@@ -99,8 +100,8 @@ public class TOTPTokenGenerator {
      * @return TOTP token as a String
      * @throws org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException
      */
-    public String generateTOTPTokenLocal(String username)
-            throws TOTPException {
+    public String generateTOTPTokenLocal(String username, AuthenticationContext context)
+            throws Exception {
         long token = 0;
         if (username != null) {
             UserRealm userRealm;
@@ -117,7 +118,7 @@ public class TOTPTokenGenerator {
 
                     byte[] secretkey;
                     String encoding;
-                    encoding = TOTPUtil.getEncodingMethod();
+                    encoding = TOTPUtil.getEncodingMethod(tenantDomain);
                     if (TOTPAuthenticatorConstants.BASE32.equals(encoding)) {
                         Base32 codec32 = new Base32();
                         secretkey = codec32.decode(secretKey);
@@ -126,7 +127,7 @@ public class TOTPTokenGenerator {
                         secretkey = code64.decode(secretKey);
                     }
 
-                    token = getCode(secretkey, getTimeIndex());
+                    token = getCode(secretkey, getTimeIndex(context));
                     sendNotification(username, Long.toString(token), email);
                     if (log.isDebugEnabled()) {
                         log.debug("Token is sent to via email to the user : " + username);
@@ -157,13 +158,13 @@ public class TOTPTokenGenerator {
      * @throws org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException
      */
 
-    public String generateTOTPToken(String secretKey) throws TOTPException {
+    public String generateTOTPToken(String secretKey, AuthenticationContext context) throws Exception {
         long token;
-
+        String tenantDomain = context.getTenantDomain();
         byte[] secretkey;
         String encoding;
         try {
-            encoding = TOTPUtil.getEncodingMethod();
+            encoding = TOTPUtil.getEncodingMethod(tenantDomain);
             if ("Base32".equals(encoding)) {
                 Base32 codec32 = new Base32();
                 secretkey = codec32.decode(secretKey);
@@ -171,7 +172,7 @@ public class TOTPTokenGenerator {
                 Base64 code64 = new Base64();
                 secretkey = code64.decode(secretKey);
             }
-            token = getCode(secretkey, getTimeIndex());
+            token = getCode(secretkey, getTimeIndex(context));
         } catch (NoSuchAlgorithmException e) {
             throw new TOTPException("TOTPTokenGenerator can't find the configured hashing algorithm", e);
         } catch (InvalidKeyException e) {
