@@ -32,7 +32,7 @@ public class TOTPAdminService {
      * Generate TOTP Token for the give user
      *
      * @param username username of the user
-     * @param context Authentication context.
+     * @param context  Authentication context.
      * @return
      * @throws TOTPException
      */
@@ -62,7 +62,7 @@ public class TOTPAdminService {
      * reset TOTP credentials of the user
      *
      * @param username of the user
-     * @param context Authentication context.
+     * @param context  Authentication context.
      * @return
      * @throws TOTPException
      */

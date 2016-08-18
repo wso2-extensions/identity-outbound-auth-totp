@@ -54,7 +54,7 @@ public interface TOTPManager {
      *
      * @param token    token
      * @param username user name
-     * @param context Authentication context.
+     * @param context  Authentication context.
      * @return true or false
      * @throws TOTPException
      */

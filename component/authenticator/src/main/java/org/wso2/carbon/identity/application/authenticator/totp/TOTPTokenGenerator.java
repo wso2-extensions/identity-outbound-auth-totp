@@ -98,7 +98,7 @@ public class TOTPTokenGenerator {
      * Generate TOTP token for a locally stored user.
      *
      * @param username username of the user
-     * @param context Authentication context.
+     * @param context  Authentication context.
      * @return TOTP token as a String
      * @throws org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException
      */
@@ -157,7 +157,7 @@ public class TOTPTokenGenerator {
      * Generate TOTP token for a given Secretkey
      *
      * @param secretKey Secret key
-     * @param context Authentication context.
+     * @param context   Authentication context.
      * @return TOTP token as a string
      * @throws org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException
      */

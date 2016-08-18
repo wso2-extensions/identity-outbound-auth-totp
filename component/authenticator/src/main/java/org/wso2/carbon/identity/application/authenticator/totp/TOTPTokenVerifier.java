@@ -69,7 +69,7 @@ public class TOTPTokenVerifier {
      * Verify whether a given token is valid for a stored local user.
      *
      * @param token    TOTP Token
-     * @param context Authentication context.
+     * @param context  Authentication context.
      * @param username Username of the user
      * @return true if token is valid otherwise false
      * @throws TOTPException

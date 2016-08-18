@@ -58,14 +58,10 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         if (context.isLogoutRequest()) {
             return AuthenticatorFlowStatus.SUCCESS_COMPLETED;
         } else if (request.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN) != null) {
-            try {
-                if (generateTOTPToken(context)) {
-                    return AuthenticatorFlowStatus.INCOMPLETE;
-                } else {
-                    return AuthenticatorFlowStatus.FAIL_COMPLETED;
-                }
-            } catch (AuthenticationFailedException e) {
-                log.error("Error when generating the totp token");
+            if (generateTOTPToken(context)) {
+                return AuthenticatorFlowStatus.INCOMPLETE;
+            } else {
+                return AuthenticatorFlowStatus.FAIL_COMPLETED;
             }
         } else if (request.getParameter(TOTPAuthenticatorConstants.TOKEN) == null) {
             initiateAuthenticationRequest(request, response, context);
@@ -78,7 +74,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         } else {
             return super.process(request, response, context);
         }
-        return null;
     }
 
     /**

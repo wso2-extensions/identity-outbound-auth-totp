@@ -41,10 +41,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 public class TOTPFederetedUsername {
@@ -58,8 +55,9 @@ public class TOTPFederetedUsername {
      */
     public void updateAuthenticatedUserInStepConfig(AuthenticationContext context,
                                                     AuthenticatedUser authenticatedUser) {
-        for (StepConfig i : context.getSequenceConfig().getStepMap().values()) {
-            StepConfig stepConfig = context.getSequenceConfig().getStepMap().get(i);
+        for (Object o : context.getSequenceConfig().getStepMap().entrySet()) {
+            Map.Entry thisEntry = (Map.Entry) o;
+            StepConfig stepConfig = (StepConfig) thisEntry.getValue();
             if (stepConfig.getAuthenticatedUser() != null && stepConfig.getAuthenticatedAutenticator()
                     .getApplicationAuthenticator() instanceof FederatedApplicationAuthenticator) {
                 authenticatedUser = stepConfig.getAuthenticatedUser();
@@ -76,8 +74,9 @@ public class TOTPFederetedUsername {
      */
     public AuthenticatedUser getUsername(AuthenticationContext context) {
         AuthenticatedUser authenticatedUser = null;
-        for (StepConfig i : context.getSequenceConfig().getStepMap().values()) {
-            StepConfig stepConfig = context.getSequenceConfig().getStepMap().get(i);
+        for (Object o : context.getSequenceConfig().getStepMap().entrySet()) {
+            Map.Entry thisEntry = (Map.Entry) o;
+            StepConfig stepConfig = (StepConfig) thisEntry.getValue();
             if (stepConfig.getAuthenticatedUser() != null && stepConfig.getAuthenticatedAutenticator()
                     .getApplicationAuthenticator() instanceof FederatedApplicationAuthenticator) {
                 authenticatedUser = stepConfig.getAuthenticatedUser();
@@ -96,13 +95,15 @@ public class TOTPFederetedUsername {
     public String getLoggedInFederatedUser(AuthenticationContext context) {
         String username = "";
         for (int i = context.getSequenceConfig().getStepMap().size() - 1; i >= 0; i--) {
-            context.getSequenceConfig().getStepMap().entrySet().iterator();
             if (context.getSequenceConfig().getStepMap().get(i).getAuthenticatedUser() != null &&
                     context.getSequenceConfig().getStepMap().get(i).getAuthenticatedAutenticator()
                             .getApplicationAuthenticator() instanceof FederatedApplicationAuthenticator) {
                 String idpName = context.getSequenceConfig().getStepMap().get(i).getAuthenticatedIdP();
                 context.setProperty("idpName", idpName);
                 username = context.getSequenceConfig().getStepMap().get(i).getAuthenticatedUser().toString();
+                if (log.isDebugEnabled()) {
+                    log.debug("username :" + username);
+                }
                 break;
             }
         }
@@ -269,8 +270,10 @@ public class TOTPFederetedUsername {
         String username = null;
         String userAttribute;
         userAttributes = context.getCurrentAuthenticatedIdPs().values().iterator().next().getUser().getUserAttributes();
+        Set keySet = userAttributes.keySet();
         userAttribute = TOTPUtil.getUserAttribute(context);
         if (StringUtils.isNotEmpty(userAttribute)) {
+//            for (Object akeySet : keySet) {
             Iterator<Map.Entry<ClaimMapping, String>> entries = userAttributes.entrySet().iterator();
             while (entries.hasNext()) {
                 Map.Entry<ClaimMapping, String> entry = entries.next();
