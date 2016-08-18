@@ -41,7 +41,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 
 public class TOTPFederetedUsername {
@@ -270,13 +272,9 @@ public class TOTPFederetedUsername {
         String username = null;
         String userAttribute;
         userAttributes = context.getCurrentAuthenticatedIdPs().values().iterator().next().getUser().getUserAttributes();
-        Set keySet = userAttributes.keySet();
         userAttribute = TOTPUtil.getUserAttribute(context);
         if (StringUtils.isNotEmpty(userAttribute)) {
-//            for (Object akeySet : keySet) {
-            Iterator<Map.Entry<ClaimMapping, String>> entries = userAttributes.entrySet().iterator();
-            while (entries.hasNext()) {
-                Map.Entry<ClaimMapping, String> entry = entries.next();
+            for (Map.Entry<ClaimMapping, String> entry : userAttributes.entrySet()) {
                 String key = String.valueOf(entry.getKey().getLocalClaim().getClaimUri());
                 String value = entry.getValue();
                 if (key.equals(userAttribute)) {
