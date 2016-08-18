@@ -22,6 +22,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.core.util.CryptoException;
+import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
+import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorConfig;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorImpl;
@@ -67,39 +69,36 @@ public class TOTPTokenVerifier {
      * Verify whether a given token is valid for a stored local user.
      *
      * @param token    TOTP Token
+     * @param context  Authentication context.
      * @param username Username of the user
      * @return true if token is valid otherwise false
      * @throws TOTPException
      */
-    public boolean isValidTokenLocalUser(int token, String username) throws TOTPException {
+    public boolean isValidTokenLocalUser(int token, String username, AuthenticationContext context) throws TOTPException {
         TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;
         long timeStep;
         int windowSize;
-        if (TOTPAuthenticatorConstants.BASE64.equals(TOTPUtil.getEncodingMethod())) {
-            encoding = TOTPKeyRepresentation.BASE64;
-        }
-        timeStep = TimeUnit.SECONDS.toMillis(TOTPUtil.getTimeStepSize());
-        windowSize = TOTPUtil.getWindowSize();
-
-        TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder gacb = new TOTPAuthenticatorConfig
-                .TOTPAuthenticatorConfigBuilder()
-                .setKeyRepresentation(encoding)
-                .setWindowSize(windowSize)
-                .setTimeStepSizeInMillis(timeStep);
-
-        TOTPAuthenticatorImpl totpAuthenticator = new TOTPAuthenticatorImpl(gacb.build());
-        UserRealm userRealm;
+        String tenantDomain = MultitenantUtils.getTenantDomain(username);
         try {
-            String tenantDomain = MultitenantUtils.getTenantDomain(username);
+            if (TOTPAuthenticatorConstants.BASE64.equals(TOTPUtil.getEncodingMethod(tenantDomain, context))) {
+                encoding = TOTPKeyRepresentation.BASE64;
+            }
+            timeStep = TimeUnit.SECONDS.toMillis(TOTPUtil.getTimeStepSize(context));
+            windowSize = TOTPUtil.getWindowSize(context);
+            TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder gacb = new TOTPAuthenticatorConfig
+                    .TOTPAuthenticatorConfigBuilder()
+                    .setKeyRepresentation(encoding)
+                    .setWindowSize(windowSize)
+                    .setTimeStepSizeInMillis(timeStep);
+            TOTPAuthenticatorImpl totpAuthenticator = new TOTPAuthenticatorImpl(gacb.build());
             int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
             RealmService realmService = IdentityTenantUtil.getRealmService();
-            userRealm = realmService.getTenantUserRealm(tenantId);
+            UserRealm userRealm = realmService.getTenantUserRealm(tenantId);
             username = MultitenantUtils.getTenantAwareUsername(String.valueOf(username));
-
             if (userRealm != null) {
                 UserStoreManager userStoreManager = userRealm.getUserStoreManager();
-                String secretKey = TOTPUtil.decrypt(userStoreManager.getUserClaimValue(username, TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, null));
-
+                String secretKey = TOTPUtil.decrypt(userStoreManager.getUserClaimValue(username,
+                        TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, null));
                 return totpAuthenticator.authorize(secretKey, token);
             } else {
                 throw new TOTPException("Cannot find the user realm for the given tenant domain : " + CarbonContext
@@ -110,7 +109,8 @@ public class TOTPTokenVerifier {
                     username, e);
         } catch (CryptoException e) {
             throw new TOTPException("Error while decrypting the key", e);
+        } catch (AuthenticationFailedException e) {
+            throw new TOTPException("TOTPTokenVerifier cannot find the property value for encodingMethod");
         }
     }
-
 }

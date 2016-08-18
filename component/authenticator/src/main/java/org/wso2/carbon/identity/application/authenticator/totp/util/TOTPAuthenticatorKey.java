@@ -44,7 +44,7 @@ public class TOTPAuthenticatorKey {
      * @param code         the verification code at time = 0 (the UNIX epoch).
      * @param scratchCodes the list of scratch codes.
      */
-     TOTPAuthenticatorKey(
+    TOTPAuthenticatorKey(
             String secretKey, int code,
             List<Integer> scratchCodes) {
         key = secretKey;

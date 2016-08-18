@@ -27,6 +27,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.core.util.CryptoException;
+import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
+import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
@@ -88,18 +90,19 @@ public class TOTPTokenGenerator {
      *
      * @return
      */
-    private static long getTimeIndex() throws TOTPException {
-        return System.currentTimeMillis() / 1000 / TOTPUtil.getTimeStepSize();
+    private static long getTimeIndex(AuthenticationContext context) throws TOTPException {
+        return System.currentTimeMillis() / 1000 / TOTPUtil.getTimeStepSize(context);
     }
 
     /**
      * Generate TOTP token for a locally stored user.
      *
      * @param username username of the user
+     * @param context  Authentication context.
      * @return TOTP token as a String
      * @throws org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException
      */
-    public String generateTOTPTokenLocal(String username)
+    public String generateTOTPTokenLocal(String username, AuthenticationContext context)
             throws TOTPException {
         long token = 0;
         if (username != null) {
@@ -114,10 +117,9 @@ public class TOTPTokenGenerator {
                 if (userRealm != null) {
                     String secretKey = TOTPUtil.decrypt(userRealm.getUserStoreManager().getUserClaimValue(username, TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, null));
                     String email = userRealm.getUserStoreManager().getUserClaimValue(username, TOTPAuthenticatorConstants.EMAIL_CLAIM_URL, null);
-
                     byte[] secretkey;
                     String encoding;
-                    encoding = TOTPUtil.getEncodingMethod();
+                    encoding = TOTPUtil.getEncodingMethod(tenantDomain, context);
                     if (TOTPAuthenticatorConstants.BASE32.equals(encoding)) {
                         Base32 codec32 = new Base32();
                         secretkey = codec32.decode(secretKey);
@@ -126,7 +128,7 @@ public class TOTPTokenGenerator {
                         secretkey = code64.decode(secretKey);
                     }
 
-                    token = getCode(secretkey, getTimeIndex());
+                    token = getCode(secretkey, getTimeIndex(context));
                     sendNotification(username, Long.toString(token), email);
                     if (log.isDebugEnabled()) {
                         log.debug("Token is sent to via email to the user : " + username);
@@ -144,6 +146,8 @@ public class TOTPTokenGenerator {
                 throw new TOTPException("Secret key is not valid", e);
             } catch (CryptoException e) {
                 throw new TOTPException("Error while decrypting the key", e);
+            } catch (AuthenticationFailedException e) {
+                throw new TOTPException("TOTPTokenGenerator can't find the configured hashing algorithm", e);
             }
         }
         return Long.toString(token);
@@ -153,17 +157,18 @@ public class TOTPTokenGenerator {
      * Generate TOTP token for a given Secretkey
      *
      * @param secretKey Secret key
+     * @param context   Authentication context.
      * @return TOTP token as a string
      * @throws org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException
      */
 
-    public String generateTOTPToken(String secretKey) throws TOTPException {
+    public String generateTOTPToken(String secretKey, AuthenticationContext context) throws TOTPException {
         long token;
-
+        String tenantDomain = context.getTenantDomain();
         byte[] secretkey;
         String encoding;
         try {
-            encoding = TOTPUtil.getEncodingMethod();
+            encoding = TOTPUtil.getEncodingMethod(tenantDomain, context);
             if ("Base32".equals(encoding)) {
                 Base32 codec32 = new Base32();
                 secretkey = codec32.decode(secretKey);
@@ -171,11 +176,13 @@ public class TOTPTokenGenerator {
                 Base64 code64 = new Base64();
                 secretkey = code64.decode(secretKey);
             }
-            token = getCode(secretkey, getTimeIndex());
+            token = getCode(secretkey, getTimeIndex(context));
         } catch (NoSuchAlgorithmException e) {
             throw new TOTPException("TOTPTokenGenerator can't find the configured hashing algorithm", e);
         } catch (InvalidKeyException e) {
             throw new TOTPException("Secret key is not valid", e);
+        } catch (AuthenticationFailedException e) {
+            throw new TOTPException("TOTPTokenGenerator can't find the value for encodingMethod", e);
         }
         return Long.toString(token);
     }
@@ -225,13 +232,11 @@ public class TOTPTokenGenerator {
                 int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
                 String emailTemplate;
                 Config config;
-
                 try {
                     config = configBuilder.loadConfiguration(ConfigType.EMAIL, StorageType.REGISTRY, tenantId);
                 } catch (IdentityMgtConfigException e) {
                     throw new TOTPException("Error occurred while loading email templates for user : " + username, e);
                 }
-
                 emailNotificationData.setTagData(USER_NAME, username);
                 emailNotificationData.setTagData(TOTP_TOKEN, token);
                 emailNotificationData.setSendTo(email);
@@ -245,9 +250,7 @@ public class TOTPTokenGenerator {
                         throw new TOTPException("Error occurred while creating notification from email template : "
                                 + emailTemplate, e);
                     }
-
                     notificationData.setNotificationAddress(email);
-
                     module.setNotificationData(notificationData);
                     module.setNotification(emailNotification);
                     notificationSender.sendNotification(module);

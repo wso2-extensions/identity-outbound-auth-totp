@@ -22,6 +22,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.CarbonContext;
+import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
@@ -49,14 +50,13 @@ public class TOTPAccessController {
         return instance;
     }
 
-    public boolean isTOTPEnabledForLocalUser(String username) throws TOTPException {
+    public boolean isTOTPEnabledForLocalUser(String username, AuthenticationContext context) throws TOTPException {
         UserRealm userRealm;
         try {
             String tenantDomain = MultitenantUtils.getTenantDomain(username);
             int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
             RealmService realmService = IdentityTenantUtil.getRealmService();
             userRealm = realmService.getTenantUserRealm(tenantId);
-
             username = MultitenantUtils.getTenantAwareUsername(String.valueOf(username));
             if (userRealm != null) {
                 String secretKey = userRealm.getUserStoreManager().getUserClaimValue(username,
@@ -75,10 +75,11 @@ public class TOTPAccessController {
     /**
      * Get the value whether totp is enabled by admin
      *
+     * @param context Authentication context.
      * @return enableTOTP value
      * @throws TOTPException
      */
-    public boolean isTOTPEnabledByAdmin() throws TOTPException {
-        return TOTPUtil.checkTOTPEnableByAdmin();
+    public boolean isTOTPEnabledByAdmin(AuthenticationContext context) throws TOTPException {
+        return TOTPUtil.checkTOTPEnableByAdmin(context);
     }
 }
