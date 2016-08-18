@@ -103,9 +103,6 @@ public class TOTPFederetedUsername {
                 String idpName = context.getSequenceConfig().getStepMap().get(i).getAuthenticatedIdP();
                 context.setProperty("idpName", idpName);
                 username = context.getSequenceConfig().getStepMap().get(i).getAuthenticatedUser().toString();
-                if (log.isDebugEnabled()) {
-                    log.debug("username :" + username);
-                }
                 break;
             }
         }
