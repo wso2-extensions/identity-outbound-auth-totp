@@ -198,23 +198,18 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             //Get username from federated authenticator
             totpFederatedUser = new TOTPFederetedUsername();
             String federatedUsername = totpFederatedUser.getLoggedInFederatedUser(context);
-            try {
-                String usecase;
-                usecase = TOTPUtil.getUsecase(context);
-                if (StringUtils.isEmpty(usecase) || TOTPAuthenticatorConstants.FIRST_USECASE.equals(usecase)) {
-                    username = totpFederatedUser.getUserNameFromLocal(federatedUsername, context);
-                }
-                if (TOTPAuthenticatorConstants.SECOND_USECASE.equals(usecase)) {
-                    username = totpFederatedUser.getUserNameFromAssociation(federatedUsername, context);
-                }
-                if (TOTPAuthenticatorConstants.THIRD_USECASE.equals(usecase)) {
-                    username = totpFederatedUser.getUserNameFromUserAttributes(context);
-                }
-                if (TOTPAuthenticatorConstants.FOUTH_USECASE.equals(usecase)) {
-                    username = totpFederatedUser.getUserNameFromSbujectURI(federatedUsername, context);
-                }
-            } catch (TOTPException e) {
-                throw new TOTPException("Error occurred while getting username from first step", e);
+            String usecase = TOTPUtil.getUsecase(context);
+            if (StringUtils.isEmpty(usecase) || TOTPAuthenticatorConstants.FIRST_USECASE.equals(usecase)) {
+                username = totpFederatedUser.getUserNameFromLocal(federatedUsername, context);
+            }
+            if (TOTPAuthenticatorConstants.SECOND_USECASE.equals(usecase)) {
+                username = totpFederatedUser.getUserNameFromAssociation(federatedUsername, context);
+            }
+            if (TOTPAuthenticatorConstants.THIRD_USECASE.equals(usecase)) {
+                username = totpFederatedUser.getUserNameFromUserAttributes(context);
+            }
+            if (TOTPAuthenticatorConstants.FOUTH_USECASE.equals(usecase)) {
+                username = totpFederatedUser.getUserNameFromSbujectURI(federatedUsername, context);
             }
             authenticatedUser = totpFederatedUser.getUsername(context);
         }

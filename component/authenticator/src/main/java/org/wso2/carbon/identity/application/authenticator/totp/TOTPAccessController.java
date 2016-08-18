@@ -75,6 +75,7 @@ public class TOTPAccessController {
     /**
      * Get the value whether totp is enabled by admin
      *
+     * @param context Authentication context.
      * @return enableTOTP value
      * @throws TOTPException
      */

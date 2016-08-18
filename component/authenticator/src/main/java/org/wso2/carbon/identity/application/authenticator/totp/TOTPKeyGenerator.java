@@ -65,6 +65,7 @@ public class TOTPKeyGenerator {
     /**
      * Generate TOTP secret key and QR Code url for local users.
      *
+     * @param context Authentication context.
      * @param username username of the user
      * @return TOTPDTO object containing secret key and QR code url.
      * @throws TOTPException
@@ -103,6 +104,7 @@ public class TOTPKeyGenerator {
      * Generate TOTP secret key and QR Code url for local users.
      *
      * @param username username of the user
+     * @param context Authentication context.
      * @return TOTPDTO object containing secret key and QR code url.
      * @throws TOTPException
      */
@@ -175,7 +177,8 @@ public class TOTPKeyGenerator {
 
     /**
      * Generate TOTPAuthenticator key
-     *
+     * @param context Authentication context.
+     * @param tenantdomain tenant domain.
      * @return TOTPAuthenticatorKey object
      */
     private TOTPAuthenticatorKey generateKey(String username, String tenantdomain, AuthenticationContext context) throws TOTPException,

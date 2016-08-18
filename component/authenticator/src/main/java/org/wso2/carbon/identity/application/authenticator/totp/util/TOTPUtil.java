@@ -77,7 +77,7 @@ public class TOTPUtil {
             encodingMethods = String.valueOf(getTOTPParameters().get("encodingMethod"));
         } else if (context == null) {
             try {
-                encodingMethods =loadXMLFromRegistry(context, tenantDomain);
+                encodingMethods = loadXMLFromRegistry(context, tenantDomain);
                 if (encodingMethods == null) {
                     encodingMethods = String.valueOf(getTOTPParameters().get("encodingMethod"));
                 }
@@ -85,7 +85,7 @@ public class TOTPUtil {
                 throw new AuthenticationFailedException("Cannot find the property value for encodingMethod");
             }
         } else {
-            getPropertiesFromLocal = context.getProperty("getPropertiesFromLocal");
+            getPropertiesFromLocal = context.getProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_REGISTRY);
             if (getPropertiesFromLocal == null) {
                 encodingMethods = context.getProperty("encodingMethod").toString();
             } else {
@@ -103,7 +103,6 @@ public class TOTPUtil {
      *
      * @return timeStepSize
      */
-
     public static long getTimeStepSize(AuthenticationContext context) {
         if (log.isDebugEnabled()) {
             log.debug("Read the time step size from properties file");
@@ -112,7 +111,7 @@ public class TOTPUtil {
         if (tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
             return Long.parseLong(getTOTPParameters().get("timeStepSize"));
         } else {
-            Object getPropertiesFromLocal = context.getProperty("getPropertiesFromLocal");
+            Object getPropertiesFromLocal = context.getProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_REGISTRY);
             if (getPropertiesFromLocal == null) {
                 return Long.parseLong(context.getProperty("timeStepSize").toString());
             }
@@ -133,7 +132,7 @@ public class TOTPUtil {
         if (tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
             return Integer.parseInt(getTOTPParameters().get("windowSize"));
         } else {
-            Object getPropertiesFromLocal = context.getProperty("getPropertiesFromLocal");
+            Object getPropertiesFromLocal = context.getProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_REGISTRY);
             if (getPropertiesFromLocal == null) {
                 return Integer.parseInt(context.getProperty("windowSize").toString());
             }
@@ -154,7 +153,7 @@ public class TOTPUtil {
         if (tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
             return Boolean.parseBoolean(getTOTPParameters().get("enableTOTP"));
         } else {
-            Object getPropertiesFromLocal = context.getProperty("getPropertiesFromLocal");
+            Object getPropertiesFromLocal = context.getProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_REGISTRY);
             if (getPropertiesFromLocal == null) {
                 return Boolean.parseBoolean(context.getProperty("enableTOTP").toString());
             }
@@ -175,7 +174,7 @@ public class TOTPUtil {
         if (tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
             return String.valueOf(getTOTPParameters().get("secondaryUserstore"));
         } else {
-            Object getPropertiesFromLocal = context.getProperty("getPropertiesFromLocal");
+            Object getPropertiesFromLocal = context.getProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_REGISTRY);
             if (getPropertiesFromLocal == null) {
                 return context.getProperty("secondaryUserstore").toString();
             }
@@ -197,7 +196,7 @@ public class TOTPUtil {
         if (tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
             return String.valueOf(getTOTPParameters().get("userAttribute"));
         } else {
-            Object getPropertiesFromLocal = context.getProperty("getPropertiesFromLocal");
+            Object getPropertiesFromLocal = context.getProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_REGISTRY);
             if (getPropertiesFromLocal == null) {
                 return context.getProperty("userAttribute").toString();
             }
@@ -219,7 +218,7 @@ public class TOTPUtil {
         if (tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
             return String.valueOf(getTOTPParameters().get("usecase"));
         } else {
-            Object getPropertiesFromLocal = context.getProperty("getPropertiesFromLocal");
+            Object getPropertiesFromLocal = context.getProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_REGISTRY);
             if (getPropertiesFromLocal == null) {
                 return context.getProperty("usecase").toString();
             }
@@ -298,7 +297,8 @@ public class TOTPUtil {
             throw new TOTPException("Cannot get the TOTP parameter values. ", e);
         } catch (RegistryException e) {
             if (context != null) {
-                context.setProperty("getPropertiesFromLocal", "getPropertiesFromLocal");
+                context.setProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_REGISTRY,
+                        TOTPAuthenticatorConstants.GET_PROPERTY_FROM_REGISTRY);
             } else {
                 return "";
             }

@@ -69,6 +69,7 @@ public class TOTPTokenVerifier {
      * Verify whether a given token is valid for a stored local user.
      *
      * @param token    TOTP Token
+     * @param context Authentication context.
      * @param username Username of the user
      * @return true if token is valid otherwise false
      * @throws TOTPException
@@ -90,10 +91,9 @@ public class TOTPTokenVerifier {
                     .setWindowSize(windowSize)
                     .setTimeStepSizeInMillis(timeStep);
             TOTPAuthenticatorImpl totpAuthenticator = new TOTPAuthenticatorImpl(gacb.build());
-            UserRealm userRealm;
             int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
             RealmService realmService = IdentityTenantUtil.getRealmService();
-            userRealm = realmService.getTenantUserRealm(tenantId);
+            UserRealm userRealm = realmService.getTenantUserRealm(tenantId);
             username = MultitenantUtils.getTenantAwareUsername(String.valueOf(username));
             if (userRealm != null) {
                 UserStoreManager userStoreManager = userRealm.getUserStoreManager();

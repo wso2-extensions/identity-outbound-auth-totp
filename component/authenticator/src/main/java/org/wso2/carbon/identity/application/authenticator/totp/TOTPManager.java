@@ -54,6 +54,7 @@ public interface TOTPManager {
      *
      * @param token    token
      * @param username user name
+     * @param context Authentication context.
      * @return true or false
      * @throws TOTPException
      */
@@ -76,6 +77,7 @@ public interface TOTPManager {
     /**
      * Check whether totp is enabled by admin
      *
+     * @param context Authentication context.
      * @return true or false
      * @throws TOTPException
      */

@@ -48,4 +48,6 @@ public abstract class TOTPAuthenticatorConstants {
     public static final String FOUTH_USECASE = "subjectUri";
     public static final String REGISTRY_PATH = "duo/application-authentication.xml";
     public static final String SUPER_TENANT_DOMAIN = "carbon.super";
+    public static final String GET_PROPERTY_FROM_REGISTRY = "getPropertiesFromLocal";
+
 }

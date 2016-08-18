@@ -58,7 +58,7 @@ public class TOTPFederetedUsername {
      */
     public void updateAuthenticatedUserInStepConfig(AuthenticationContext context,
                                                     AuthenticatedUser authenticatedUser) {
-        for (int i = 1; i <= context.getSequenceConfig().getStepMap().size(); i++) {
+        for (StepConfig i : context.getSequenceConfig().getStepMap().values()) {
             StepConfig stepConfig = context.getSequenceConfig().getStepMap().get(i);
             if (stepConfig.getAuthenticatedUser() != null && stepConfig.getAuthenticatedAutenticator()
                     .getApplicationAuthenticator() instanceof FederatedApplicationAuthenticator) {
@@ -76,7 +76,7 @@ public class TOTPFederetedUsername {
      */
     public AuthenticatedUser getUsername(AuthenticationContext context) {
         AuthenticatedUser authenticatedUser = null;
-        for (int i = 1; i <= context.getSequenceConfig().getStepMap().size(); i++) {
+        for (StepConfig i : context.getSequenceConfig().getStepMap().values()) {
             StepConfig stepConfig = context.getSequenceConfig().getStepMap().get(i);
             if (stepConfig.getAuthenticatedUser() != null && stepConfig.getAuthenticatedAutenticator()
                     .getApplicationAuthenticator() instanceof FederatedApplicationAuthenticator) {
@@ -96,15 +96,13 @@ public class TOTPFederetedUsername {
     public String getLoggedInFederatedUser(AuthenticationContext context) {
         String username = "";
         for (int i = context.getSequenceConfig().getStepMap().size() - 1; i >= 0; i--) {
+            context.getSequenceConfig().getStepMap().entrySet().iterator();
             if (context.getSequenceConfig().getStepMap().get(i).getAuthenticatedUser() != null &&
                     context.getSequenceConfig().getStepMap().get(i).getAuthenticatedAutenticator()
                             .getApplicationAuthenticator() instanceof FederatedApplicationAuthenticator) {
                 String idpName = context.getSequenceConfig().getStepMap().get(i).getAuthenticatedIdP();
                 context.setProperty("idpName", idpName);
                 username = context.getSequenceConfig().getStepMap().get(i).getAuthenticatedUser().toString();
-                if (log.isDebugEnabled()) {
-                    log.debug("username :" + username);
-                }
                 break;
             }
         }
