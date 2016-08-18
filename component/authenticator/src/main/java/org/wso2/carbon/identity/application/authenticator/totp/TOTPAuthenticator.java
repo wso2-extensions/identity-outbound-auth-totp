@@ -64,7 +64,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 } else {
                     return AuthenticatorFlowStatus.FAIL_COMPLETED;
                 }
-            } catch (Exception e) {
+            } catch (AuthenticationFailedException e) {
                 log.error("Error when generating the totp token");
             }
         } else if (request.getParameter(TOTPAuthenticatorConstants.TOKEN) == null) {

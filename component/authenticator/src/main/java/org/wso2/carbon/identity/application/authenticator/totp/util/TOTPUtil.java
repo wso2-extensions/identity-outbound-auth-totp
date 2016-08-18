@@ -77,7 +77,7 @@ public class TOTPUtil {
             encodingMethods = String.valueOf(getTOTPParameters().get("encodingMethod"));
         } else if (context == null) {
             try {
-                encodingMethods = TOTPUtil.loadXMLFromRegistry(context, tenantDomain);
+                encodingMethods =loadXMLFromRegistry(context, tenantDomain);
                 if (encodingMethods == null) {
                     encodingMethods = String.valueOf(getTOTPParameters().get("encodingMethod"));
                 }
