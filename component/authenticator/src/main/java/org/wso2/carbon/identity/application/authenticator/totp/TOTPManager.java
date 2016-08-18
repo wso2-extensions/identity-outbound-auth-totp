@@ -29,7 +29,7 @@ public interface TOTPManager {
      * @return return TOTP Data transfer object
      * @throws TOTPException
      */
-    public String generateTOTPKeyLocal(String username, AuthenticationContext context) throws Exception;
+    public String generateTOTPKeyLocal(String username, AuthenticationContext context) throws TOTPException;
 
     /**
      * Generate the totp token for a local user
@@ -38,7 +38,7 @@ public interface TOTPManager {
      * @return totp token
      * @throws TOTPException
      */
-    public String generateTOTPTokenLocal(String username, AuthenticationContext context) throws Exception;
+    public String generateTOTPTokenLocal(String username, AuthenticationContext context) throws TOTPException;
 
     /**
      * Check whether totp is enabled for a given local user
@@ -47,7 +47,7 @@ public interface TOTPManager {
      * @return true or false
      * @throws TOTPException
      */
-    public boolean isTOTPEnabledForLocalUser(String username, AuthenticationContext context) throws Exception;
+    public boolean isTOTPEnabledForLocalUser(String username, AuthenticationContext context) throws TOTPException;
 
     /**
      * is given token is valid for a local user
@@ -57,7 +57,7 @@ public interface TOTPManager {
      * @return true or false
      * @throws TOTPException
      */
-    public boolean isValidTokenLocalUser(int token, String username, AuthenticationContext context) throws Exception;
+    public boolean isValidTokenLocalUser(int token, String username, AuthenticationContext context) throws TOTPException;
 
     /**
      * Get the supported encoding method
@@ -79,5 +79,5 @@ public interface TOTPManager {
      * @return true or false
      * @throws TOTPException
      */
-    public boolean isTOTPEnabledByAdmin(AuthenticationContext context) throws Exception;
+    public boolean isTOTPEnabledByAdmin(AuthenticationContext context) throws TOTPException;
 }

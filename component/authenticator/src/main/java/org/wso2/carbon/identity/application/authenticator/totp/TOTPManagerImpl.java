@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.application.authenticator.totp;
 
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
+import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 
 /**
  * TOTPManager implementation class.
@@ -38,22 +39,22 @@ public class TOTPManagerImpl implements TOTPManager {
     }
 
     @Override
-    public String generateTOTPKeyLocal(String username, AuthenticationContext context) throws Exception {
+    public String generateTOTPKeyLocal(String username, AuthenticationContext context) throws TOTPException {
         return totpKeyGenerator.generateTOTPKeyLocal(username, context);
     }
 
     @Override
-    public String generateTOTPTokenLocal(String username, AuthenticationContext context) throws Exception {
+    public String generateTOTPTokenLocal(String username, AuthenticationContext context) throws TOTPException {
         return totpTokenGenerator.generateTOTPTokenLocal(username, context);
     }
 
     @Override
-    public boolean isTOTPEnabledForLocalUser(String username, AuthenticationContext context) throws Exception {
+    public boolean isTOTPEnabledForLocalUser(String username, AuthenticationContext context) throws TOTPException {
         return totpAccessController.isTOTPEnabledForLocalUser(username, context);
     }
 
     @Override
-    public boolean isValidTokenLocalUser(int token, String username, AuthenticationContext context) throws Exception {
+    public boolean isValidTokenLocalUser(int token, String username, AuthenticationContext context) throws TOTPException {
         return totpTokenVerifier.isValidTokenLocalUser(token, username, context);
     }
 
@@ -68,8 +69,7 @@ public class TOTPManagerImpl implements TOTPManager {
     }
 
     @Override
-    public boolean isTOTPEnabledByAdmin(AuthenticationContext context) throws Exception {
+    public boolean isTOTPEnabledByAdmin(AuthenticationContext context) throws TOTPException {
         return totpAccessController.isTOTPEnabledByAdmin(context);
     }
-
 }

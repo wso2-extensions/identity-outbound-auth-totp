@@ -25,6 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
+import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.util.*;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
@@ -68,22 +69,21 @@ public class TOTPKeyGenerator {
      * @return TOTPDTO object containing secret key and QR code url.
      * @throws TOTPException
      */
-    public String generateTOTPKeyLocal(String username, AuthenticationContext context) throws Exception {
+    public String generateTOTPKeyLocal(String username, AuthenticationContext context) throws TOTPException {
         //check for user store domain
         String secretkey = null;
         String qrCodeURL;
-        String tenantDomain = MultitenantUtils.getTenantDomain(username);
-        TOTPAuthenticatorKey key = generateKey(username, tenantDomain);
         UserRealm userRealm;
+        String tenantDomain = MultitenantUtils.getTenantDomain(username);
         try {
+            TOTPAuthenticatorKey key = generateKey(username, tenantDomain, context);
             int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
             RealmService realmService = IdentityTenantUtil.getRealmService();
             userRealm = realmService.getTenantUserRealm(tenantId);
             username = MultitenantUtils.getTenantAwareUsername(String.valueOf(username));
-
             if (userRealm != null) {
                 secretkey = TOTPUtil.encrypt(key.getKey());
-                String encoding = TOTPUtil.getEncodingMethod(tenantDomain);
+                String encoding = TOTPUtil.getEncodingMethod(tenantDomain, context);
                 userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, secretkey, null);
                 userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.ENCODING_CLAIM_URL, encoding, null);
                 getQRCodeURL(username, context);
@@ -93,8 +93,9 @@ public class TOTPKeyGenerator {
                     username, e);
         } catch (CryptoException e) {
             throw new TOTPException("Error when encrypting", e);
+        } catch (AuthenticationFailedException e) {
+            throw new TOTPException("Error while getting the properties");
         }
-
         return secretkey;
     }
 
@@ -105,7 +106,7 @@ public class TOTPKeyGenerator {
      * @return TOTPDTO object containing secret key and QR code url.
      * @throws TOTPException
      */
-    public String getQRCodeURL(String username, AuthenticationContext context) throws Exception {
+    public String getQRCodeURL(String username, AuthenticationContext context) throws TOTPException {
         //check for user store domain
         String secretKey;
         String encodedQRCodeURL = null;
@@ -117,13 +118,12 @@ public class TOTPKeyGenerator {
             RealmService realmService = IdentityTenantUtil.getRealmService();
             userRealm = realmService.getTenantUserRealm(tenantId);
             username = MultitenantUtils.getTenantAwareUsername(String.valueOf(username));
-
             if (userRealm != null) {
                 secretKey = userRealm.getUserStoreManager().getUserClaimValue(username, TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, null);
                 if (StringUtils.isEmpty(secretKey)) {
-                    TOTPAuthenticatorKey key = generateKey(username, tenantDomain);
+                    TOTPAuthenticatorKey key = generateKey(username, tenantDomain, context);
                     secretKey = key.getKey();
-                    encoding = TOTPUtil.getEncodingMethod(tenantDomain);
+                    encoding = TOTPUtil.getEncodingMethod(tenantDomain, context);
                     userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(secretKey), null);
                     userRealm.getUserStoreManager().setUserClaimValue(username, TOTPAuthenticatorConstants.ENCODING_CLAIM_URL, encoding, null);
                 } else {
@@ -138,6 +138,8 @@ public class TOTPKeyGenerator {
                     username, e);
         } catch (CryptoException e) {
             throw new TOTPException("TOTPKeyGenerator failed while decrypting", e);
+        } catch (AuthenticationFailedException e) {
+            throw new TOTPException("TOTPKeyGenerator cannot find the property value for encoding method", e);
         }
         return encodedQRCodeURL;
     }
@@ -150,7 +152,6 @@ public class TOTPKeyGenerator {
      * @throws TOTPException
      */
     public boolean resetLocal(String username) throws TOTPException {
-
         UserRealm userRealm;
         try {
             String tenantDomain = MultitenantUtils.getTenantDomain(username);
@@ -167,7 +168,6 @@ public class TOTPKeyGenerator {
                 throw new TOTPException("Can not find the user realm for the given tenant domain : " + CarbonContext.
                         getThreadLocalCarbonContext().getTenantDomain());
             }
-
         } catch (UserStoreException e) {
             throw new TOTPException("Can not find the user realm for the user : " + username, e);
         }
@@ -178,9 +178,10 @@ public class TOTPKeyGenerator {
      *
      * @return TOTPAuthenticatorKey object
      */
-    private TOTPAuthenticatorKey generateKey(String username, String tenantdomain) throws Exception {
+    private TOTPAuthenticatorKey generateKey(String username, String tenantdomain, AuthenticationContext context) throws TOTPException,
+            AuthenticationFailedException {
         TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;
-        if (TOTPAuthenticatorConstants.BASE64.equals(TOTPUtil.getEncodingMethod(tenantdomain))) {
+        if (TOTPAuthenticatorConstants.BASE64.equals(TOTPUtil.getEncodingMethod(tenantdomain, context))) {
             encoding = TOTPKeyRepresentation.BASE64;
         }
         TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder gacb = new TOTPAuthenticatorConfig

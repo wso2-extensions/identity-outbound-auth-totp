@@ -57,7 +57,6 @@ public class TOTPAccessController {
             int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
             RealmService realmService = IdentityTenantUtil.getRealmService();
             userRealm = realmService.getTenantUserRealm(tenantId);
-
             username = MultitenantUtils.getTenantAwareUsername(String.valueOf(username));
             if (userRealm != null) {
                 String secretKey = userRealm.getUserStoreManager().getUserClaimValue(username,
@@ -79,7 +78,7 @@ public class TOTPAccessController {
      * @return enableTOTP value
      * @throws TOTPException
      */
-    public boolean isTOTPEnabledByAdmin(AuthenticationContext context) throws Exception {
+    public boolean isTOTPEnabledByAdmin(AuthenticationContext context) throws TOTPException {
         return TOTPUtil.checkTOTPEnableByAdmin(context);
     }
 }

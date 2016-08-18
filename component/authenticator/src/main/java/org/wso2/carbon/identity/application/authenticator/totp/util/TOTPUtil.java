@@ -32,16 +32,20 @@ import org.wso2.carbon.core.util.CryptoUtil;
 import org.wso2.carbon.identity.application.authentication.framework.config.builder.FileBasedConfigurationBuilder;
 import org.wso2.carbon.identity.application.authentication.framework.config.model.AuthenticatorConfig;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
+import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.registry.core.Registry;
 import org.wso2.carbon.registry.core.Resource;
 import org.wso2.carbon.registry.core.exceptions.RegistryException;
+import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -64,17 +68,31 @@ public class TOTPUtil {
      * Get stored encoding method.
      *
      * @return encodingMethod
-     * @throws TOTPException
      */
-    public static String getEncodingMethod(String tenantDomain) throws Exception {
-        String encodingMethod;
+    public static String getEncodingMethod(String tenantDomain, AuthenticationContext context) throws
+            AuthenticationFailedException {
+        String encodingMethods;
+        Object getPropertiesFromLocal;
         if (tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
-            encodingMethod = getTOTPParameters().get("encodingMethod");
+            encodingMethods = String.valueOf(getTOTPParameters().get("encodingMethod"));
+        } else if (context == null) {
+            try {
+                encodingMethods = TOTPUtil.loadXMLFromRegistry(context, tenantDomain);
+                if (encodingMethods == null) {
+                    encodingMethods = String.valueOf(getTOTPParameters().get("encodingMethod"));
+                }
+            } catch (TOTPException e) {
+                throw new AuthenticationFailedException("Cannot find the property value for encodingMethod");
+            }
         } else {
-            String parameter = "encodingMethod";
-            encodingMethod = loadXMLFromString(parameter, tenantDomain);
+            getPropertiesFromLocal = context.getProperty("getPropertiesFromLocal");
+            if (getPropertiesFromLocal == null) {
+                encodingMethods = context.getProperty("encodingMethod").toString();
+            } else {
+                encodingMethods = String.valueOf(getTOTPParameters().get("encodingMethod"));
+            }
         }
-        if (TOTPAuthenticatorConstants.BASE32.equals(encodingMethod)) {
+        if (TOTPAuthenticatorConstants.BASE32.equals(encodingMethods)) {
             return TOTPAuthenticatorConstants.BASE32;
         }
         return TOTPAuthenticatorConstants.BASE64;
@@ -84,9 +102,9 @@ public class TOTPUtil {
      * Get time step size.
      *
      * @return timeStepSize
-     * @throws TOTPException
      */
-    public static long getTimeStepSize(AuthenticationContext context) throws Exception {
+
+    public static long getTimeStepSize(AuthenticationContext context) {
         if (log.isDebugEnabled()) {
             log.debug("Read the time step size from properties file");
         }
@@ -94,8 +112,11 @@ public class TOTPUtil {
         if (tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
             return Long.parseLong(getTOTPParameters().get("timeStepSize"));
         } else {
-            String parameter = "timeStepSize";
-            return Long.parseLong(loadXMLFromString(parameter, tenantDomain));
+            Object getPropertiesFromLocal = context.getProperty("getPropertiesFromLocal");
+            if (getPropertiesFromLocal == null) {
+                return Long.parseLong(context.getProperty("timeStepSize").toString());
+            }
+            return Long.parseLong(getTOTPParameters().get("timeStepSize"));
         }
     }
 
@@ -103,9 +124,8 @@ public class TOTPUtil {
      * Get stored window size.
      *
      * @return windowSize
-     * @throws TOTPException
      */
-    public static int getWindowSize(AuthenticationContext context) throws Exception {
+    public static int getWindowSize(AuthenticationContext context) {
         if (log.isDebugEnabled()) {
             log.debug("Read the window size from properties file");
         }
@@ -113,8 +133,11 @@ public class TOTPUtil {
         if (tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
             return Integer.parseInt(getTOTPParameters().get("windowSize"));
         } else {
-            String parameter = "windowSize";
-            return Integer.parseInt(loadXMLFromString(parameter, tenantDomain));
+            Object getPropertiesFromLocal = context.getProperty("getPropertiesFromLocal");
+            if (getPropertiesFromLocal == null) {
+                return Integer.parseInt(context.getProperty("windowSize").toString());
+            }
+            return Integer.parseInt(getTOTPParameters().get("windowSize"));
         }
     }
 
@@ -122,9 +145,8 @@ public class TOTPUtil {
      * Check the totp enabled by admin
      *
      * @return enableTOTP
-     * @throws TOTPException
      */
-    public static boolean checkTOTPEnableByAdmin(AuthenticationContext context) throws Exception {
+    public static boolean checkTOTPEnableByAdmin(AuthenticationContext context) {
         if (log.isDebugEnabled()) {
             log.debug("Read the values of enableTOTP from properties file");
         }
@@ -132,19 +154,20 @@ public class TOTPUtil {
         if (tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
             return Boolean.parseBoolean(getTOTPParameters().get("enableTOTP"));
         } else {
-            String parameter = "enableTOTP";
-            return Boolean.parseBoolean(loadXMLFromString(parameter, tenantDomain));
+            Object getPropertiesFromLocal = context.getProperty("getPropertiesFromLocal");
+            if (getPropertiesFromLocal == null) {
+                return Boolean.parseBoolean(context.getProperty("enableTOTP").toString());
+            }
+            return Boolean.parseBoolean(getTOTPParameters().get("enableTOTP"));
         }
-
     }
 
     /**
      * Get the secondary user store names.
      *
      * @param context Authentication context.
-     * @throws Exception
      */
-    public static String getSecondaryUserStore(AuthenticationContext context) throws Exception {
+    public static String getSecondaryUserStore(AuthenticationContext context) {
         if (log.isDebugEnabled()) {
             log.debug("Read the secondary user store from properties file");
         }
@@ -152,8 +175,11 @@ public class TOTPUtil {
         if (tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
             return String.valueOf(getTOTPParameters().get("secondaryUserstore"));
         } else {
-            String parameter = "secondaryUserstore";
-            return String.valueOf(loadXMLFromString(parameter, tenantDomain));
+            Object getPropertiesFromLocal = context.getProperty("getPropertiesFromLocal");
+            if (getPropertiesFromLocal == null) {
+                return context.getProperty("secondaryUserstore").toString();
+            }
+            return String.valueOf(getTOTPParameters().get("secondaryUserstore"));
         }
     }
 
@@ -162,9 +188,8 @@ public class TOTPUtil {
      *
      * @param context Authentication context.
      * @return user attribute
-     * @throws Exception
      */
-    public static String getUserAttribute(AuthenticationContext context) throws Exception {
+    public static String getUserAttribute(AuthenticationContext context) {
         if (log.isDebugEnabled()) {
             log.debug("Read the user attribute from properties file");
         }
@@ -172,8 +197,11 @@ public class TOTPUtil {
         if (tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
             return String.valueOf(getTOTPParameters().get("userAttribute"));
         } else {
-            String parameter = "userAttribute";
-            return String.valueOf(loadXMLFromString(parameter, tenantDomain));
+            Object getPropertiesFromLocal = context.getProperty("getPropertiesFromLocal");
+            if (getPropertiesFromLocal == null) {
+                return context.getProperty("userAttribute").toString();
+            }
+            return String.valueOf(getTOTPParameters().get("userAttribute"));
         }
     }
 
@@ -182,9 +210,8 @@ public class TOTPUtil {
      *
      * @param context Authentication context.
      * @return usecase type (local, association, userAttribute, subjectUri)
-     * @throws Exception
      */
-    public static String getUsecase(AuthenticationContext context) throws Exception {
+    public static String getUsecase(AuthenticationContext context) {
         if (log.isDebugEnabled()) {
             log.debug("Read the usecase Type from properties file");
         }
@@ -192,76 +219,93 @@ public class TOTPUtil {
         if (tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
             return String.valueOf(getTOTPParameters().get("usecase"));
         } else {
-            String parameter = "usecase";
-            return String.valueOf(loadXMLFromString(parameter, tenantDomain));
+            Object getPropertiesFromLocal = context.getProperty("getPropertiesFromLocal");
+            if (getPropertiesFromLocal == null) {
+                return context.getProperty("usecase").toString();
+            }
+            return String.valueOf(getTOTPParameters().get("usecase"));
         }
     }
 
     /**
-     * Get xml file data from registry
+     * Get xml file data from registry and covert string type of xml content to xml document.
      *
-     * @throws Exception
+     * @throws TOTPException
      */
-    public static String getRegistry(String tenantDomain) throws Exception {
-//        CarbonContext corbonContext = CarbonContext.getThreadLocalCarbonContext();
-//        String tenantDomain = CarbonContext.getThreadLocalCarbonContext().getTenantDomain();
+    public static String loadXMLFromRegistry(AuthenticationContext context, String tenantDomain) throws TOTPException {
+        String xml, encodingMethod = null, timeStepSize = null, windowSize = null,
+                enableTOTP = null, usecase = null, userAttribute = null, secondaryUserstore = null;
         int tenantID = IdentityTenantUtil.getTenantId(tenantDomain);
-        String xmlContent;
         try {
             PrivilegedCarbonContext.startTenantFlow();
             PrivilegedCarbonContext privilegedCarbonContext = PrivilegedCarbonContext.getThreadLocalCarbonContext();
             privilegedCarbonContext.setTenantId(tenantID);
             privilegedCarbonContext.setTenantDomain(tenantDomain);
-            try {
-                Registry registry = (Registry) privilegedCarbonContext.getRegistry(RegistryType.SYSTEM_GOVERNANCE);
-                Resource resource = registry.get(TOTPAuthenticatorConstants.REGISTRY_PATH);
-                Object content = resource.getContent();
-                xmlContent = new String((byte[]) content);
-                return xmlContent;
-            } catch (RegistryException e) {
-                throw new RegistryException("Error when getting a resource in the path");
+            Registry registry = (Registry) privilegedCarbonContext.getRegistry(RegistryType.SYSTEM_GOVERNANCE);
+            Resource resource = registry.get(TOTPAuthenticatorConstants.REGISTRY_PATH);
+            Object content = resource.getContent();
+            xml = new String((byte[]) content);
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            DocumentBuilder builder;
+            builder = factory.newDocumentBuilder();
+            Document doc;
+            doc = builder.parse(new ByteArrayInputStream(xml.getBytes()));
+            NodeList authConfigList = doc.getElementsByTagName("AuthenticatorConfig");
+            for (int authConfigIndex = 0; authConfigIndex < authConfigList.getLength(); authConfigIndex++) {
+                Node authConfigNode = authConfigList.item(authConfigIndex);
+                if (authConfigNode.getNodeType() == Node.ELEMENT_NODE) {
+                    Element authConfigElement = (Element) authConfigNode;
+                    String AuthConfig = authConfigElement.getAttribute("name");
+                    if (AuthConfig.equals("totp")) {
+                        NodeList AuthConfigChildList = authConfigElement.getChildNodes();
+                        for (int j = 0; j < AuthConfigChildList.getLength(); j++) {
+                            Node authConfigChildNode = AuthConfigChildList.item(j);
+                            if (authConfigChildNode.getNodeType() == Node.ELEMENT_NODE) {
+                                Element authConfigChildElement = (Element) authConfigChildNode;
+                                String tagAttribute = AuthConfigChildList.item(j).getAttributes().getNamedItem("name").getNodeValue();
+                                if (tagAttribute.equals("encodingMethod")) {
+                                    encodingMethod = authConfigChildElement.getTextContent();
+                                } else if (tagAttribute.equals("timeStepSize")) {
+                                    timeStepSize = authConfigChildElement.getTextContent();
+                                } else if (tagAttribute.equals("windowSize")) {
+                                    windowSize = authConfigChildElement.getTextContent();
+                                } else if (tagAttribute.equals("enableTOTP")) {
+                                    enableTOTP = authConfigChildElement.getTextContent();
+                                } else if (tagAttribute.equals("usecase")) {
+                                    usecase = authConfigChildElement.getTextContent();
+                                } else if (tagAttribute.equals("userAttribute")) {
+                                    userAttribute = authConfigChildElement.getTextContent();
+                                } else {
+                                    secondaryUserstore = authConfigChildElement.getTextContent();
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+            if (context != null) {
+                context.setProperty("encodingMethod", encodingMethod);
+                context.setProperty("timeStepSize", timeStepSize);
+                context.setProperty("windowSize", windowSize);
+                context.setProperty("enableTOTP", enableTOTP);
+                context.setProperty("usecase", usecase);
+                context.setProperty("userAttribute", userAttribute);
+                context.setProperty("secondaryUserstore", secondaryUserstore);
+            }
+        } catch (SAXException | ParserConfigurationException | IOException e) {
+            throw new TOTPException("Cannot get the TOTP parameter values. ", e);
+        } catch (RegistryException e) {
+            if (context != null) {
+                context.setProperty("getPropertiesFromLocal", "getPropertiesFromLocal");
+            } else {
+                return "";
             }
         } finally {
             PrivilegedCarbonContext.endTenantFlow();
         }
-    }
-
-    /**
-     * Covert string type of xml content to xml document.
-     *
-     * @throws Exception
-     */
-    public static String loadXMLFromString(String parameter, String tenantDomain) throws Exception {
-        String parameterValue = null;
-        String xml = getRegistry(tenantDomain);
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        factory.setNamespaceAware(true);
-        DocumentBuilder builder = factory.newDocumentBuilder();
-        Document doc = builder.parse(new ByteArrayInputStream(xml.getBytes()));
-        NodeList authConfigList = doc.getElementsByTagName("AuthenticatorConfig");
-        for (int authconfigIndex = 0; authconfigIndex < authConfigList.getLength(); authconfigIndex++) {
-            Node authConfigNode = authConfigList.item(authconfigIndex);
-            if (authConfigNode.getNodeType() == Node.ELEMENT_NODE) {
-                Element authConfigElement = (Element) authConfigNode;
-                String AuthConfig = authConfigElement.getAttribute("name");
-                if (AuthConfig.equals("totp")) {
-                    NodeList AuthConfigChildList = authConfigElement.getChildNodes();
-                    for (int j = 0; j < AuthConfigChildList.getLength(); j++) {
-                        Node authConfigChildNode = AuthConfigChildList.item(j);
-                        if (authConfigChildNode.getNodeType() == Node.ELEMENT_NODE) {
-                            Element authConfigChildElement = (Element) authConfigChildNode;
-                            String tagAttribute = AuthConfigChildList.item(j).getAttributes().getNamedItem("name").getNodeValue();
-                            if (tagAttribute.equals(parameter)) {
-                                parameterValue = authConfigChildElement.getTextContent();
-                                break;
-                            }
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-        return parameterValue;
+        return encodingMethod;
     }
 
     /**

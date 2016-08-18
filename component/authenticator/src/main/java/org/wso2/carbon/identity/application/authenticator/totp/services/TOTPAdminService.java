@@ -35,7 +35,7 @@ public class TOTPAdminService {
      * @return
      * @throws TOTPException
      */
-    public String initTOTP(String username, AuthenticationContext context) throws Exception, UserStoreException {
+    public String initTOTP(String username, AuthenticationContext context) throws TOTPException, UserStoreException {
         String qrCodeURL;
         try {
             qrCodeURL = TOTPKeyGenerator.getInstance().getQRCodeURL(username, context);
@@ -64,7 +64,7 @@ public class TOTPAdminService {
      * @return
      * @throws TOTPException
      */
-    public String refreshSecretKey(String username, AuthenticationContext context) throws Exception {
+    public String refreshSecretKey(String username, AuthenticationContext context) throws TOTPException {
         String secretKey;
         try {
             secretKey = TOTPKeyGenerator.getInstance().generateTOTPKeyLocal(username, context);
