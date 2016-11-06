@@ -118,11 +118,11 @@
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <Bundle-Name>${project.artifactId}</Bundle-Name>
                         <Import-Package>
-                            org.wso2.carbon.core.utils.*,
-                            org.wso2.carbon.core.*,
+                            org.wso2.carbon.core.utils.*; version="${carbon.kernel.version}",
+                            org.wso2.carbon.core.*; version="${carbon.kernel.version}",
                             org.osgi.service.*,
-                            org.wso2.carbon.registry.core.*,
-                            org.wso2.carbon.utils.*,
+                            org.wso2.carbon.registry.core.*; version="${carbon.kernel.version}",
+                            org.wso2.carbon.utils.*; version="${carbon.kernel.version}",
                             org.apache.commons.logging.*;version="${commons-logging.osgi.version.range}",
                             org.osgi.framework.*; version="${osgi.framework.imp.pkg.version.range}",
                             org.wso2.carbon.identity.application.authentication.framework.*;version="${carbon.identity.package.import.version.range}",
@@ -133,7 +133,8 @@
                         </Import-Package>
                         <DynamicImport-Package>*</DynamicImport-Package>
                         <Export-Package>!org.wso2.carbon.identity.application.authenticator.totp.internal.*,
-                            org.wso2.carbon.identity.application.authenticator.totp.*
+                            org.wso2.carbon.identity.application.authenticator.totp.*;
+                            version="${carbon.identity.package.export.project.version}",
                         </Export-Package>
                     </instructions>
                 </configuration>

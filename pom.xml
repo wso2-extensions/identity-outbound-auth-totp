@@ -817,6 +817,7 @@
         <!--Carbon identity version-->
         <carbon.identity.version>5.0.7</carbon.identity.version>
         <carbon.identity.package.export.version>${carbon.identity.version}</carbon.identity.package.export.version>
+        <carbon.identity.package.export.project.version>${project.version}</carbon.identity.package.export.project.version>
         <carbon.identity.package.import.version.range>[5.0.0, 6.0.0)</carbon.identity.package.import.version.range>
         <!--Carbon component version-->
         <carbon.user.api.imp.pkg.version.range>[1.0.1, 2.0.0)</carbon.user.api.imp.pkg.version.range>

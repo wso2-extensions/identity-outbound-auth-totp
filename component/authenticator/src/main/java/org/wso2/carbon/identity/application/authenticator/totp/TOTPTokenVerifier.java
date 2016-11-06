@@ -85,12 +85,12 @@ public class TOTPTokenVerifier {
             }
             timeStep = TimeUnit.SECONDS.toMillis(TOTPUtil.getTimeStepSize(context));
             windowSize = TOTPUtil.getWindowSize(context);
-            TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder gacb = new TOTPAuthenticatorConfig
+            TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder totpAuthenticatorConfigBuilder = new TOTPAuthenticatorConfig
                     .TOTPAuthenticatorConfigBuilder()
                     .setKeyRepresentation(encoding)
                     .setWindowSize(windowSize)
                     .setTimeStepSizeInMillis(timeStep);
-            TOTPAuthenticatorImpl totpAuthenticator = new TOTPAuthenticatorImpl(gacb.build());
+            TOTPAuthenticatorImpl totpAuthenticator = new TOTPAuthenticatorImpl(totpAuthenticatorConfigBuilder.build());
             int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
             RealmService realmService = IdentityTenantUtil.getRealmService();
             UserRealm userRealm = realmService.getTenantUserRealm(tenantId);
