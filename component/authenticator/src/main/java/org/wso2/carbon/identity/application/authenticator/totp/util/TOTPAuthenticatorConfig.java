@@ -20,6 +20,11 @@ package org.wso2.carbon.identity.application.authenticator.totp.util;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * TOTP Authenticator config
+ *
+ * @since 2.0.2
+ * */
 public class TOTPAuthenticatorConfig {
     private long timeStepSizeInMillis = TimeUnit.SECONDS.toMillis(30);
     private int windowSize = 3;
@@ -79,13 +84,25 @@ public class TOTPAuthenticatorConfig {
         return windowSize;
     }
 
+    /**
+     * TOTPAuthenticator Configuration builder
+     */
     public static class TOTPAuthenticatorConfigBuilder {
         private TOTPAuthenticatorConfig config = new TOTPAuthenticatorConfig();
 
+        /**
+         * returns the TOTPAuthenticatorConfig instance
+         * @return config
+         */
         public TOTPAuthenticatorConfig build() {
             return config;
         }
 
+        /**
+         * Set the number of digits in the generated code.
+         * @param codeDigits the codeDigits
+         * @return this codeDigits
+         */
         public TOTPAuthenticatorConfigBuilder setCodeDigits(int codeDigits) {
             if (codeDigits <= 0) {
                 throw new IllegalArgumentException("Code digits must be positive.");
@@ -103,6 +120,11 @@ public class TOTPAuthenticatorConfig {
             return this;
         }
 
+        /**
+         * Set the time step size, in milliseconds, as specified by RFC 6238.
+         * @param timeStepSizeInMillis the timeStepSizeInMillis
+         * @return this timeStepSizeInMillis
+         */
         public TOTPAuthenticatorConfigBuilder setTimeStepSizeInMillis(long timeStepSizeInMillis) {
             if (timeStepSizeInMillis <= 0) {
                 throw new IllegalArgumentException("Time step size must be positive.");
@@ -111,6 +133,11 @@ public class TOTPAuthenticatorConfig {
             return this;
         }
 
+        /**
+         * Set an integer value representing the number of windows of size
+         * @param windowSize the windowSize
+         * @return this windowSize
+         */
         public TOTPAuthenticatorConfigBuilder setWindowSize(int windowSize) {
             if (windowSize <= 0) {
                 throw new IllegalArgumentException("Window number must be positive.");
@@ -119,6 +146,11 @@ public class TOTPAuthenticatorConfig {
             return this;
         }
 
+        /**
+         * Set the key representation.
+         * @param keyRepresentation the keyRepresentation
+         * @return this keyRepresentation
+         */
         public TOTPAuthenticatorConfigBuilder setKeyRepresentation(TOTPKeyRepresentation keyRepresentation) {
             if (keyRepresentation == null) {
                 throw new IllegalArgumentException("Key representation cannot be null.");
