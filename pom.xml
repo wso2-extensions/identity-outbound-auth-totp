@@ -17,8 +17,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.wso2.carbon.extension.identity.authenticator</groupId>
-    <artifactId>org.wso2.carbon.extension.identity.authenticator.totp</artifactId>
+    <groupId>org.wso2.carbon.extension.identity.authenticator.outbound.totp</groupId>
+    <artifactId>identity-outbound-auth-totp</artifactId>
     <packaging>pom</packaging>
     <version>2.0.2-SNAPSHOT</version>
     <name>WSO2 Carbon Extension - Platform Aggregator Pom</name>
@@ -817,7 +817,8 @@
         <!--Carbon identity version-->
         <carbon.identity.version>5.0.7</carbon.identity.version>
         <carbon.identity.package.export.version>${carbon.identity.version}</carbon.identity.package.export.version>
-        <carbon.identity.package.export.project.version>${project.version}</carbon.identity.package.export.project.version>
+        <carbon.identity.package.export.project.version>${project.version}
+        </carbon.identity.package.export.project.version>
         <carbon.identity.package.import.version.range>[5.0.0, 6.0.0)</carbon.identity.package.import.version.range>
         <!--Carbon component version-->
         <carbon.user.api.imp.pkg.version.range>[1.0.1, 2.0.0)</carbon.user.api.imp.pkg.version.range>

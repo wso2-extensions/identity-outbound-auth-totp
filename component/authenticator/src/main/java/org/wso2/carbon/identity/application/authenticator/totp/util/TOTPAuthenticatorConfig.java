@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
  * TOTP Authenticator config
  *
  * @since 2.0.2
- * */
+ */
 public class TOTPAuthenticatorConfig {
     private long timeStepSizeInMillis = TimeUnit.SECONDS.toMillis(30);
     private int windowSize = 3;
@@ -92,6 +92,7 @@ public class TOTPAuthenticatorConfig {
 
         /**
          * returns the TOTPAuthenticatorConfig instance
+         *
          * @return config
          */
         public TOTPAuthenticatorConfig build() {
@@ -100,6 +101,7 @@ public class TOTPAuthenticatorConfig {
 
         /**
          * Set the number of digits in the generated code.
+         *
          * @param codeDigits the codeDigits
          * @return this codeDigits
          */
@@ -122,6 +124,7 @@ public class TOTPAuthenticatorConfig {
 
         /**
          * Set the time step size, in milliseconds, as specified by RFC 6238.
+         *
          * @param timeStepSizeInMillis the timeStepSizeInMillis
          * @return this timeStepSizeInMillis
          */
@@ -135,6 +138,7 @@ public class TOTPAuthenticatorConfig {
 
         /**
          * Set an integer value representing the number of windows of size
+         *
          * @param windowSize the windowSize
          * @return this windowSize
          */
@@ -148,6 +152,7 @@ public class TOTPAuthenticatorConfig {
 
         /**
          * Set the key representation.
+         *
          * @param keyRepresentation the keyRepresentation
          * @return this keyRepresentation
          */
