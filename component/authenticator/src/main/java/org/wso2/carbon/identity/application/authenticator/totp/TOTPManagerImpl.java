@@ -67,9 +67,4 @@ public class TOTPManagerImpl implements TOTPManager {
     public String[] getSupportedHashingMethods() {
         return new String[]{TOTPAuthenticatorConstants.SHA1, TOTPAuthenticatorConstants.MD5};
     }
-
-    @Override
-    public boolean isTOTPEnabledByAdmin(AuthenticationContext context) throws TOTPException {
-        return totpAccessController.isTOTPEnabledByAdmin(context);
-    }
 }

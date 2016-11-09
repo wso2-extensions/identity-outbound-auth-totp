@@ -179,20 +179,19 @@ public class TOTPKeyGenerator {
      * Generate TOTPAuthenticator key
      *
      * @param context      Authentication context.
-     * @param tenantdomain tenant domain.
+     * @param tenantDomain tenant domain.
      * @return TOTPAuthenticatorKey object
      */
-    private TOTPAuthenticatorKey generateKey(String username, String tenantdomain, AuthenticationContext context) throws TOTPException,
+    private TOTPAuthenticatorKey generateKey(String username, String tenantDomain, AuthenticationContext context) throws TOTPException,
             AuthenticationFailedException {
         TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;
-        if (TOTPAuthenticatorConstants.BASE64.equals(TOTPUtil.getEncodingMethod(tenantdomain, context))) {
+        if (TOTPAuthenticatorConstants.BASE64.equals(TOTPUtil.getEncodingMethod(tenantDomain, context))) {
             encoding = TOTPKeyRepresentation.BASE64;
         }
         TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder gacb = new TOTPAuthenticatorConfig
                 .TOTPAuthenticatorConfigBuilder()
                 .setKeyRepresentation(encoding);
         TOTPAuthenticatorImpl totpAuthenticator = new TOTPAuthenticatorImpl(gacb.build());
-        TOTPAuthenticatorKey key = totpAuthenticator.createCredentials();
-        return key;
+        return totpAuthenticator.createCredentials();
     }
 }

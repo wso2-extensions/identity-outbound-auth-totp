@@ -14,7 +14,7 @@
 ~ See the License for the specific language governing permissions and
 ~ limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <groupId>org.wso2.carbon.extension.identity.authenticator.outbound.totp</groupId>
@@ -40,6 +40,11 @@
     </repositories>
     <dependencies>
         <dependency>
+            <groupId>org.wso2.carbon.extension.identity.authenticator.utils</groupId>
+            <artifactId>org.wso2.carbon.extension.identity.helper</artifactId>
+            <version>${identity.extension.utils}</version>
+        </dependency>
+        <dependency>
             <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.registry.api</artifactId>
             <version>4.3.0</version>
@@ -61,7 +66,6 @@
             <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.core</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.wso2.carbon</groupId>
             <artifactId>org.wso2.carbon.utils</artifactId>
@@ -73,10 +77,6 @@
         <dependency>
             <groupId>org.wso2.carbon.identity</groupId>
             <artifactId>org.wso2.carbon.identity.core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.wso2.carbon</groupId>
-            <artifactId>org.wso2.carbon.core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon</groupId>
@@ -118,11 +118,11 @@
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <Bundle-Name>${project.artifactId}</Bundle-Name>
                         <Import-Package>
-                            org.wso2.carbon.core.utils.*; version="${carbon.kernel.version}",
-                            org.wso2.carbon.core.*; version="${carbon.kernel.version}",
+                            org.wso2.carbon.core.utils.*,
+                            org.wso2.carbon.core.*,
                             org.osgi.service.*,
-                            org.wso2.carbon.registry.core.*; version="${carbon.kernel.version}",
-                            org.wso2.carbon.utils.*; version="${carbon.kernel.version}",
+                            org.wso2.carbon.registry.core.*,
+                            org.wso2.carbon.utils.*,
                             org.apache.commons.logging.*;version="${commons-logging.osgi.version.range}",
                             org.osgi.framework.*; version="${osgi.framework.imp.pkg.version.range}",
                             org.wso2.carbon.identity.application.authentication.framework.*;version="${carbon.identity.package.import.version.range}",
@@ -135,6 +135,8 @@
                         <Export-Package>!org.wso2.carbon.identity.application.authenticator.totp.internal.*,
                             org.wso2.carbon.identity.application.authenticator.totp.*;
                             version="${carbon.identity.package.export.project.version}",
+                            org.wso2.carbon.extension.identity.helper.*;
+                            version="${identity.extension.utils}",
                         </Export-Package>
                     </instructions>
                 </configuration>

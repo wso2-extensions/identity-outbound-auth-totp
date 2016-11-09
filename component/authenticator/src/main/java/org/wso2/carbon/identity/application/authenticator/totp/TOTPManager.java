@@ -74,12 +74,4 @@ public interface TOTPManager {
      */
     public String[] getSupportedHashingMethods();
 
-    /**
-     * Check whether totp is enabled by admin
-     *
-     * @param context Authentication context.
-     * @return true or false
-     * @throws TOTPException
-     */
-    public boolean isTOTPEnabledByAdmin(AuthenticationContext context) throws TOTPException;
 }
