@@ -41,13 +41,12 @@ public abstract class TOTPAuthenticatorConstants {
     public static final String AUTHENTICATION = "authentication";
     public static final String BASIC = "basic";
     public static final String FEDERETOR = "federator";
-    public static final String TENANT_DOMAIN_COMBINER = "@";
-    public static final String FIRST_USECASE = "local";
-    public static final String SECOND_USECASE = "association";
-    public static final String THIRD_USECASE = "userAttribute";
-    public static final String FOUTH_USECASE = "subjectUri";
-    public static final String REGISTRY_PATH = "totp/application-authentication.xml";
     public static final String SUPER_TENANT_DOMAIN = "carbon.super";
     public static final String GET_PROPERTY_FROM_REGISTRY = "getPropertiesFromLocal";
-
+    public static final String DEFAULT_LOGIN_ENDPOINT = "authenticationendpoint/login.do";
+    public static final String WINDOW_SIZE = "windowSize";
+    public static final String TIME_STEP_SIZE = "timeStepSize";
+    public static final String ENCODING_METHOD = "encodingMethod";
+    public static final String AUTHENTICATION_POLICY_ENABLED = "authenticationPolicyEnable";
+    public static final String AUTHENTICATION_LOCKING_POLICY_ENABLED = "authenticationPolicyAccountLockOnFailure";
 }
