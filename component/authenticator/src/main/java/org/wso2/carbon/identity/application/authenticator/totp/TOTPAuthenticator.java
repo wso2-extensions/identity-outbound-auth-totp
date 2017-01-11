@@ -124,14 +124,15 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 log.debug("TOTP  is enabled by admin: " + isTOTPEnabledByAdmin);
             }
             if (isTOTPEnabled) {
-                response.sendRedirect(response.encodeRedirectURL(loginPage +
-                        ("?sessionDataKey="
-                                + context.getContextIdentifier())) + "&authenticators=" + getName() + "&type=totp"
-                        + retryParam + "&username=" + username);
+                String encodedtotpUrl = response.encodeRedirectURL(loginPage + ("?sessionDataKey="
+                        + context.getContextIdentifier())) + "&authenticators=" + getName() + "&type=totp"
+                        + retryParam + "&username=" + username;
+                response.sendRedirect(encodedtotpUrl);
             } else if (isTOTPEnabledByAdmin) {
-                response.sendRedirect(response.encodeRedirectURL(errorPage + ("?sessionDataKey="
+                String encodedtotpErrorUrl = response.encodeRedirectURL(errorPage + ("?sessionDataKey="
                         + context.getContextIdentifier())) + "&authenticators=" + getName()
-                        + "&type=totp_error" + retryParam + "&username=" + username);
+                        + "&type=totp_error" + retryParam + "&username=" + username;
+                response.sendRedirect(encodedtotpErrorUrl);
             } else {
                 //authentication is now completed in this step. update the authenticated user information.
                 StepConfig stepConfig = context.getSequenceConfig().getStepMap().get(context.getCurrentStep() - 1);
