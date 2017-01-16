@@ -124,13 +124,13 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 log.debug("TOTP  is enabled by admin: " + isTOTPEnabledByAdmin);
             }
             if (isTOTPEnabled) {
-                String encodedtotpUrl = response.encodeRedirectURL(loginPage + ("?sessionDataKey="
-                        + context.getContextIdentifier())) + "&authenticators=" + getName() + "&type=totp"
+                String encodedtotpUrl = loginPage + ("?sessionDataKey="
+                        + context.getContextIdentifier()) + "&authenticators=" + getName() + "&type=totp"
                         + retryParam + "&username=" + username;
                 response.sendRedirect(encodedtotpUrl);
             } else if (isTOTPEnabledByAdmin) {
-                String encodedtotpErrorUrl = response.encodeRedirectURL(errorPage + ("?sessionDataKey="
-                        + context.getContextIdentifier())) + "&authenticators=" + getName()
+                String encodedtotpErrorUrl = errorPage + ("?sessionDataKey="
+                        + context.getContextIdentifier()) + "&authenticators=" + getName()
                         + "&type=totp_error" + retryParam + "&username=" + username;
                 response.sendRedirect(encodedtotpErrorUrl);
             } else {
