@@ -66,7 +66,7 @@
             </releases>
         </repository>
         <repository>
-            <id>shibboleth.internet2.edu</id>
+            <id>shibboleth-release</id>
             <name>Internet2</name>
             <layout>default</layout>
             <url>https://build.shibboleth.net/nexus/content/groups/public/</url>
