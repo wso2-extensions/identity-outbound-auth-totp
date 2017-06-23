@@ -36,6 +36,15 @@
                 <checksumPolicy>fail</checksumPolicy>
             </releases>
         </repository>
+        <repository>
+            <id>shibboleth.internet2.edu</id>
+            <name>Internet2</name>
+            <layout>default</layout>
+            <url>https://build.shibboleth.net/nexus/content/groups/public/</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
     </repositories>
     <dependencies>
         <dependency>
