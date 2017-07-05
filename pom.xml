@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ~ Copyright (c) 2015, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+  ~ Copyright (c) 2017, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
     <groupId>org.wso2.carbon.extension.identity.authenticator.outbound.totp</groupId>
     <artifactId>identity-outbound-auth-totp</artifactId>
     <packaging>pom</packaging>
-    <version>2.0.4-SNAPSHOT</version>
+    <version>2.0.3-SNAPSHOT</version>
     <name>WSO2 Carbon Extension - Platform Aggregator Pom</name>
     <url>http://wso2.org</url>
     <parent>
@@ -64,24 +64,6 @@
             <releases>
                 <enabled>false</enabled>
             </releases>
-        </repository>
-        <repository>
-            <id>shibboleth.internet2.edu</id>
-            <name>Internet2</name>
-            <layout>default</layout>
-            <url>https://build.shibboleth.net/nexus/content/groups/public/</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>shibboleth-release</id>
-            <name>Internet2</name>
-            <layout>default</layout>
-            <url>https://build.shibboleth.net/nexus/content/groups/public/</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
         </repository>
     </repositories>
     <scm>
@@ -1018,7 +1000,7 @@
         <javax.xml.parsers.import.pkg.version>[0.0.0, 1.0.0)</javax.xml.parsers.import.pkg.version>
         <ehcache.version>1.5.0.wso2v3</ehcache.version>
         <project.scm.id>my-scm-server</project.scm.id>
-        <identity.extension.utils>1.0.1</identity.extension.utils>
+        <identity.extension.utils>1.0.4</identity.extension.utils>
     </properties>
     <build>
         <pluginManagement>

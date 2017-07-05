@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2017, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -17,63 +17,51 @@
  */
 package org.wso2.carbon.identity.application.authenticator.totp.services;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
+import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPKeyGenerator;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
-import org.wso2.carbon.user.api.UserStoreException;
 
+/**
+ * This class is used to initiate, reset the TOTP and refresh the secret key.
+ *
+ * @since 2.0.3
+ */
 public class TOTPAdminService {
 
-    private static Log log = LogFactory.getLog(TOTPAdminService.class);
+	/**
+	 * Generate TOTP Token for a given user.
+	 *
+	 * @param username Username of the user
+	 * @param context  Authentication context
+	 * @return Encoded QR Code URL.
+	 * @throws TOTPException when could not find the user
+	 */
+	public String initTOTP(String username, AuthenticationContext context) throws TOTPException {
+		return TOTPKeyGenerator.createUrlWithQRCode(username, false, context);
+	}
 
-    /**
-     * Generate TOTP Token for the give user
-     *
-     * @param username username of the user
-     * @param context  Authentication context.
-     * @return
-     * @throws TOTPException
-     */
-    public String initTOTP(String username, AuthenticationContext context) throws TOTPException, UserStoreException {
-        String qrCodeURL;
-        try {
-            qrCodeURL = TOTPKeyGenerator.getInstance().getQRCodeURL(username, context);
-            return qrCodeURL;
-        } catch (TOTPException e) {
-            log.error("TOTPAdminService failed to generateTOTP key for the user : " + username, e);
-            throw new TOTPException("TOTPAdminService failed to generateTOTP key for the user : " + username, e);
-        }
-    }
+	/**
+	 * Resets TOTP credentials of the user.
+	 *
+	 * @param username Username of the user
+	 * @return true, if successfully resets
+	 * @throws TOTPException when could not find the user
+	 */
+	public boolean resetTOTP(String username) throws TOTPException, AuthenticationFailedException {
+		return TOTPKeyGenerator.resetLocal(username);
+	}
 
-    /**
-     * reset TOTP credentials of the user
-     *
-     * @param username of the user
-     * @return
-     * @throws TOTPException
-     */
-    public boolean resetTOTP(String username) throws TOTPException {
-        return TOTPKeyGenerator.getInstance().resetLocal(username);
-    }
-
-    /**
-     * reset TOTP credentials of the user
-     *
-     * @param username of the user
-     * @param context  Authentication context.
-     * @return
-     * @throws TOTPException
-     */
-    public String refreshSecretKey(String username, AuthenticationContext context) throws TOTPException {
-        String secretKey;
-        try {
-            secretKey = TOTPKeyGenerator.getInstance().generateTOTPKeyLocal(username, context);
-            return secretKey;
-        } catch (TOTPException e) {
-            log.error("TOTPAdminService failed to generateTOTP key for the user : " + username, e);
-            throw new TOTPException("TOTPAdminService failed to generateTOTP key for the user : " + username, e);
-        }
-    }
+	/**
+	 * Refreshes TOTP secret key of the user.
+	 *
+	 * @param username Username of the user
+	 * @param context  Authentication context
+	 * @return Encoded QR Code URL for refreshed secret key
+	 * @throws TOTPException when could not find the user
+	 */
+	public String refreshSecretKey(String username, AuthenticationContext context)
+			throws TOTPException {
+		return TOTPKeyGenerator.createUrlWithQRCode(username, true, context);
+	}
 }

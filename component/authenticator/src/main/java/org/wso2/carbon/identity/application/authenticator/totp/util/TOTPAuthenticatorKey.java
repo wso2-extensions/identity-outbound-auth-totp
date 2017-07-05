@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2017, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -21,61 +21,40 @@ package org.wso2.carbon.identity.application.authenticator.totp.util;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * TOTP Authenticator Key.
+ *
+ * @since 2.0.3
+ */
 public class TOTPAuthenticatorKey {
-    /**
-     * The secret key in Base32 encoding.
-     */
-    private final String key;
+	/**
+	 * The secret key in Base32 encoding.
+	 */
+	private final String key;
 
-    /**
-     * The verification code at time = 0 (the UNIX epoch).
-     */
-    private final int verificationCode;
+	/**
+	 * The verification code at time = 0 (the UNIX epoch).
+	 */
+	private final int verificationCode;
 
-    /**
-     * The list of scratch codes.
-     */
-    private final List<Integer> scratchCodes;
+	/**
+	 * The constructor with package visibility.
+	 *
+	 * @param secretKey the secret key in Base32 encoding.
+	 * @param code      the verification code at time = 0 (the UNIX epoch).
+	 */
+	TOTPAuthenticatorKey(String secretKey, int code) {
+		key = secretKey;
+		verificationCode = code;
+	}
 
-    /**
-     * The constructor with package visibility.
-     *
-     * @param secretKey    the secret key in Base32 encoding.
-     * @param code         the verification code at time = 0 (the UNIX epoch).
-     * @param scratchCodes the list of scratch codes.
-     */
-    TOTPAuthenticatorKey(
-            String secretKey, int code,
-            List<Integer> scratchCodes) {
-        key = secretKey;
-        verificationCode = code;
-        this.scratchCodes = new ArrayList<>(scratchCodes);
-    }
+	/**
+	 * Returns the secret key in Base32 encoding.
+	 *
+	 * @return the secret key in Base32 encoding.
+	 */
+	public String getKey() {
+		return key;
+	}
 
-    /**
-     * Get the list of scratch codes.
-     *
-     * @return the list of scratch codes.
-     */
-    public List<Integer> getScratchCodes() {
-        return scratchCodes;
-    }
-
-    /**
-     * Returns the secret key in Base32 encoding.
-     *
-     * @return the secret key in Base32 encoding.
-     */
-    public String getKey() {
-        return key;
-    }
-
-    /**
-     * Returns the verification code at time = 0 (the UNIX epoch).
-     *
-     * @return the verificationCode at time = 0 (the UNIX epoch).
-     */
-    public int getVerificationCode() {
-        return verificationCode;
-    }
 }

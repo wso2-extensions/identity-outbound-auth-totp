@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2017, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,26 +18,31 @@
 
 package org.wso2.carbon.identity.application.authenticator.totp.util;
 
+/**
+ * TOTP Authenticator Exception.
+ *
+ * @since 2.0.3
+ */
 public class TOTPAuthenticatorException extends RuntimeException {
 
-    /**
-     * Builds an exception with the provided error message.
-     *
-     * @param message the error message.
-     */
-    public TOTPAuthenticatorException(String message) {
-        super(message);
-    }
+	/**
+	 * Builds an exception with the provided error message.
+	 *
+	 * @param message the error message.
+	 */
+	public TOTPAuthenticatorException(String message) {
+		super(message);
+	}
 
-    /**
-     * Builds an exception with the provided error message and
-     * the provided cause.
-     *
-     * @param message the error message.
-     * @param cause   the cause.
-     */
-    public TOTPAuthenticatorException(String message, Throwable cause) {
-        super(message, cause);
-    }
+	/**
+	 * Builds an exception with the provided error message and
+	 * the provided cause.
+	 *
+	 * @param message the error message.
+	 * @param cause   the cause.
+	 */
+	public TOTPAuthenticatorException(String message, Throwable cause) {
+		super(message, cause);
+	}
 }
 
