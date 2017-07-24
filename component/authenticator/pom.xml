@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-~ Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+~ Copyright (c) 2017, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
 ~
 ~ Licensed under the Apache License, Version 2.0 (the "License");
 ~ you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@
     <parent>
         <groupId>org.wso2.carbon.extension.identity.authenticator.outbound.totp</groupId>
         <artifactId>identity-outbound-auth-totp</artifactId>
-        <version>2.0.4-SNAPSHOT</version>
+        <version>2.0.3-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>org.wso2.carbon.extension.identity.authenticator.totp.connector</artifactId>
-    <version>2.0.4-SNAPSHOT</version>
+    <version>2.0.3-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <repositories>
         <repository>
@@ -35,24 +35,6 @@
                 <updatePolicy>daily</updatePolicy>
                 <checksumPolicy>fail</checksumPolicy>
             </releases>
-        </repository>
-        <repository>
-            <id>shibboleth.internet2.edu</id>
-            <name>Internet2</name>
-            <layout>default</layout>
-            <url>https://build.shibboleth.net/nexus/content/groups/public/</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>shibboleth-release</id>
-            <name>Internet2</name>
-            <layout>default</layout>
-            <url>https://build.shibboleth.net/nexus/content/groups/public/</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
         </repository>
     </repositories>
     <dependencies>

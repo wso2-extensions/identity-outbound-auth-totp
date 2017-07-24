@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2017, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -18,246 +18,386 @@
 
 package org.wso2.carbon.identity.application.authenticator.totp;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.carbon.extension.identity.helper.FederatedAuthenticator;
-import org.wso2.carbon.extension.identity.helper.MultiFactorAuthenticationEventListener;
+import org.wso2.carbon.context.CarbonContext;
+import org.wso2.carbon.core.util.CryptoException;
+import org.wso2.carbon.extension.identity.helper.FederatedAuthenticatorUtil;
 import org.wso2.carbon.extension.identity.helper.util.IdentityHelperUtil;
 import org.wso2.carbon.identity.application.authentication.framework.AbstractApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authentication.framework.AuthenticatorFlowStatus;
 import org.wso2.carbon.identity.application.authentication.framework.LocalApplicationAuthenticator;
-import org.wso2.carbon.identity.application.authentication.framework.config.ConfigurationFacade;
 import org.wso2.carbon.identity.application.authentication.framework.config.model.StepConfig;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.exception.LogoutFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
+import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorConfig;
+import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorCredentials;
+import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPKeyRepresentation;
+import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
+import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
+/**
+ * Authenticator of TOTP.
+ *
+ * @since 2.0.3
+ */
 public class TOTPAuthenticator extends AbstractApplicationAuthenticator
-        implements LocalApplicationAuthenticator {
+		implements LocalApplicationAuthenticator {
 
-    private static final long serialVersionUID = 2009231028659744926L;
-    private static Log log = LogFactory.getLog(TOTPAuthenticator.class);
+	private static final long serialVersionUID = 2009231028659744926L;
+	private static Log log = LogFactory.getLog(TOTPAuthenticator.class);
 
-    @Override
-    public boolean canHandle(HttpServletRequest request) {
-        String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
-        String action = request.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN);
-        return (token != null || action != null);
-    }
+	/**
+	 * Check whether token or action are in request.
+	 *
+	 * @param request The http servlet request
+	 * @return true, if token or action are not null
+	 */
+	@Override
+	public boolean canHandle(HttpServletRequest request) {
+		String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
+		String action = request.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN);
+		String enableTOTP = request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP);
+		return (token != null || action != null || enableTOTP != null);
+	}
 
-    @Override
-    public AuthenticatorFlowStatus process(HttpServletRequest request, HttpServletResponse response,
-                                           AuthenticationContext context)
-            throws AuthenticationFailedException, LogoutFailedException {
-        if (context.isLogoutRequest()) {
-            return AuthenticatorFlowStatus.SUCCESS_COMPLETED;
-        } else if (request.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN) != null) {
-            if (generateTOTPToken(context)) {
-                return AuthenticatorFlowStatus.INCOMPLETE;
-            } else {
-                return AuthenticatorFlowStatus.FAIL_COMPLETED;
-            }
-        } else if (request.getParameter(TOTPAuthenticatorConstants.TOKEN) == null) {
-            initiateAuthenticationRequest(request, response, context);
-            if (context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION)
-                    .equals(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)) {
-                return AuthenticatorFlowStatus.INCOMPLETE;
-            } else {
-                return AuthenticatorFlowStatus.SUCCESS_COMPLETED;
-            }
-        } else {
-            return super.process(request, response, context);
-        }
-    }
+	/**
+	 * This method is overridden to check additional condition like whether request is having
+	 * sendToken, token parameters, generateTOTPToken and authentication name.
+	 *
+	 * @param request  Http servlet request
+	 * @param response Http servlet response
+	 * @param context  AuthenticationContext
+	 * @return AuthenticatorFlowStatus
+	 * @throws AuthenticationFailedException User tenant domain mismatch
+	 * @throws LogoutFailedException         Error while checking logout request
+	 */
+	@Override
+	public AuthenticatorFlowStatus process(HttpServletRequest request, HttpServletResponse response,
+	                                       AuthenticationContext context)
+			throws AuthenticationFailedException, LogoutFailedException {
+		if (context.isLogoutRequest()) {
+			return AuthenticatorFlowStatus.SUCCESS_COMPLETED;
+		} else if (request.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN) != null) {
+			if (generateTOTPToken(context)) {
+				return AuthenticatorFlowStatus.INCOMPLETE;
+			} else {
+				return AuthenticatorFlowStatus.FAIL_COMPLETED;
+			}
+		} else if (StringUtils
+				.isNotEmpty(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP))) {
+			// if the request comes with MOBILE_NUMBER, it will go through this flow.
+			initiateAuthenticationRequest(request, response, context);
+			if (context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION)
+			           .equals(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)) {
+				return AuthenticatorFlowStatus.INCOMPLETE;
+			} else {
+				return AuthenticatorFlowStatus.SUCCESS_COMPLETED;
+			}
+		} else if (request.getParameter(TOTPAuthenticatorConstants.TOKEN) == null) {
+			initiateAuthenticationRequest(request, response, context);
+			if (context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION)
+			           .equals(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)) {
+				return AuthenticatorFlowStatus.INCOMPLETE;
+			} else {
+				return AuthenticatorFlowStatus.SUCCESS_COMPLETED;
+			}
+		} else {
+			return super.process(request, response, context);
+		}
+	}
 
-    /**
-     * Initiate authentication request.
-     *
-     * @param request  the request
-     * @param response the response
-     * @param context  the authentication context
-     */
-    @Override
-    protected void initiateAuthenticationRequest(HttpServletRequest request,
-                                                 HttpServletResponse response,
-                                                 AuthenticationContext context)
-            throws AuthenticationFailedException {
-        String username = null;
-        AuthenticatedUser authenticatedUser;
-        String tenantDomain = context.getTenantDomain();
-        context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
-        if (!tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
-            IdentityHelperUtil.loadApplicationAuthenticationXMLFromRegistry(context, getName(), tenantDomain);
-        }
-        TOTPManager totpManager = new TOTPManagerImpl();
-        String loginPage = ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
-                .replace(TOTPAuthenticatorConstants.DEFAULT_LOGIN_ENDPOINT, TOTPAuthenticatorConstants.LOGIN_PAGE);
-        String errorPage = ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
-                .replace(TOTPAuthenticatorConstants.DEFAULT_LOGIN_ENDPOINT, TOTPAuthenticatorConstants.ERROR_PAGE);
-        String retryParam = "";
-        try {
-            FederatedAuthenticator federatedAuthenticator = new FederatedAuthenticator();
-            federatedAuthenticator.getUsernameFromFirstStep(context);
-            username = String.valueOf(context.getProperty("username"));
-            authenticatedUser = (AuthenticatedUser) context.getProperty("authenticatedUser");
-            // find the authenticated user.
-            if (authenticatedUser == null) {
-                throw new AuthenticationFailedException
-                        ("Authentication failed!. Cannot proceed further without identifying the user");
-            }
-            if (context.isRetrying()) {
-                retryParam = "&authFailure=true&authFailureMsg=login.fail.message";
-            }
-            boolean isTOTPEnabled = totpManager.isTOTPEnabledForLocalUser(username, context);
-            if (log.isDebugEnabled()) {
-                log.debug("TOTP is enabled by user: " + isTOTPEnabled);
-            }
-            boolean isTOTPEnabledByAdmin = IdentityHelperUtil.checkSecondStepEnableByAdmin(context);
-            if (log.isDebugEnabled()) {
-                log.debug("TOTP  is enabled by admin: " + isTOTPEnabledByAdmin);
-            }
-            if (isTOTPEnabled) {
-                String encodedtotpUrl = loginPage + ("?sessionDataKey="
-                        + context.getContextIdentifier()) + "&authenticators=" + getName() + "&type=totp"
-                        + retryParam + "&username=" + username;
-                response.sendRedirect(encodedtotpUrl);
-            } else if (isTOTPEnabledByAdmin) {
-                String encodedtotpErrorUrl = errorPage + ("?sessionDataKey="
-                        + context.getContextIdentifier()) + "&authenticators=" + getName()
-                        + "&type=totp_error" + retryParam + "&username=" + username;
-                response.sendRedirect(encodedtotpErrorUrl);
-            } else {
-                //authentication is now completed in this step. update the authenticated user information.
-                StepConfig stepConfig = context.getSequenceConfig().getStepMap().get(context.getCurrentStep() - 1);
-                if (stepConfig.getAuthenticatedAutenticator().getApplicationAuthenticator() instanceof LocalApplicationAuthenticator) {
-                    federatedAuthenticator.updateLocalAuthenticatedUserInStepConfig(context, authenticatedUser);
-                    context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION, TOTPAuthenticatorConstants.BASIC);
-                } else {
-                    federatedAuthenticator.updateAuthenticatedUserInStepConfig(context, authenticatedUser);
-                    context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION, TOTPAuthenticatorConstants.FEDERETOR);
-                }
-            }
-        } catch (IOException e) {
-            throw new AuthenticationFailedException("Error when redirecting the totp login response, " +
-                    "user : " + username, e);
-        } catch (TOTPException e) {
-            throw new AuthenticationFailedException("Error when checking totp enabled for the user : " + username, e);
-        } catch (AuthenticationFailedException e) {
-            throw new AuthenticationFailedException("Authentication failed!. Cannot get the username from first step.", e);
-        }
-    }
+	/**
+	 * Initiate authentication request.
+	 *
+	 * @param request  The request
+	 * @param response The response
+	 * @param context  The authentication context
+	 * @throws AuthenticationFailedException If authenticatedUser could not be identified
+	 */
+	@Override
+	protected void initiateAuthenticationRequest(HttpServletRequest request,
+	                                             HttpServletResponse response,
+	                                             AuthenticationContext context)
+			throws AuthenticationFailedException {
+		String username = null;
+		AuthenticatedUser authenticatedUser;
+		String tenantDomain = context.getTenantDomain();
+		context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
+		                    TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
+		if (!tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
+			IdentityHelperUtil
+					.loadApplicationAuthenticationXMLFromRegistry(context, getName(), tenantDomain);
+		}
+		String loginPage =
+				IdentityUtil.getServerURL(TOTPAuthenticatorConstants.LOGIN_PAGE, false, false);
+		String errorPage =
+				IdentityUtil.getServerURL(TOTPAuthenticatorConstants.ERROR_PAGE, false, false);
+		String retryParam = "";
+		try {
+			FederatedAuthenticatorUtil.setUsernameFromFirstStep(context);
+			username = String.valueOf(context.getProperty("username"));
+			authenticatedUser = (AuthenticatedUser) context.getProperty("authenticatedUser");
+			// find the authenticated user.
+			if (authenticatedUser == null) {
+				throw new AuthenticationFailedException(
+						"Authentication failed!. Cannot proceed further without identifying the user");
+			}
+			if (context.isRetrying()) {
+				retryParam = "&authFailure=true&authFailureMsg=login.fail.message";
+			}
+			boolean isTOTPEnabled = isTOTPEnabledForLocalUser(username);
+			if (log.isDebugEnabled()) {
+				log.debug("TOTP is enabled by user: " + isTOTPEnabled);
+			}
+			boolean isTOTPEnabledByAdmin = IdentityHelperUtil.checkSecondStepEnableByAdmin(context);
+			if (log.isDebugEnabled()) {
+				log.debug("TOTP  is enabled by admin: " + isTOTPEnabledByAdmin);
+			}
+			String totpLoginPageUrl =
+					loginPage + ("?sessionDataKey=" + context.getContextIdentifier()) +
+					"&authenticators=" + getName() + "&type=totp" + retryParam + "&username=" +
+					username;
+			String totpErrorPageUrl =
+					errorPage + ("?sessionDataKey=" + context.getContextIdentifier()) +
+					"&authenticators=" + getName() + "&type=totp_error" + retryParam +
+					"&username=" + username;
+			if (isTOTPEnabled) {
+				response.sendRedirect(totpLoginPageUrl);
+			} else if (isTOTPEnabledByAdmin) {
+				if (TOTPUtil.getTOTPEnableInAuthenticationFlow(context) &&
+				    request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
+					if (log.isDebugEnabled()) {
+						log.debug("User has not enabled TOTP: " + username);
+					}
+					TOTPUtil.redirectToEnableTOTPReqPage(response, context);
+				} else if (Boolean
+						.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP))) {
+					TOTPKeyGenerator.createUrlWithQRCode(username, false, context);
+					if (isTOTPEnabledForLocalUser(username)) {
+						response.sendRedirect(totpLoginPageUrl);
+					}
+				} else {
+					response.sendRedirect(totpErrorPageUrl);
+				}
+			} else {
+				context.setSubject(authenticatedUser);
+				// Authentication is now completed in this step. update the authenticated user
+				// information.
+				StepConfig stepConfig =
+						context.getSequenceConfig().getStepMap().get(context.getCurrentStep() - 1);
+				if (stepConfig.getAuthenticatedAutenticator()
+				              .getApplicationAuthenticator() instanceof
+						LocalApplicationAuthenticator) {
+					context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
+					                    TOTPAuthenticatorConstants.BASIC);
+				} else {
+					context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
+					                    TOTPAuthenticatorConstants.FEDERETOR);
+				}
+			}
+		} catch (IOException e) {
+			throw new AuthenticationFailedException(
+					"Error when redirecting the TOTP login response, user : " + username, e);
+		} catch (TOTPException e) {
+			throw new AuthenticationFailedException(
+					"Error when checking TOTP enabled for the user : " + username, e);
+		} catch (AuthenticationFailedException e) {
+			throw new AuthenticationFailedException(
+					"Authentication failed!. Cannot get the username from first step.", e);
+		}
+	}
 
-    @Override
-    protected void processAuthenticationResponse(HttpServletRequest request,
-                                                 HttpServletResponse response,
-                                                 AuthenticationContext context)
-            throws AuthenticationFailedException {
-        String username = context.getProperty("username").toString();
-        String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
-        try {
-            MultiFactorAuthenticationEventListener multiFactorAuthenticationEventListener = null;
-            if (!context.getTenantDomain().equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
-                if (Boolean.parseBoolean((context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION_POLICY_ENABLED))
-                        .toString())) {
-                    multiFactorAuthenticationEventListener
-                            = new MultiFactorAuthenticationEventListener();
-                    multiFactorAuthenticationEventListener.doPreApplyCode(username, context);
-                }
-            } else {
-                if (Boolean.parseBoolean(getAuthenticatorConfig().getParameterMap()
-                        .get(TOTPAuthenticatorConstants.AUTHENTICATION_POLICY_ENABLED))) {
-                    multiFactorAuthenticationEventListener
-                            = new MultiFactorAuthenticationEventListener();
-                    multiFactorAuthenticationEventListener.doPreApplyCode(username, context);
-                }
-            }
-            TOTPManager totpManager = new TOTPManagerImpl();
-            if (token != null) {
-                try {
-                    int tokenValue = Integer.parseInt(token);
-                    if (!totpManager.isValidTokenLocalUser(tokenValue, username, context)) {
-                        executeAccountLockingPolicy(context, username, multiFactorAuthenticationEventListener, false);
-                        throw new AuthenticationFailedException("Authentication failed, user :  " + username);
-                    } else {
-                        executeAccountLockingPolicy(context, username, multiFactorAuthenticationEventListener, true);
-                        context.setSubject(AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username));
-                    }
-                } catch (TOTPException e) {
-                    throw new AuthenticationFailedException("TOTP Authentication process failed for user " + username, e);
-                } catch (UserStoreException e) {
-                    throw new AuthenticationFailedException("Error while checking account locking policies ", e);
-                }
-            }
-        } catch (UserStoreException e) {
-            throw new AuthenticationFailedException("TOTP Authentication process failed for user ", e);
-        }
-    }
+	/**
+	 * This method is overridden to check validation of the given token.
+	 *
+	 * @param request  The http servlet request
+	 * @param response The http servlet response
+	 * @param context  AuthenticationContext
+	 * @throws AuthenticationFailedException Authentication process failed for user
+	 */
+	@Override
+	protected void processAuthenticationResponse(HttpServletRequest request,
+	                                             HttpServletResponse response,
+	                                             AuthenticationContext context)
+			throws AuthenticationFailedException {
+		String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
+		String username = context.getProperty("username").toString();
+		if (token != null) {
+			try {
+				int tokenValue = Integer.parseInt(token);
+				if (!isValidTokenLocalUser(tokenValue, username, context)) {
+					throw new AuthenticationFailedException(
+							"Authentication failed, user :  " + username);
+				}
+				context.setSubject(AuthenticatedUser
+						                   .createLocalAuthenticatedUserFromSubjectIdentifier(
+								                   username));
+			} catch (TOTPException e) {
+				throw new AuthenticationFailedException(
+						"TOTP Authentication process failed for user " + username, e);
+			}
+		}
+	}
 
+	/**
+	 * Check whether status of retrying authentication.
+	 *
+	 * @return true, if retry authentication is enabled
+	 */
+	@Override
+	protected boolean retryAuthenticationEnabled() {
+		return true;
+	}
 
-    @Override
-    protected boolean retryAuthenticationEnabled() {
-        return true;
-    }
+	/**
+	 * Get requested session ID.
+	 *
+	 * @param request The http servlet request
+	 * @return Requested session ID
+	 */
+	@Override
+	public String getContextIdentifier(HttpServletRequest request) {
+		return request.getRequestedSessionId();
+	}
 
-    @Override
-    public String getContextIdentifier(HttpServletRequest request) {
-        return request.getRequestedSessionId();
-    }
+	/**
+	 * Get friendly name.
+	 *
+	 * @return Authenticator friendly name
+	 */
+	@Override
+	public String getFriendlyName() {
+		return TOTPAuthenticatorConstants.AUTHENTICATOR_FRIENDLY_NAME;
+	}
 
-    @Override
-    public String getFriendlyName() {
-        return TOTPAuthenticatorConstants.AUTHENTICATOR_FRIENDLY_NAME;
-    }
+	/**
+	 * Get authenticator name.
+	 *
+	 * @return Authenticator name
+	 */
+	@Override
+	public String getName() {
+		return TOTPAuthenticatorConstants.AUTHENTICATOR_NAME;
+	}
 
-    @Override
-    public String getName() {
-        return TOTPAuthenticatorConstants.AUTHENTICATOR_NAME;
-    }
+	/**
+	 * Generate TOTP token.
+	 *
+	 * @param context AuthenticationContext
+	 * @return true, if token is generated successfully
+	 */
+	private boolean generateTOTPToken(AuthenticationContext context) {
+		String username = context.getProperty("username").toString();
+		try {
+			TOTPTokenGenerator.generateTOTPTokenLocal(username, context);
+			if (log.isDebugEnabled()) {
+				log.debug("TOTP Token is generated");
+			}
+		} catch (TOTPException e) {
+			log.error("Error when generating the totp token", e);
+			return false;
+		}
+		return true;
+	}
 
+	/**
+	 * Check whether TOTP is enabled for local user or not.
+	 *
+	 * @param username Username of the user
+	 * @return true, if TOTP enable for local user
+	 * @throws TOTPException when user realm is null or could not find user
+	 */
+	private boolean isTOTPEnabledForLocalUser(String username)
+			throws TOTPException, AuthenticationFailedException {
+		UserRealm userRealm = TOTPUtil.getUserRealm(username);
+		String tenantAwareUsername = null;
+		try {
+			tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
+			if (userRealm != null) {
+				Map<String, String> UserClaimValues =
+						userRealm.getUserStoreManager().getUserClaimValues
+								(tenantAwareUsername, new String[]
+										{ TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL }, null);
+				String secretKey =
+						UserClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
+				return StringUtils.isNotBlank(secretKey);
+			} else {
+				throw new TOTPException(
+						"Cannot find the user realm for the given tenant domain : " +
+						CarbonContext.getThreadLocalCarbonContext().getTenantDomain());
+			}
+		} catch (UserStoreException e) {
+			throw new TOTPException(
+					"TOTPAccessController failed while trying to access userRealm of the user : " +
+					tenantAwareUsername, e);
+		}
+	}
 
-    private boolean generateTOTPToken(AuthenticationContext context) throws AuthenticationFailedException {
-        String username = context.getProperty("username").toString();
-        try {
-            TOTPManager totpManager = new TOTPManagerImpl();
-            totpManager.generateTOTPTokenLocal(username, context);
-            if (log.isDebugEnabled()) {
-                log.debug("TOTP Token is generated");
-            }
-        } catch (TOTPException e) {
-            log.error("Error when generating the totp token", e);
-            return false;
-        }
-        return true;
-    }
-
-    public void executeAccountLockingPolicy(AuthenticationContext context, String username,
-                                            MultiFactorAuthenticationEventListener multiFactorAuthenticationEventListener,
-                                            boolean isAuthenticated)
-            throws UserStoreException, AuthenticationFailedException {
-        if (!context.getTenantDomain().equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
-            if ((Boolean.parseBoolean(context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION_POLICY_ENABLED).toString()))
-                    && Boolean.parseBoolean(context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION_LOCKING_POLICY_ENABLED)
-                    .toString())) {
-                if (multiFactorAuthenticationEventListener != null) {
-                    multiFactorAuthenticationEventListener.doPostApplyCode(username, isAuthenticated, context);
-                }
-            }
-        } else {
-            if (Boolean.parseBoolean(getAuthenticatorConfig().getParameterMap()
-                    .get(TOTPAuthenticatorConstants.AUTHENTICATION_POLICY_ENABLED))
-                    && Boolean.parseBoolean(getAuthenticatorConfig().getParameterMap()
-                    .get(TOTPAuthenticatorConstants.AUTHENTICATION_LOCKING_POLICY_ENABLED))) {
-                if (multiFactorAuthenticationEventListener != null) {
-                    multiFactorAuthenticationEventListener.doPostApplyCode(username, isAuthenticated, context);
-                }
-            }
-        }
-    }
+	/**
+	 * Verify whether a given token is valid for a stored local user.
+	 *
+	 * @param token    TOTP Token which needs to be validated
+	 * @param context  Authentication context
+	 * @param username Username of the user
+	 * @return true if token is valid otherwise false
+	 * @throws TOTPException UserRealm for user or tenant domain is null
+	 */
+	private boolean isValidTokenLocalUser(int token, String username, AuthenticationContext context)
+			throws TOTPException {
+		TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;
+		String tenantDomain = MultitenantUtils.getTenantDomain(username);
+		String tenantAwareUsername = null;
+		try {
+			if (TOTPAuthenticatorConstants.BASE64
+					.equals(TOTPUtil.getEncodingMethod(tenantDomain, context))) {
+				encoding = TOTPKeyRepresentation.BASE64;
+			}
+			long timeStep = TimeUnit.SECONDS.toMillis(TOTPUtil.getTimeStepSize(context));
+			int windowSize = TOTPUtil.getWindowSize(context);
+			TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder totpAuthenticatorConfigBuilder =
+					new TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder()
+							.setKeyRepresentation(encoding).setWindowSize(windowSize)
+							.setTimeStepSizeInMillis(timeStep);
+			TOTPAuthenticatorCredentials totpAuthenticator =
+					new TOTPAuthenticatorCredentials(totpAuthenticatorConfigBuilder.build());
+			tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
+			UserRealm userRealm = TOTPUtil.getUserRealm(username);
+			if (userRealm != null) {
+				Map<String, String> userClaimValues = userRealm
+						.getUserStoreManager().getUserClaimValues
+								(tenantAwareUsername, new String[]
+										{ TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL }, null);
+				String secretKey = TOTPUtil.decrypt(
+						userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
+				return totpAuthenticator.authorize(secretKey, token);
+			} else {
+				throw new TOTPException(
+						"Cannot find the user realm for the given tenant domain : " +
+						CarbonContext.getThreadLocalCarbonContext().getTenantDomain());
+			}
+		} catch (UserStoreException e) {
+			throw new TOTPException(
+					"TOTPTokenVerifier failed while trying to access userRealm of the user : " +
+					tenantAwareUsername, e);
+		} catch (CryptoException e) {
+			throw new TOTPException("Error while decrypting the key", e);
+		} catch (AuthenticationFailedException e) {
+			throw new TOTPException(
+					"TOTPTokenVerifier cannot find the property value for encodingMethod");
+		}
+	}
 }
