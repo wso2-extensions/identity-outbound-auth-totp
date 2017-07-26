@@ -49,7 +49,7 @@ function requestTOTPToken(){
 			data:"&sessionDataKey="+document.getElementById("sessionDataKey").value+"&sendToken=true",
 			success: function(response){
 				if(response==""){
-			               alert("Verification code sent to your email address");
+			               alert("Verification is code sent to your email address");
 				}else{
 			               alert("Error");
 				}

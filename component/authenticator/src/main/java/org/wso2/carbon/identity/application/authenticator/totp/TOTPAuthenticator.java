@@ -46,6 +46,7 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -175,7 +176,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 					errorPage + ("?sessionDataKey=" + context.getContextIdentifier()) +
 					"&authenticators=" + getName() + "&type=totp_error" + retryParam +
 					"&username=" + username;
-			if (isTOTPEnabled) {
+			if (isTOTPEnabled && request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
 				response.sendRedirect(totpLoginPageUrl);
 			} else if (isTOTPEnabledByAdmin) {
 				if (TOTPUtil.getTOTPEnableInAuthenticationFlow(context) &&
@@ -183,10 +184,25 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 					if (log.isDebugEnabled()) {
 						log.debug("User has not enabled TOTP: " + username);
 					}
-					TOTPUtil.redirectToEnableTOTPReqPage(response, context);
+					Map<String, String> claims = TOTPKeyGenerator.generateClaims(username, false, context);
+					context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
+							claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
+					context.setProperty(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL,
+							claims.get(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL));
+					context.setProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
+							claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL));
+					String qrURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
+					TOTPUtil.redirectToEnableTOTPReqPage(response, context, qrURL);
 				} else if (Boolean
 						.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP))) {
-					TOTPKeyGenerator.createUrlWithQRCode(username, false, context);
+					Map<String, String> claims =  new HashMap<>();
+					claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
+							context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString());
+					claims.put(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL,
+							context.getProperty(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL).toString());
+					claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
+							context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL).toString());
+					TOTPKeyGenerator.addTOTPClaims(claims, username, context);
 					if (isTOTPEnabledForLocalUser(username)) {
 						response.sendRedirect(totpLoginPageUrl);
 					}

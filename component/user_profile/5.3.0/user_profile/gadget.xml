@@ -292,7 +292,7 @@ drawFIDORegistration();
 			 })
 			          .done(function (data) {
 			                removeQRCode();
-
+                            document.getElementById('qrContainer').style.display = 'none';
 			          })
 			          .fail(function () {
 			                message({content:'error while resetting totp',type:'error', cbk:function(){} });
@@ -311,8 +311,8 @@ drawFIDORegistration();
 			     data:"&cookie=" + cookie + "&user=" + userName
 			 })
 			         .done(function (data) {
-			              loadQRCode(data)
-
+			              loadQRCode(data);
+                          toggleFunction();
 			         })
 			         .fail(function () {
 			              message({content:'error while resetting totp',type:'error', cbk:function(){} });

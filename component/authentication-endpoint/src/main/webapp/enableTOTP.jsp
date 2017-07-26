@@ -68,9 +68,11 @@
         <script src="js/html5shiv.min.js"></script>
         <script src="js/respond.min.js"></script>
         <![endif]-->
+        <script src="js/gadget.js"></script>
+        <script src="js/qrCodeGenerator.js"></script>
     </head>
 
-    <body onload="getLoginDiv()">
+    <body onload="getQRDiv()">
 
     <!-- header -->
     <header class="header header-default">
@@ -123,14 +125,35 @@
                                         <div class="span6">
                                              <!-- Token Pin -->
                                              <div class="control-group">
-                                                <label class="control-label" for="password"></label>
-                                                <input type="text" id='ENABLE_TOTP' name="ENABLE_TOTP"
-                                                class="input-xlarge" size='30'/>
+                                                <label class="control-label" for="ENABLE_TOTP">Enable TOTP</label>
+                                                <input type="hidden" id="ENABLE_TOTP" name="ENABLE_TOTP" value="false"/>
+                                                <input type='hidden' name='ske' id='ske' value='<%=request.getParameter("ske")%>'/>
+                                                 <input type="checkbox" name="totpenable" onclick="validateCheckBox();"/><br><br>
+                                                 <div class="container" style="width:90% !important; padding-left:0px; padding-right:0px; display:none;" id="qrContainer">
+                                                    <div class="panel-group">
+                                                        <div class="panel panel-default">
+                                                            <div class="panel-heading" style="padding: 5px 5px 25px 5px;">
+                                                                <h4 class="panel-title">
+                                                                    <div id="scanQR" style="overflow:inherit; float:left; padding-right:2px;"><b>+</b></div>
+                                                                    <a data-toggle="collapse" onclick="initiateTOTP()" style="display:inline-block; float:left; text-decoration: none;">Scan QR Code</a>
+                                                                </h4>
+                                                            </div>
+                                                            <div id="qrcanvdiv" class="panel-collapse collapse" style="display:none">
+                                                                <div id="qrdiv">
+                                                                    <form name="qrinp">
+                                                                        <input type="numeric" name="ECC" value="1" size="1" style="Display:none" id="ecc">
+                                                                        <canvas id="qrcanv" style="display:inline-block; float:right;">
+                                                                    </form>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    </div>
                                              </div>
                                              <input type="hidden" name="sessionDataKey"
                                                 value='<%=request.getParameter("sessionDataKey")%>'/>
                                              <br><div>
-                                                  <input type="button" name="update" id="update" value="Update"
+                                                  <input type="button" name="next" id="next" value="Next"
                                                   class="btn btn-primary">
                                              </div>
                                         </div>
@@ -161,16 +184,20 @@
     <script src="libs/bootstrap_3.3.5/js/bootstrap.min.js"></script>
      <script type="text/javascript">
         $(document).ready(function() {
-        	$('#update').click(function() {
-                var enableTOTP = document.getElementById("ENABLE_TOTP").value;
-                if (enableTOTP == "") {
-                    document.getElementById('alertDiv').innerHTML
-                    = '<div id="error-msg" class="alert alert-danger">Please enable or disable TOTP!</div>';
-                } else {
-    	            $('#pin_form').submit();
-    	        }
+        	$('#next').click(function() {
+                $('#pin_form').submit();
         	});
         });
+     function initiateTOTP(){
+        var key =  document.getElementById("ske").value;
+        if(key != null) {
+		    loadQRCode(key);
+ 		    toggleFunction();
+ 		}
+ 			 }
+     function getQRDiv(){
+         validateCheckBox();
+     }
         </script>
     </body>
     </html>

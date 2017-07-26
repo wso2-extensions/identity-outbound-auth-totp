@@ -326,13 +326,14 @@ function isArray(element) {
 function validateCheckBox(){
     var fld = document.getElementsByName("totpenable")[0];
     if(fld.checked){
+        document.getElementById("ENABLE_TOTP").value = 'true';
+        document.getElementById('qrContainer').style.display = 'block';
+        document.getElementById('qrcanvdiv').style.display = 'none';
         initiateTOTP();
-        $("#tokenInvalid").empty();
     }else{
-        $('#totpQRCode').attr("src","");
-        resetTOTP();
+        document.getElementById("ENABLE_TOTP").value = 'false';
+        document.getElementById('qrContainer').style.display = 'none';
     }
-
 }
 
 function getQRCode(){
@@ -353,8 +354,7 @@ function getSecretKey(url){
     $('#secret').value(loc);
 }
 
-function loadQRCode(url){
-    var key = jQuery.parseJSON(url).return;
+function loadQRCode(key){
     var decodedKey = atob(key);
     setupqr();
     doqr(decodedKey);

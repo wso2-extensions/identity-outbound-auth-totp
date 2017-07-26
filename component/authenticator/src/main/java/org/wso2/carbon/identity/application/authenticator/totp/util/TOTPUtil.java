@@ -30,7 +30,6 @@ import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.context.RegistryType;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.core.util.CryptoUtil;
-import org.wso2.carbon.extension.identity.helper.IdentityHelperConstants;
 import org.wso2.carbon.extension.identity.helper.util.IdentityHelperUtil;
 import org.wso2.carbon.identity.application.authentication.framework.config.builder.FileBasedConfigurationBuilder;
 import org.wso2.carbon.identity.application.authentication.framework.config.model.AuthenticatorConfig;
@@ -313,22 +312,21 @@ public class TOTPUtil {
 	 * @throws AuthenticationFailedException On error while getting value for enableTOTPInAuthenticationFlow
 	 */
 	public static void redirectToEnableTOTPReqPage(HttpServletResponse response,
-	                                               AuthenticationContext context)
+	                                               AuthenticationContext context, String skey)
 			throws AuthenticationFailedException {
 		if (getTOTPEnableInAuthenticationFlow(context)) {
 			String enableTOTPReqPageUrl = TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE +
 			                              ("?sessionDataKey=" + context.getContextIdentifier()) +
 			                              "&authenticators=" +
 			                              TOTPAuthenticatorConstants.AUTHENTICATOR_NAME +
-			                              "&type=totp";
+			                              "&type=totp" + "&ske=" + skey;
 			String enableTOTPReqPage =
 					IdentityUtil.getServerURL(enableTOTPReqPageUrl, false, false);
 			try {
 				response.sendRedirect(enableTOTPReqPage);
 			} catch (IOException e) {
 				throw new AuthenticationFailedException(
-						"Error while redirecting the request to get enableTOTP " + "request page. ",
-						e);
+						"Error while redirecting the request to get enableTOTP " + "request page. ", e);
 			}
 		} else {
 			throw new AuthenticationFailedException(

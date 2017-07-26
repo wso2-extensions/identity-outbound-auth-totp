@@ -22,6 +22,8 @@ import org.wso2.carbon.identity.application.authentication.framework.exception.A
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPKeyGenerator;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 
+import java.util.Map;
+
 /**
  * This class is used to initiate, reset the TOTP and refresh the secret key.
  *
@@ -38,7 +40,9 @@ public class TOTPAdminService {
 	 * @throws TOTPException when could not find the user
 	 */
 	public String initTOTP(String username, AuthenticationContext context) throws TOTPException {
-		return TOTPKeyGenerator.createUrlWithQRCode(username, false, context);
+
+		Map<String, String> claims = TOTPKeyGenerator.generateClaims(username, false, context);
+		return TOTPKeyGenerator.addTOTPClaims(claims, username, context);
 	}
 
 	/**
@@ -62,6 +66,7 @@ public class TOTPAdminService {
 	 */
 	public String refreshSecretKey(String username, AuthenticationContext context)
 			throws TOTPException {
-		return TOTPKeyGenerator.createUrlWithQRCode(username, true, context);
+		Map<String, String> claims = TOTPKeyGenerator.generateClaims(username, true, context);
+		return TOTPKeyGenerator.addTOTPClaims(claims, username, context);
 	}
 }
