@@ -51,7 +51,7 @@ function requestTOTPToken(){
 				if(response==""){
 			               alert("Verification is code sent to your email address");
 				}else{
-			               alert("Error");
+			               alert("Error while sending the code to the email address");
 				}
 				console.log(response);
 			},
