@@ -119,10 +119,12 @@ public class TOTPKeyGenerator {
 	public static String addTOTPClaims(Map<String, String> claims, String username, AuthenticationContext context)
 			throws TOTPException {
 		String tenantAwareUsername = null;
+		String qrCodeURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
 		try {
 			UserRealm userRealm = TOTPUtil.getUserRealm(username);
 			if (userRealm != null) {
 				tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
+				claims.remove(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
 				userRealm.getUserStoreManager().setUserClaimValues(tenantAwareUsername, claims, null);
 			}
 		} catch (UserStoreException e) {
@@ -131,7 +133,7 @@ public class TOTPKeyGenerator {
 		} catch (AuthenticationFailedException e) {
 			throw new TOTPException("TOTPKeyGenerator cannot get the user realm for the user", e);
 		}
-		return claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
+		return qrCodeURL;
 	}
 
 	/**
