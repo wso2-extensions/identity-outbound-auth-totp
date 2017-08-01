@@ -53,7 +53,7 @@ public class TOTPKeyGenerator {
 		String storedSecretKey, secretKey;
 		String decryptedSecretKey = null;
 		String generatedSecretKey = null;
-		String encodedQRCodeURL = null;
+		String encodedQRCodeURL;
 		String tenantAwareUsername = null;
 		Map<String, String> claims = new HashMap<>();
 		String encoding;
@@ -175,7 +175,7 @@ public class TOTPKeyGenerator {
 	 * @return TOTPAuthenticatorKey when user realm is null or decrypt the secret key
 	 * @throws AuthenticationFailedException when tenantDomain is not specified
 	 */
-	private static TOTPAuthenticatorKey generateKey(String tenantDomain, AuthenticationContext context)
+	public static TOTPAuthenticatorKey generateKey(String tenantDomain, AuthenticationContext context)
 			throws AuthenticationFailedException {
 		TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;
 		String encodingMethod;
