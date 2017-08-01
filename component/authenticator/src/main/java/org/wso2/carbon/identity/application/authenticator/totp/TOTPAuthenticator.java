@@ -28,6 +28,7 @@ import org.wso2.carbon.extension.identity.helper.util.IdentityHelperUtil;
 import org.wso2.carbon.identity.application.authentication.framework.AbstractApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authentication.framework.AuthenticatorFlowStatus;
 import org.wso2.carbon.identity.application.authentication.framework.LocalApplicationAuthenticator;
+import org.wso2.carbon.identity.application.authentication.framework.config.ConfigurationFacade;
 import org.wso2.carbon.identity.application.authentication.framework.config.model.StepConfig;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
@@ -38,7 +39,6 @@ import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenti
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorCredentials;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPKeyRepresentation;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
-import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
@@ -143,10 +143,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			IdentityHelperUtil
 					.loadApplicationAuthenticationXMLFromRegistry(context, getName(), tenantDomain);
 		}
-		String loginPage =
-				IdentityUtil.getServerURL(TOTPAuthenticatorConstants.LOGIN_PAGE, false, false);
-		String errorPage =
-				IdentityUtil.getServerURL(TOTPAuthenticatorConstants.ERROR_PAGE, false, false);
 		String retryParam = "";
 		try {
 			FederatedAuthenticatorUtil.setUsernameFromFirstStep(context);
@@ -169,11 +165,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 				log.debug("TOTP  is enabled by admin: " + isTOTPEnabledByAdmin);
 			}
 			String totpLoginPageUrl =
-					loginPage + ("?sessionDataKey=" + context.getContextIdentifier()) +
+					getLoginPage(context) + ("?sessionDataKey=" + context.getContextIdentifier()) +
 					"&authenticators=" + getName() + "&type=totp" + retryParam + "&username=" +
 					username;
 			String totpErrorPageUrl =
-					errorPage + ("?sessionDataKey=" + context.getContextIdentifier()) +
+					getErrorPage(context) + ("?sessionDataKey=" + context.getContextIdentifier()) +
 					"&authenticators=" + getName() + "&type=totp_error" + retryParam +
 					"&username=" + username;
 			if (isTOTPEnabled && request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
@@ -235,6 +231,44 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			throw new AuthenticationFailedException(
 					"Authentication failed!. Cannot get the username from first step.", e);
 		}
+	}
+
+	/**
+	 * Get the loginPage from authentication.xml file or use the login page from constant file.
+	 *
+	 * @param context the AuthenticationContext
+	 * @return the loginPage
+	 * @throws AuthenticationFailedException
+	 */
+	private String getLoginPage(AuthenticationContext context) throws AuthenticationFailedException {
+		String loginPage = TOTPUtil.getLoginPageFromXMLFile(context, getName());
+		if (StringUtils.isEmpty(loginPage)) {
+			loginPage = ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
+					.replace(TOTPAuthenticatorConstants.LOGIN_PAGE, TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
+			if (log.isDebugEnabled()) {
+				log.debug("Default endpoint is used");
+			}
+		}
+		return loginPage;
+	}
+
+	/**
+	 * Get the errorPage from authentication.xml file or use the error page from constant file.
+	 *
+	 * @param context the AuthenticationContext
+	 * @return the errorPage
+	 * @throws AuthenticationFailedException
+	 */
+	private String getErrorPage(AuthenticationContext context) throws AuthenticationFailedException {
+		String errorPage = TOTPUtil.getErrorPageFromXMLFile(context, getName());
+		if (StringUtils.isEmpty(errorPage)) {
+			errorPage = ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
+					.replace(TOTPAuthenticatorConstants.LOGIN_PAGE, TOTPAuthenticatorConstants.ERROR_PAGE);
+			if (log.isDebugEnabled()) {
+				log.debug("Default endpoint is used");
+			}
+		}
+		return errorPage;
 	}
 
 	/**

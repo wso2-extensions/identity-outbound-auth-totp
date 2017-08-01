@@ -30,7 +30,9 @@ import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.context.RegistryType;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.core.util.CryptoUtil;
+import org.wso2.carbon.extension.identity.helper.IdentityHelperConstants;
 import org.wso2.carbon.extension.identity.helper.util.IdentityHelperUtil;
+import org.wso2.carbon.identity.application.authentication.framework.config.ConfigurationFacade;
 import org.wso2.carbon.identity.application.authentication.framework.config.builder.FileBasedConfigurationBuilder;
 import org.wso2.carbon.identity.application.authentication.framework.config.model.AuthenticatorConfig;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
@@ -39,7 +41,6 @@ import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticator
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
-import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.registry.core.Registry;
 import org.wso2.carbon.registry.core.Resource;
 import org.wso2.carbon.registry.core.exceptions.RegistryException;
@@ -152,8 +153,7 @@ public class TOTPUtil {
 	 */
 	private static Map<String, String> getTOTPParameters() {
 		AuthenticatorConfig authConfig = FileBasedConfigurationBuilder.getInstance()
-		                                                              .getAuthenticatorBean(
-				                                                              TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
+				.getAuthenticatorBean(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
 		return authConfig.getParameterMap();
 	}
 
@@ -198,9 +198,7 @@ public class TOTPUtil {
 							if (authConfigChildNode.getNodeType() == Node.ELEMENT_NODE) {
 								Element authConfigChildElement = (Element) authConfigChildNode;
 								String tagAttribute = AuthConfigChildList.item(j).getAttributes()
-								                                         .getNamedItem(
-										                                         TOTPAuthenticatorConstants.NAME)
-								                                         .getNodeValue();
+										.getNamedItem(TOTPAuthenticatorConstants.NAME).getNodeValue();
 								if (tagAttribute
 										.equals(TOTPAuthenticatorConstants.ENCODING_METHOD)) {
 									encodingMethod = authConfigChildElement.getTextContent();
@@ -272,7 +270,7 @@ public class TOTPUtil {
 		     tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN))) {
 			return Integer.parseInt(IdentityHelperUtil.getAuthenticatorParameters(
 					context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION).toString())
-			                                          .get(TOTPAuthenticatorConstants.WINDOW_SIZE));
+					.get(TOTPAuthenticatorConstants.WINDOW_SIZE));
 		} else {
 			return Integer.parseInt(
 					context.getProperty(TOTPAuthenticatorConstants.WINDOW_SIZE).toString());
@@ -297,7 +295,7 @@ public class TOTPUtil {
 		     tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN))) {
 			return Boolean.parseBoolean(IdentityHelperUtil.getAuthenticatorParameters(
 					context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION).toString())
-			                                              .get(TOTPAuthenticatorConstants.ENABLE_TOTP_IN_AUTHENTICATIONFLOW));
+					.get(TOTPAuthenticatorConstants.ENABLE_TOTP_IN_AUTHENTICATIONFLOW));
 		} else {
 			return Boolean.parseBoolean((context.getProperty(
 					TOTPAuthenticatorConstants.ENABLE_TOTP_IN_AUTHENTICATIONFLOW).toString()));
@@ -315,15 +313,13 @@ public class TOTPUtil {
 	                                               AuthenticationContext context, String skey)
 			throws AuthenticationFailedException {
 		if (getTOTPEnableInAuthenticationFlow(context)) {
-			String enableTOTPReqPageUrl = TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE +
-			                              ("?sessionDataKey=" + context.getContextIdentifier()) +
-			                              "&authenticators=" +
-			                              TOTPAuthenticatorConstants.AUTHENTICATOR_NAME +
-			                              "&type=totp" + "&ske=" + skey;
-			String enableTOTPReqPage =
-					IdentityUtil.getServerURL(enableTOTPReqPageUrl, false, false);
+			String enableTOTPReqPageUrl = getEnableTOTPPage(context) +
+					("?sessionDataKey=" + context.getContextIdentifier()) +
+					"&authenticators=" +
+					TOTPAuthenticatorConstants.AUTHENTICATOR_NAME +
+					"&type=totp" + "&ske=" + skey;
 			try {
-				response.sendRedirect(enableTOTPReqPage);
+				response.sendRedirect(enableTOTPReqPageUrl);
 			} catch (IOException e) {
 				throw new AuthenticationFailedException(
 						"Error while redirecting the request to get enableTOTP " + "request page. ", e);
@@ -356,4 +352,106 @@ public class TOTPUtil {
 		}
 		return userRealm;
 	}
+
+	/**
+	 * Get the login page url from the application-authentication.xml file.
+	 *
+	 * @param context           the AuthenticationContext
+	 * @param authenticatorName the name of the authenticator
+	 * @return loginPage
+	 * @throws AuthenticationFailedException
+	 */
+    public static String getLoginPageFromXMLFile(AuthenticationContext context, String authenticatorName)
+            throws AuthenticationFailedException {
+        Object propertiesFromLocal = null;
+        String loginPage = null;
+        String tenantDomain = context.getTenantDomain();
+        if (!tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT)) {
+            IdentityHelperUtil.loadApplicationAuthenticationXMLFromRegistry(context, authenticatorName, tenantDomain);
+            propertiesFromLocal = context.getProperty(IdentityHelperConstants.GET_PROPERTY_FROM_REGISTRY);
+        }
+        if ((propertiesFromLocal != null || tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT))
+                && getTOTPParameters().containsKey(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ENDPOINT_URL)) {
+            loginPage = getTOTPParameters().get(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ENDPOINT_URL);
+        } else if ((context.getProperty(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ENDPOINT_URL)) != null) {
+            loginPage = String
+                    .valueOf(context.getProperty(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ENDPOINT_URL));
+        }
+        return loginPage;
+    }
+
+	/**
+	 * Get the error page url from the application-authentication.xml file.
+	 *
+	 * @param context           the AuthenticationContext
+	 * @param authenticatorName the name of the authenticator
+	 * @return errorPage
+	 * @throws AuthenticationFailedException
+	 */
+    public static String getErrorPageFromXMLFile(AuthenticationContext context, String authenticatorName)
+            throws AuthenticationFailedException {
+        Object propertiesFromLocal = null;
+        String errorPage = null;
+        String tenantDomain = context.getTenantDomain();
+        if (!tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT)) {
+            IdentityHelperUtil.loadApplicationAuthenticationXMLFromRegistry(context, authenticatorName, tenantDomain);
+            propertiesFromLocal = context.getProperty(IdentityHelperConstants.GET_PROPERTY_FROM_REGISTRY);
+        }
+        if ((propertiesFromLocal != null || tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT))
+                && getTOTPParameters().containsKey(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ERROR_PAGE_URL)) {
+            errorPage = getTOTPParameters().get(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ERROR_PAGE_URL);
+        } else if ((context.getProperty(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ERROR_PAGE_URL)) != null) {
+            errorPage = String
+                    .valueOf(context.getProperty(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ERROR_PAGE_URL));
+        }
+        return errorPage;
+    }
+
+	/**
+	 * Get the enableTOTPPage from authentication.xml file or use the error page from constant file.
+	 *
+	 * @param context the AuthenticationContext
+	 * @return the enableTOTPPage
+	 * @throws AuthenticationFailedException
+	 */
+    private static String getEnableTOTPPage(AuthenticationContext context) throws AuthenticationFailedException {
+        String enableTOTPPage = TOTPUtil
+                .getEnableTOTPPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
+        if (StringUtils.isEmpty(enableTOTPPage)) {
+            enableTOTPPage = ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
+                    .replace(TOTPAuthenticatorConstants.LOGIN_PAGE,
+                            TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
+            if (log.isDebugEnabled()) {
+                log.debug("Default authentication endpoint context is used");
+            }
+        }
+        return enableTOTPPage;
+    }
+
+	/**
+	 * Get the enable TOTP page url from the application-authentication.xml file.
+	 *
+	 * @param context           the AuthenticationContext
+	 * @param authenticatorName the name of the authenticator
+	 * @return enableTOTPPage
+	 * @throws AuthenticationFailedException
+	 */
+    public static String getEnableTOTPPageFromXMLFile(AuthenticationContext context, String authenticatorName)
+            throws AuthenticationFailedException {
+        Object propertiesFromLocal = null;
+        String enableTOTPPage = null;
+        String tenantDomain = context.getTenantDomain();
+        if (!tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT)) {
+            IdentityHelperUtil.loadApplicationAuthenticationXMLFromRegistry(context, authenticatorName, tenantDomain);
+            propertiesFromLocal = context.getProperty(IdentityHelperConstants.GET_PROPERTY_FROM_REGISTRY);
+        }
+        if ((propertiesFromLocal != null || tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT))
+                && getTOTPParameters().containsKey(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE_URL)) {
+            enableTOTPPage = getTOTPParameters().get(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE_URL);
+        } else if ((context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE_URL)) != null) {
+            enableTOTPPage = String
+                    .valueOf(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE_URL));
+        }
+        return enableTOTPPage;
+    }
 }
