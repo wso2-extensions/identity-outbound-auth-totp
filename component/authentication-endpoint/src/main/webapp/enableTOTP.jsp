@@ -72,7 +72,7 @@
         <script src="js/qrCodeGenerator.js"></script>
     </head>
 
-    <body onload="getQRDiv()">
+    <body>
 
     <!-- header -->
     <header class="header header-default">
@@ -125,17 +125,16 @@
                                         <div class="span6">
                                              <!-- Token Pin -->
                                              <div class="control-group">
-                                                <label class="control-label" for="ENABLE_TOTP">Enable TOTP</label>
+                                                <a onclick="validateCheckBox();">Show QR code to scan and enrol the user to mobile application</a>
                                                 <input type="hidden" id="ENABLE_TOTP" name="ENABLE_TOTP" value="false"/>
                                                 <input type='hidden' name='ske' id='ske' value='<%=request.getParameter("ske")%>'/>
-                                                 <input type="checkbox" name="totpenable" onclick="validateCheckBox();"/><br><br>
                                                  <div class="container" style="width:90% !important; padding-left:0px; padding-right:0px; display:none;" id="qrContainer">
                                                     <div class="panel-group">
                                                         <div class="panel panel-default">
                                                             <div class="panel-heading" style="padding: 5px 5px 25px 5px;">
                                                                 <h4 class="panel-title">
                                                                     <div id="scanQR" style="overflow:inherit; float:left; padding-right:2px;"><b>+</b></div>
-                                                                    <a data-toggle="collapse" onclick="initiateTOTP()" style="display:inline-block; float:left; text-decoration: none;">Scan QR Code</a>
+                                                                    <a data-toggle="collapse" onclick="initiateTOTP()" style="display:inline-block; float:left; text-decoration: none;">QR Code</a>
                                                                 </h4>
                                                             </div>
                                                             <div id="qrcanvdiv" class="panel-collapse collapse" style="display:none">
@@ -153,8 +152,8 @@
                                              <input type="hidden" name="sessionDataKey"
                                                 value='<%=request.getParameter("sessionDataKey")%>'/>
                                              <br><div>
-                                                  <input type="button" name="next" id="next" value="Next"
-                                                  class="btn btn-primary">
+                                                  <input type="button" name="continue" id="continue" value="Continue" class="btn btn-primary">
+                                                  <input type="button" name="cancel" id="cancel" value="Cancel" class="btn btn-primary">
                                              </div>
                                         </div>
                                     </div>
@@ -184,7 +183,12 @@
     <script src="libs/bootstrap_3.3.5/js/bootstrap.min.js"></script>
      <script type="text/javascript">
         $(document).ready(function() {
-        	$('#next').click(function() {
+        	$('#continue').click(function() {
+                document.getElementById("ENABLE_TOTP").value = 'true';
+                $('#pin_form').submit();
+        	});
+        	$('#cancel').click(function() {
+                document.getElementById("ENABLE_TOTP").value = 'false';
                 $('#pin_form').submit();
         	});
         });
@@ -194,10 +198,7 @@
 		    loadQRCode(key);
  		    toggleFunction();
  		}
- 			 }
-     function getQRDiv(){
-         validateCheckBox();
-     }
+ 	 }
         </script>
     </body>
     </html>

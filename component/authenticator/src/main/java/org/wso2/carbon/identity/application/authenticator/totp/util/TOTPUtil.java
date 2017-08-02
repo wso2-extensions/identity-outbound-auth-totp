@@ -367,7 +367,6 @@ public class TOTPUtil {
         String loginPage = null;
         String tenantDomain = context.getTenantDomain();
         if (!tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT)) {
-            IdentityHelperUtil.loadApplicationAuthenticationXMLFromRegistry(context, authenticatorName, tenantDomain);
             propertiesFromLocal = context.getProperty(IdentityHelperConstants.GET_PROPERTY_FROM_REGISTRY);
         }
         if ((propertiesFromLocal != null || tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT))
@@ -394,7 +393,6 @@ public class TOTPUtil {
         String errorPage = null;
         String tenantDomain = context.getTenantDomain();
         if (!tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT)) {
-            IdentityHelperUtil.loadApplicationAuthenticationXMLFromRegistry(context, authenticatorName, tenantDomain);
             propertiesFromLocal = context.getProperty(IdentityHelperConstants.GET_PROPERTY_FROM_REGISTRY);
         }
         if ((propertiesFromLocal != null || tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT))
@@ -442,7 +440,6 @@ public class TOTPUtil {
         String enableTOTPPage = null;
         String tenantDomain = context.getTenantDomain();
         if (!tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT)) {
-            IdentityHelperUtil.loadApplicationAuthenticationXMLFromRegistry(context, authenticatorName, tenantDomain);
             propertiesFromLocal = context.getProperty(IdentityHelperConstants.GET_PROPERTY_FROM_REGISTRY);
         }
         if ((propertiesFromLocal != null || tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT))

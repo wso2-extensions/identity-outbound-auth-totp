@@ -324,16 +324,10 @@ function isArray(element) {
 }
 
 function validateCheckBox(){
-    var fld = document.getElementsByName("totpenable")[0];
-    if(fld.checked){
-        document.getElementById("ENABLE_TOTP").value = 'true';
-        document.getElementById('qrContainer').style.display = 'block';
-        document.getElementById('qrcanvdiv').style.display = 'none';
-        initiateTOTP();
-    }else{
-        document.getElementById("ENABLE_TOTP").value = 'false';
-        document.getElementById('qrContainer').style.display = 'none';
-    }
+    document.getElementById("ENABLE_TOTP").value = 'true';
+    document.getElementById('qrContainer').style.display = 'block';
+    document.getElementById('qrcanvdiv').style.display = 'none';
+    initiateTOTP();
 }
 
 function getQRCode(){

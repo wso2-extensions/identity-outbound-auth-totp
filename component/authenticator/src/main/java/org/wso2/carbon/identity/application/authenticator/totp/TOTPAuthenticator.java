@@ -175,8 +175,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			if (isTOTPEnabled && request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
 				response.sendRedirect(totpLoginPageUrl);
 			} else if (isTOTPEnabledByAdmin) {
-				if (TOTPUtil.getTOTPEnableInAuthenticationFlow(context) &&
-				    request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
+				if (TOTPUtil.getTOTPEnableInAuthenticationFlow(context)
+						&& request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
 					if (log.isDebugEnabled()) {
 						log.debug("User has not enabled TOTP: " + username);
 					}
@@ -189,19 +189,9 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 							claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL));
 					String qrURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
 					TOTPUtil.redirectToEnableTOTPReqPage(response, context, qrURL);
-				} else if (Boolean
-						.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP))) {
-					Map<String, String> claims =  new HashMap<>();
-					claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
-							context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString());
-					claims.put(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL,
-							context.getProperty(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL).toString());
-					claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
-							context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL).toString());
-					TOTPKeyGenerator.addTOTPClaims(claims, username, context);
-					if (isTOTPEnabledForLocalUser(username)) {
-						response.sendRedirect(totpLoginPageUrl);
-					}
+				} else if (Boolean.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP))) {
+					context.setProperty(TOTPAuthenticatorConstants.ENABLE_TOTP, true);
+					response.sendRedirect(totpLoginPageUrl);
 				} else {
 					response.sendRedirect(totpErrorPageUrl);
 				}
@@ -286,6 +276,20 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			throws AuthenticationFailedException {
 		String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
 		String username = context.getProperty("username").toString();
+		if (Boolean.valueOf(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString())) {
+			Map<String, String> claims = new HashMap<>();
+			claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
+					context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString());
+			claims.put(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL,
+					context.getProperty(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL).toString());
+			claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
+					context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL).toString());
+			try {
+				TOTPKeyGenerator.addTOTPClaims(claims, username, context);
+			} catch (TOTPException e) {
+				throw new AuthenticationFailedException("Error while adding TOTP claims to the user : " + username, e);
+			}
+		}
 		if (token != null) {
 			try {
 				int tokenValue = Integer.parseInt(token);
