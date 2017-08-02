@@ -124,6 +124,7 @@ public class TOTPKeyGenerator {
 			UserRealm userRealm = TOTPUtil.getUserRealm(username);
 			if (userRealm != null) {
 				tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
+				claims.remove(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
 				userRealm.getUserStoreManager().setUserClaimValues(tenantAwareUsername, claims, null);
 			}
 		} catch (UserStoreException e) {
