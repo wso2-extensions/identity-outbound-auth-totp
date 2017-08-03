@@ -174,27 +174,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 					"&username=" + username;
 			if (isTOTPEnabled && request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
 				response.sendRedirect(totpLoginPageUrl);
-			} else if (isTOTPEnabledByAdmin) {
-				if (TOTPUtil.getTOTPEnableInAuthenticationFlow(context)
-						&& request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
-					if (log.isDebugEnabled()) {
-						log.debug("User has not enabled TOTP: " + username);
-					}
-					Map<String, String> claims = TOTPKeyGenerator.generateClaims(username, false, context);
-					context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
-							claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
-					context.setProperty(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL,
-							claims.get(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL));
-					context.setProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
-							claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL));
-					String qrURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
-					TOTPUtil.redirectToEnableTOTPReqPage(response, context, qrURL);
-				} else if (Boolean.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP))) {
-					context.setProperty(TOTPAuthenticatorConstants.ENABLE_TOTP, true);
-					response.sendRedirect(totpLoginPageUrl);
-				} else {
-					response.sendRedirect(totpErrorPageUrl);
-				}
 			} else {
 				if (TOTPUtil.getTOTPEnableInAuthenticationFlow(context)
 						&& request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
@@ -214,13 +193,20 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 					context.setProperty(TOTPAuthenticatorConstants.ENABLE_TOTP, true);
 					response.sendRedirect(totpLoginPageUrl);
 				} else {
-					context.setSubject(authenticatedUser);
-					StepConfig stepConfig = context.getSequenceConfig().getStepMap().get(context.getCurrentStep() - 1);
-					if (stepConfig.getAuthenticatedAutenticator()
-							.getApplicationAuthenticator() instanceof LocalApplicationAuthenticator) {
-						context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION, TOTPAuthenticatorConstants.BASIC);
+					if (isTOTPEnabledByAdmin) {
+						response.sendRedirect(totpErrorPageUrl);
 					} else {
-						context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION, TOTPAuthenticatorConstants.FEDERETOR);
+						context.setSubject(authenticatedUser);
+						StepConfig stepConfig = context.getSequenceConfig().getStepMap()
+								.get(context.getCurrentStep() - 1);
+						if (stepConfig.getAuthenticatedAutenticator()
+								.getApplicationAuthenticator() instanceof LocalApplicationAuthenticator) {
+							context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
+									TOTPAuthenticatorConstants.BASIC);
+						} else {
+							context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
+									TOTPAuthenticatorConstants.FEDERETOR);
+						}
 					}
 				}
 			}
