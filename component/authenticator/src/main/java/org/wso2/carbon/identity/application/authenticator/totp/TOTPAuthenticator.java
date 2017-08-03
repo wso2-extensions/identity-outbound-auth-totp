@@ -173,10 +173,12 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 					"&authenticators=" + getName() + "&type=totp_error" + retryParam +
 					"&username=" + username;
 			if (isTOTPEnabled && request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
+				//if TOTP is enabled for the user.
 				response.sendRedirect(totpLoginPageUrl);
 			} else {
-				if (TOTPUtil.getTOTPEnableInAuthenticationFlow(context)
+				if (TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context)
 						&& request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
+					//if TOTP is not enabled for the user and he hasn't redirected to the enrolment page yet.
 					if (log.isDebugEnabled()) {
 						log.debug("User has not enabled TOTP: " + username);
 					}
@@ -190,12 +192,15 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 					String qrURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
 					TOTPUtil.redirectToEnableTOTPReqPage(response, context, qrURL);
 				} else if (Boolean.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP))) {
+					//if TOTP is not enabled for the user and user continued the enrolment.
 					context.setProperty(TOTPAuthenticatorConstants.ENABLE_TOTP, true);
 					response.sendRedirect(totpLoginPageUrl);
 				} else {
 					if (isTOTPEnabledByAdmin) {
+						//if TOTP is not enabled for the user and admin enforces TOTP.
 						response.sendRedirect(totpErrorPageUrl);
 					} else {
+						//if admin does not enforces TOTP and TOTP is not enabled for the user.
 						context.setSubject(authenticatedUser);
 						StepConfig stepConfig = context.getSequenceConfig().getStepMap()
 								.get(context.getCurrentStep() - 1);
@@ -277,6 +282,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 		String username = context.getProperty("username").toString();
 		if (context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP) != null && Boolean
 				.valueOf(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString())) {
+			//adds the claims to the profile if the user enrol and continued.
 			Map<String, String> claims = new HashMap<>();
 			claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
 					context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString());
@@ -285,7 +291,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
 					context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL).toString());
 			try {
-				TOTPKeyGenerator.addTOTPClaims(claims, username, context);
+				TOTPKeyGenerator.addTOTPClaimsAndRetrievingQRCodeURL(claims, username, context);
 			} catch (TOTPException e) {
 				throw new AuthenticationFailedException("Error while adding TOTP claims to the user : " + username, e);
 			}

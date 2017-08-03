@@ -40,7 +40,7 @@ import java.util.Map;
 public class TOTPKeyGenerator {
 
 	/**
-	 * Generate TOTP secret key and QR Code url for user.
+	 * Generate TOTP secret key, encoding method and QR Code url for user.
 	 *
 	 * @param username Username of the user
 	 * @param refresh  Boolean type of refreshing the secret token
@@ -108,7 +108,7 @@ public class TOTPKeyGenerator {
 	}
 
 	/**
-	 * Add TOTP secret key and QR Code url for user.
+	 * Add TOTP secret key, encoding method and retrieve QR Code url for user.
 	 *
 	 * @param claims  Map with the TOTP claims
 	 * @param username Username of the user
@@ -116,8 +116,8 @@ public class TOTPKeyGenerator {
 	 * @return QR code URL
 	 * @throws TOTPException when user realm is null or while decrypting the key
 	 */
-	public static String addTOTPClaims(Map<String, String> claims, String username, AuthenticationContext context)
-			throws TOTPException {
+	public static String addTOTPClaimsAndRetrievingQRCodeURL(Map<String, String> claims, String username,
+			AuthenticationContext context) throws TOTPException {
 		String tenantAwareUsername = null;
 		String qrCodeURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
 		try {
@@ -137,7 +137,7 @@ public class TOTPKeyGenerator {
 	}
 
 	/**
-	 * Remove the stored secret key, qr code url and encoding method from user claim.
+	 * Remove the stored secret key and encoding method from user claim.
 	 *
 	 * @param username username of the user
 	 * @return true if successfully resetting the claims, false otherwise
@@ -152,7 +152,6 @@ public class TOTPKeyGenerator {
 			Map<String, String> claims = new HashMap<>();
 			if (userRealm != null) {
 				claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "");
-				claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, "");
 				claims.put(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL, "");
 				userRealm.getUserStoreManager()
 				         .setUserClaimValues(tenantAwareUsername, claims, null);

@@ -51,7 +51,7 @@ public class TOTPAdminService {
 	public String initTOTP(String username, AuthenticationContext context) throws TOTPException {
 
 		Map<String, String> claims = TOTPKeyGenerator.generateClaims(username, false, context);
-		return TOTPKeyGenerator.addTOTPClaims(claims, username, context);
+		return TOTPKeyGenerator.addTOTPClaimsAndRetrievingQRCodeURL(claims, username, context);
 	}
 
 	/**
@@ -73,10 +73,9 @@ public class TOTPAdminService {
 	 * @return Encoded QR Code URL for refreshed secret key
 	 * @throws TOTPException when could not find the user
 	 */
-	public String refreshSecretKey(String username, AuthenticationContext context)
-			throws TOTPException {
+	public String refreshSecretKey(String username, AuthenticationContext context) throws TOTPException {
 		Map<String, String> claims = TOTPKeyGenerator.generateClaims(username, true, context);
-		return TOTPKeyGenerator.addTOTPClaims(claims, username, context);
+		return TOTPKeyGenerator.addTOTPClaimsAndRetrievingQRCodeURL(claims, username, context);
 	}
 
 	/**
@@ -87,7 +86,7 @@ public class TOTPAdminService {
 	 * @return Secret Key.
 	 * @throws TOTPException when could not find the user
 	 */
-	public String getSecretKey(String username, AuthenticationContext context) throws TOTPException {
+	public String retrieveSecretKey(String username, AuthenticationContext context) throws TOTPException {
 		UserRealm userRealm;
 		String tenantAwareUsername = null;
 		String secretKey = null;
@@ -110,10 +109,9 @@ public class TOTPAdminService {
 					} else {
 						encoding = TOTPUtil.getEncodingMethod(tenantDomain, context);
 					}
-					claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
-							TOTPUtil.encrypt(secretKey));
+					claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(secretKey));
 					claims.put(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL, encoding);
-					TOTPKeyGenerator.addTOTPClaims(claims, username, context);
+					TOTPKeyGenerator.addTOTPClaimsAndRetrievingQRCodeURL(claims, username, context);
 				} else {
 					secretKey = TOTPUtil.decrypt(secretKey);
 				}
