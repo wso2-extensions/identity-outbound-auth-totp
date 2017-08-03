@@ -196,19 +196,32 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 					response.sendRedirect(totpErrorPageUrl);
 				}
 			} else {
-				context.setSubject(authenticatedUser);
-				// Authentication is now completed in this step. update the authenticated user
-				// information.
-				StepConfig stepConfig =
-						context.getSequenceConfig().getStepMap().get(context.getCurrentStep() - 1);
-				if (stepConfig.getAuthenticatedAutenticator()
-				              .getApplicationAuthenticator() instanceof
-						LocalApplicationAuthenticator) {
-					context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
-					                    TOTPAuthenticatorConstants.BASIC);
+				if (TOTPUtil.getTOTPEnableInAuthenticationFlow(context)
+						&& request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
+					if (log.isDebugEnabled()) {
+						log.debug("User has not enabled TOTP: " + username);
+					}
+					Map<String, String> claims = TOTPKeyGenerator.generateClaims(username, false, context);
+					context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
+							claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
+					context.setProperty(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL,
+							claims.get(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL));
+					context.setProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
+							claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL));
+					String qrURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
+					TOTPUtil.redirectToEnableTOTPReqPage(response, context, qrURL);
+				} else if (Boolean.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP))) {
+					context.setProperty(TOTPAuthenticatorConstants.ENABLE_TOTP, true);
+					response.sendRedirect(totpLoginPageUrl);
 				} else {
-					context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
-					                    TOTPAuthenticatorConstants.FEDERETOR);
+					context.setSubject(authenticatedUser);
+					StepConfig stepConfig = context.getSequenceConfig().getStepMap().get(context.getCurrentStep() - 1);
+					if (stepConfig.getAuthenticatedAutenticator()
+							.getApplicationAuthenticator() instanceof LocalApplicationAuthenticator) {
+						context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION, TOTPAuthenticatorConstants.BASIC);
+					} else {
+						context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION, TOTPAuthenticatorConstants.FEDERETOR);
+					}
 				}
 			}
 		} catch (IOException e) {
