@@ -275,7 +275,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			throws AuthenticationFailedException {
 		String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
 		String username = context.getProperty("username").toString();
-		if (Boolean.valueOf(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString())) {
+		if (context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP) != null && Boolean
+				.valueOf(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString())) {
 			Map<String, String> claims = new HashMap<>();
 			claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
 					context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString());
