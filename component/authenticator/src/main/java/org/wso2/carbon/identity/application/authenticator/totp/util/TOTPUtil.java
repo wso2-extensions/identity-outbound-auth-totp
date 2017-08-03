@@ -295,10 +295,10 @@ public class TOTPUtil {
 		     tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN))) {
 			return Boolean.parseBoolean(IdentityHelperUtil.getAuthenticatorParameters(
 					context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION).toString())
-					.get(TOTPAuthenticatorConstants.ENABLE_TOTP_IN_AUTHENTICATIONFLOW));
+					.get(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW));
 		} else {
 			return Boolean.parseBoolean((context.getProperty(
-					TOTPAuthenticatorConstants.ENABLE_TOTP_IN_AUTHENTICATIONFLOW).toString()));
+					TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW).toString()));
 		}
 	}
 
@@ -307,7 +307,7 @@ public class TOTPUtil {
 	 *
 	 * @param response The HttpServletResponse
 	 * @param context  The AuthenticationContext
-	 * @throws AuthenticationFailedException On error while getting value for enableTOTPInAuthenticationFlow
+	 * @throws AuthenticationFailedException On error while getting value for enrolUserInAuthenticationFlow
 	 */
 	public static void redirectToEnableTOTPReqPage(HttpServletResponse response,
 	                                               AuthenticationContext context, String skey)
@@ -326,7 +326,7 @@ public class TOTPUtil {
 			}
 		} else {
 			throw new AuthenticationFailedException(
-					"Error while getting value for EnableTOTPInAuthenticationFlow");
+					"Error while getting value for EnrolUserInAuthenticationFlow");
 		}
 	}
 

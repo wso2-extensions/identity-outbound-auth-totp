@@ -56,7 +56,7 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String SUPER_TENANT_DOMAIN = "carbon.super";
 	public static final String GET_PROPERTY_FROM_IDENTITY_CONFIG = "getPropertiesFromLocal";
 	public static final String WINDOW_SIZE = "windowSize";
-	public static final String ENABLE_TOTP_IN_AUTHENTICATIONFLOW = "enableTOTPInAuthenticationFlow";
+	public static final String ENROL_USER_IN_AUTHENTICATIONFLOW = "enrolUserInAuthenticationFlow";
 	public static final String TIME_STEP_SIZE = "timeStepSize";
 	public static final String ENCODING_METHOD = "encodingMethod";
 	public static final String ENABLE_TOTP_REQUEST_PAGE = "totpauthenticationendpoint/enableTOTP.jsp";
