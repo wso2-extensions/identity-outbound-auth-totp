@@ -15,37 +15,24 @@ function drawPage() {
         "                <input type=\"hidden\" name=\"profile\" value=\"default\" />\n";
 
     var body = "";
-
+    var totpEnabled = "";
     for (var i in json.return.fieldValues) {
         if (json.return.fieldValues[i].claimUri =="http://wso2.org/claims/identity/accountDisabled") {
             continue;
         }
         if(json.return.fieldValues[i].displayName =="Encoding" || json.return.fieldValues[i].displayName =="Secret Key"){
+            totpEnabled = json.return.fieldValues[i].fieldValue;
             continue;
         }
 
-        body = body + "          <tr>\n" +
-            "                           <td>" +
-            "<label class=\"control-label\">" + json.return.fieldValues[i].displayName;
+        body = body + "<tr><td><label class=\"control-label\">" + json.return.fieldValues[i].displayName;
         if (json.return.fieldValues[i].required == "true") {
             body = body + " <span class=\"required\">*</span>";
         }
 
-        body = body + " </label>\n</td>" +
-            "                    <td><div class=\"controls\">";
-
-        if(json.return.fieldValues[i].displayName =="Refresh Secret Key"){
-            if(json.return.fieldValues[i].fieldValue!=""){
-                body = body +"<input type=\"checkbox\" checked name=\"refreshenable\" onclick=\"validateRefreshSecret();\"/></div>\n<br>"
-                continue;
-            } else {
-                body = body +" <input type=\"checkbox\" name=\"refreshenable\" onclick=\"validateRefreshSecret();\"/></div>\n<br>"
-                continue;
-            }
-        }
-        if(json.return.fieldValues[i].displayName !="Enable TOTP") {
+        body = body + " </label></td><td><div class=\"controls\">";
             if (json.return.fieldValues[i].readOnly == "true") {
-                body = body + "                        <input type=\"text\" disabled=\"\" value=\"" + json.return.fieldValues[i].fieldValue + "\" id=\"" + json.return.fieldValues[i].claimUri + "\" name=\"" + json.return.fieldValues[i].claimUri + "\" style=\"height: 30px;  align: left;width: 100%;padding-left: 25px;padding-right: 25px;\" />\n" +
+                body = body + "<input type=\"text\" disabled=\"\" value=\"" + json.return.fieldValues[i].fieldValue + "\" id=\"" + json.return.fieldValues[i].claimUri + "\" name=\"" + json.return.fieldValues[i].claimUri + "\" style=\"height: 30px;  align: left;width: 100%;padding-left: 25px;padding-right: 25px;\" />\n" +
                     " <input type=\"hidden\" name=\"" + json.return.fieldValues[i].claimUri + "\" value=\"" + json.return.fieldValues[i].fieldValue + "\" />";
             }
             else {
@@ -53,37 +40,57 @@ function drawPage() {
                     "\" style=\"height: 30px;  align: left;width: 100%;padding-left: 25px;padding-right: 25px;\" />";
 
             }
-        } else{
-            var encoding = "";
-            for(var j in json.return.fieldValues){
-                if(json.return.fieldValues[j].displayName=="Encoding"){
-                    encoding = json.return.fieldValues[j].fieldValue;
-                    break;
-                }
-            }
-            if(encoding !="Invalid"){
-                if(json.return.fieldValues[i].fieldValue!=""){
-                    body +=" <input type=\"checkbox\" checked name=\"totpenable\" onclick=\"validateCheckBox();\"/>\n<br><br>"+
-                        " <div id=\"qrdiv\">"+
-                        " <form name=\"qrinp\">"+
-                        "<input type=\"button\" class=\"btn btn-primary mgL14px\" value=\"Scan QR Code\" onclick='initiateTOTP()' style=\"display:inline-block;float:left;\"/>"+
-                        "<input type=\"numeric\" name=\"ECC\" value=\"1\" size=\"1\" style=\"Display:none\">"+
-                        "<canvas id=\"qrcanv\" style=\"display:inline-block;float:right;\">"+"</form>"+
-                        "</div>";
-                }else{
-                    body +="<input type=\"checkbox\" name=\"totpenable\" onclick=\"validateCheckBox();\" style=\"float:left\"/>"+
-                        "<img id=\"totpQRCode\" src=\""+json.return.fieldValues[i].fieldValue+"\" style=\"Display:none\">";
-                }
-            }else{
-                body +="<input type=\"checkbox\" name=\"totpenable\" onclick=\"validateCheckBox();\" style=\"float:left\"/>"+ "<label id=\"tokenInvalid\" style=\"margin-left:20px\">Invalid Token Please Reconfigure</label>"+
-                    "<img id=\"totpQRCode\" src=\""+json.return.fieldValues[i].fieldValue+"\" style=\"Display:none\">" +"<canvas id=\"qrcanv\">";
-            }
-        }
-        body = body + "                    </div>\n" +
-            "                </td></tr>";
-
+        body = body + "</div></td></tr>";
     }
-
+            body = body + "<tr><td><label class=\"control-label\">Refresh Secret Key</label>\n</td><td><div class=\"controls\">";
+            body = body + "<a class=\"control-label\" onclick=\"validateRefreshSecret();\">Click</a></div>\n<br></div></td></tr>";
+            body = body + "<tr><td><label class=\"control-label\">Enable TOTP</label>\n</td><td><div class=\"controls\">";
+            if (totpEnabled != ""){
+                    body += "<input type=\"checkbox\" checked name=\"totpenable\" onclick=\"validateCheckBox();\"/>\n<br><br>"+
+                    "<div class=\"container\" style=\"padding-left:0px; padding-right:0px;\" id=\"qrContainer\">"+
+                    "<div class=\"panel-group\">"+
+                            "<div class=\"panel panel-default\">"+
+                                "<div class=\"panel-heading\" style=\"padding: 5px 5px 25px 5px;\">"+
+                                    "<h4 class=\"panel-title\">"+
+                                        "<div id=\"scanQR\" style=\"overflow:inherit; float:left; padding-right:2px;\"><span class=\"glyphicon glyphicon-collapse-down\"></span></div>"+
+                                        "<a data-toggle=\"collapse\" onclick=\"initiateTOTP()\" style=\"display:inline-block; float:left; text-decoration: none;\">Scan QR Code</a>"+
+                                    "</h4>"+
+                                "</div>"+
+                                "<div id=\"qrcanvdiv\" class=\"panel-collapse collapse\" style=\"display:none\">"+
+                                    "<div id=\"qrdiv\">"+
+                                        "<form name=\"qrinp\">"+
+                                            "<input type=\"numeric\" name=\"ECC\" value=\"1\" size=\"1\" style=\"display:none\">"+
+                                            "<canvas id=\"qrcanv\" style=\"display:inline-block; float:right;\">"+
+                                        "</form>"+
+                                    "</div>"+
+                                "</div>"+
+                            "</div>"+
+                        "</div>"+
+                        "</div>";
+                    } else {
+                    body += "<input type=\"checkbox\" name=\"totpenable\" onclick=\"validateCheckBox();\"/>\n<br><br>"+
+                    "<div class=\"container\" style=\"display:none; padding-left:0px; padding-right:0px;\" id=\"qrContainer\">"+
+                    "<div class=\"panel-group\">"+
+                            "<div class=\"panel panel-default\">"+
+                                "<div class=\"panel-heading\" style=\"padding: 5px 5px 25px 5px;\">"+
+                                    "<h4 class=\"panel-title\">"+
+                                        "<div id=\"scanQR\" style=\"overflow:inherit; float:left; padding-right:2px;\"><span class=\"glyphicon glyphicon-collapse-down\"></span></div>"+
+                                        "<a data-toggle=\"collapse\" onclick=\"initiateTOTP()\" style=\"display:inline-block; float:left; text-decoration: none;\">Scan QR Code</a>"+
+                                    "</h4>"+
+                                "</div>"+
+                                "<div id=\"qrcanvdiv\" class=\"panel-collapse collapse\" style=\"display:none\">"+
+                                    "<div id=\"qrdiv\">"+
+                                        "<form name=\"qrinp\">"+
+                                            "<input type=\"numeric\" name=\"ECC\" value=\"1\" size=\"1\" style=\"display:none\">"+
+                                            "<canvas id=\"qrcanv\" style=\"display:inline-block; float:right;\">"+
+                                        "</form>"+
+                                    "</div>"+
+                                "</div>"+
+                            "</div>"+
+                        "</div>"+
+                        "</div>";
+                    }
+                    body = body + "</div></td></tr>";
     var endString ="<tr>\n" +
         "               <td colspan=\"2\">" +
         "                   <div style=\"margin: auto;\">" +
@@ -337,26 +344,22 @@ function isArray(element) {
 function validateCheckBox(){
     var fld = document.getElementsByName("totpenable")[0];
     if(fld.checked){
+        document.getElementById('qrContainer').style.display = 'block';
+        document.getElementById('qrcanvdiv').style.display = 'none';
         initiateTOTP();
         $("#tokenInvalid").empty();
     }else{
         $('#totpQRCode').attr("src","");
         resetTOTP();
     }
-
 }
 
 function getQRCode(){
     initiateTOTP();
 }
 function validateRefreshSecret(){
-    var rs = document.getElementsByName("refreshenable")[0];
-    if(rs.checked){
-        refreshSecretKey();
-        alert("SecretKey is refreshed. Please restore the secret key in your mobile app");
-    }else {
-        document.getElementsByName("refreshenable").checked = false;
-    }
+    refreshSecretKey();
+    alert("SecretKey is refreshed. Please restore the secret key in your mobile app");
 }
 
 function getSecretKey(url){

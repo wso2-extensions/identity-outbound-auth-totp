@@ -701,10 +701,21 @@ function genframe(instring)
     return qrframe;
 }
 
+function toggleFunction() {
+    var togglediv = document.getElementById('qrcanvdiv');
+    if (togglediv.style.display === 'none') {
+        togglediv.style.display = 'block';
+        document.getElementById("scanQR").innerHTML = "<span class=\"glyphicon glyphicon-collapse-up\"></span>";
+    } else {
+        togglediv.style.display = 'none';
+        document.getElementById("scanQR").innerHTML = "<span class=\"glyphicon glyphicon-collapse-down\"></span>";
+    }
+}
+
 var wd, ht, qrc;
 function setupqr(){
 //    window.scrollTo(0,1)
-    wd = window.innerWidth*0.50-10;
+    wd = window.innerWidth*0.25-10;
     ht = window.innerHeight*0.75-10;
     mp = document.getElementById("mapcanv");
     qrd = document.getElementById("qrdiv");
@@ -712,7 +723,7 @@ function setupqr(){
     qrd.style.height = ht/2 + "px";
 
     wd -= 4;
-    ht -= 80;
+    ht = 3*ht/4;
     var elem = document.getElementById('qrcanv');
     qrc = elem.getContext('2d');
     qrc.canvas.width = wd;

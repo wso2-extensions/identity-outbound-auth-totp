@@ -40,20 +40,20 @@ import java.util.Map;
 public class TOTPKeyGenerator {
 
 	/**
-	 * Generate TOTP secret key and QR Code url for user.
+	 * Generate TOTP secret key, encoding method and QR Code url for user.
 	 *
 	 * @param username Username of the user
 	 * @param refresh  Boolean type of refreshing the secret token
 	 * @param context  Authentication context
-	 * @return Encoded QR code URL
+	 * @return claims
 	 * @throws TOTPException when user realm is null or while decrypting the key
 	 */
-	public static String createUrlWithQRCode(String username, boolean refresh,
-	                                         AuthenticationContext context) throws TOTPException {
+	public static Map<String, String> generateClaims(String username, boolean refresh,
+			AuthenticationContext context) throws TOTPException {
 		String storedSecretKey, secretKey;
 		String decryptedSecretKey = null;
 		String generatedSecretKey = null;
-		String encodedQRCodeURL = null;
+		String encodedQRCodeURL;
 		String tenantAwareUsername = null;
 		Map<String, String> claims = new HashMap<>();
 		String encoding;
@@ -92,13 +92,11 @@ public class TOTPKeyGenerator {
 						"&issuer=" + tenantDomain;
 				encodedQRCodeURL = Base64.encodeBase64String(qrCodeURL.getBytes());
 				claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, encodedQRCodeURL);
-				userRealm.getUserStoreManager()
-				         .setUserClaimValues(tenantAwareUsername, claims, null);
 			}
 		} catch (UserStoreException e) {
 			throw new TOTPException(
-					"TOTPKeyGenerator failed while trying to access userRealm for the user : " +
-					tenantAwareUsername, e);
+					"TOTPKeyGenerator failed while trying to get the user store manager from user realm of the user : "
+							+ tenantAwareUsername, e);
 		} catch (CryptoException e) {
 			throw new TOTPException("TOTPKeyGenerator failed while decrypt the storedSecretKey ",
 			                        e);
@@ -106,11 +104,40 @@ public class TOTPKeyGenerator {
 			throw new TOTPException(
 					"TOTPKeyGenerator cannot find the property value for encoding method", e);
 		}
-		return encodedQRCodeURL;
+		return claims;
 	}
 
 	/**
-	 * Remove the stored secret key, qr code url and encoding method from user claim.
+	 * Add TOTP secret key, encoding method and retrieve QR Code url for user.
+	 *
+	 * @param claims  Map with the TOTP claims
+	 * @param username Username of the user
+	 * @param context  Authentication context
+	 * @return QR code URL
+	 * @throws TOTPException when user realm is null or while decrypting the key
+	 */
+	public static String addTOTPClaimsAndRetrievingQRCodeURL(Map<String, String> claims, String username,
+			AuthenticationContext context) throws TOTPException {
+		String tenantAwareUsername = null;
+		String qrCodeURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
+		try {
+			UserRealm userRealm = TOTPUtil.getUserRealm(username);
+			if (userRealm != null) {
+				tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
+				claims.remove(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
+				userRealm.getUserStoreManager().setUserClaimValues(tenantAwareUsername, claims, null);
+			}
+		} catch (UserStoreException e) {
+			throw new TOTPException("TOTPKeyGenerator failed while trying to access user store manager for the user : "
+					+ tenantAwareUsername, e);
+		} catch (AuthenticationFailedException e) {
+			throw new TOTPException("TOTPKeyGenerator cannot get the user realm for the user", e);
+		}
+		return qrCodeURL;
+	}
+
+	/**
+	 * Remove the stored secret key and encoding method from user claim.
 	 *
 	 * @param username username of the user
 	 * @return true if successfully resetting the claims, false otherwise
@@ -125,7 +152,6 @@ public class TOTPKeyGenerator {
 			Map<String, String> claims = new HashMap<>();
 			if (userRealm != null) {
 				claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "");
-				claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, "");
 				claims.put(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL, "");
 				userRealm.getUserStoreManager()
 				         .setUserClaimValues(tenantAwareUsername, claims, null);
@@ -148,8 +174,7 @@ public class TOTPKeyGenerator {
 	 * @return TOTPAuthenticatorKey when user realm is null or decrypt the secret key
 	 * @throws AuthenticationFailedException when tenantDomain is not specified
 	 */
-	private static TOTPAuthenticatorKey generateKey(String tenantDomain,
-	                                                AuthenticationContext context)
+	public static TOTPAuthenticatorKey generateKey(String tenantDomain, AuthenticationContext context)
 			throws AuthenticationFailedException {
 		TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;
 		String encodingMethod;

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <Module>
-<ModulePrefs title="My Profile">
-    <Require feature="pubsub-2"/>
-</ModulePrefs>
-<Content type="html" view="default">
-    <![CDATA[
+    <ModulePrefs title="My Profile">
+        <Require feature="pubsub-2"/>
+    </ModulePrefs>
+    <Content type="html" view="default">
+        <![CDATA[
 
     <link rel="stylesheet" type="text/css" href="js/ui/css/main.css">
     <link rel="stylesheet" type="text/css" href="js/ui/css/bootstrap.css">
@@ -41,10 +41,10 @@
     Update your profile or add multiple user profiles.
     <p><a class='btn btn-default max_view' href=''>View details</a></p>
     ]]>
-</Content>
+    </Content>
 
-<Content type="html" view="home">
-    <![CDATA[
+    <Content type="html" view="home">
+        <![CDATA[
     <script type="text/javascript" src="js/jquery.min.js" type="text/javascript"></script>
     <script type="text/javascript" src="js/jquery.min.js" type="text/javascript"></script>
     <script type="text/javascript" src="js/main.js" type="text/javascript"></script>
@@ -291,7 +291,7 @@ drawFIDORegistration();
                 })
                         .done(function (data) {
                             removeQRCode();
-
+                            document.getElementById('qrContainer').style.display = 'none';
                         })
                         .fail(function () {
                         message({content:'error while resetting totp',type:'error', cbk:function(){} });
@@ -310,8 +310,8 @@ drawFIDORegistration();
                     data:"&cookie=" + cookie + "&user=" + userName
                 })
                         .done(function (data) {
-                            loadQRCode(data)
-
+                            loadQRCode(data);
+                            toggleFunction();
                         })
                         .fail(function () {
                         message({content:'error while resetting totp',type:'error', cbk:function(){} });
@@ -353,5 +353,5 @@ drawFIDORegistration();
     </form>
 
     ]]>
-</Content>
+    </Content>
 </Module>
