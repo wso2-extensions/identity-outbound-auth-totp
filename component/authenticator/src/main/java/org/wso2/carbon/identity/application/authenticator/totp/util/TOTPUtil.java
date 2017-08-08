@@ -94,24 +94,24 @@ public class TOTPUtil {
 	 * @return encoding method
 	 */
 	public static String getEncodingMethod(String tenantDomain, AuthenticationContext context) {
-		String encodingMethods;
+		String encodingMethod;
 		if (tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
-			encodingMethods = String.valueOf(getTOTPParameters().get(TOTPAuthenticatorConstants.ENCODING_METHOD));
+			encodingMethod = String.valueOf(getTOTPParameters().get(TOTPAuthenticatorConstants.ENCODING_METHOD));
 		} else {
 			Object getPropertiesFromIdentityConfig = context
 					.getProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG);
 			if (getPropertiesFromIdentityConfig == null) {
-				encodingMethods = context.getProperty(TOTPAuthenticatorConstants.ENCODING_METHOD).toString();
+				encodingMethod = context.getProperty(TOTPAuthenticatorConstants.ENCODING_METHOD).toString();
 			} else {
-				encodingMethods = String.valueOf(
+				encodingMethod = String.valueOf(
 						IdentityHelperUtil.getAuthenticatorParameters(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)
 								.get(TOTPAuthenticatorConstants.ENCODING_METHOD));
 			}
 		}
-		if (TOTPAuthenticatorConstants.BASE32.equals(encodingMethods)) {
-			return TOTPAuthenticatorConstants.BASE32;
+		if (TOTPAuthenticatorConstants.BASE64.equals(encodingMethod)) {
+			return TOTPAuthenticatorConstants.BASE64;
 		}
-		return TOTPAuthenticatorConstants.BASE64;
+		return TOTPAuthenticatorConstants.BASE32;
 	}
 
 	/**
@@ -122,14 +122,14 @@ public class TOTPUtil {
 	 * @throws AuthenticationFailedException On Error while getting value for encodingMethods from registry
 	 */
 	public static String getEncodingMethod(String tenantDomain) throws AuthenticationFailedException {
-		String encodingMethods;
+		String encodingMethod;
 		if (tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
-			encodingMethods = String.valueOf(getTOTPParameters().get(TOTPAuthenticatorConstants.ENCODING_METHOD));
+			encodingMethod = String.valueOf(getTOTPParameters().get(TOTPAuthenticatorConstants.ENCODING_METHOD));
 		} else {
 			try {
-				encodingMethods = getEncodingMethodFromRegistry(tenantDomain, null);
-				if (StringUtils.isEmpty(encodingMethods)) {
-					encodingMethods = String.valueOf(
+				encodingMethod = getEncodingMethodFromRegistry(tenantDomain, null);
+				if (StringUtils.isEmpty(encodingMethod)) {
+					encodingMethod = String.valueOf(
 							IdentityHelperUtil.getAuthenticatorParameters(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)
 									.get(TOTPAuthenticatorConstants.ENCODING_METHOD));
 				}
@@ -137,10 +137,10 @@ public class TOTPUtil {
 				throw new AuthenticationFailedException("Cannot find the property value for encodingMethod", e);
 			}
 		}
-		if (TOTPAuthenticatorConstants.BASE32.equals(encodingMethods)) {
-			return TOTPAuthenticatorConstants.BASE32;
+		if (TOTPAuthenticatorConstants.BASE64.equals(encodingMethod)) {
+			return TOTPAuthenticatorConstants.BASE64;
 		}
-		return TOTPAuthenticatorConstants.BASE64;
+		return TOTPAuthenticatorConstants.BASE32;
 	}
 
 	/**

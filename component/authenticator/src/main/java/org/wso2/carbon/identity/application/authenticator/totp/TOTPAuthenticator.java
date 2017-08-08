@@ -185,8 +185,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 					Map<String, String> claims = TOTPKeyGenerator.generateClaims(username, false, context);
 					context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
 							claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
-					context.setProperty(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL,
-							claims.get(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL));
 					context.setProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
 							claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL));
 					String qrURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
@@ -286,8 +284,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			Map<String, String> claims = new HashMap<>();
 			claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
 					context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString());
-			claims.put(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL,
-					context.getProperty(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL).toString());
 			claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
 					context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL).toString());
 			try {

@@ -20,7 +20,7 @@ function drawPage() {
         if (json.return.fieldValues[i].claimUri =="http://wso2.org/claims/identity/accountDisabled") {
             continue;
         }
-        if(json.return.fieldValues[i].displayName =="Encoding" || json.return.fieldValues[i].displayName =="Secret Key"){
+        if(json.return.fieldValues[i].displayName =="Secret Key"){
             totpEnabled = json.return.fieldValues[i].fieldValue;
             continue;
         }
@@ -52,8 +52,9 @@ function drawPage() {
                             "<div class=\"panel panel-default\">"+
                                 "<div class=\"panel-heading\" style=\"padding: 5px 5px 25px 5px;\">"+
                                     "<h4 class=\"panel-title\">"+
+                                        "<a data-toggle=\"collapse\" onclick=\"initiateTOTP()\" style=\"display:inline-block; float:left; text-decoration: none;\">"+
                                         "<div id=\"scanQR\" style=\"overflow:inherit; float:left; padding-right:2px;\"><span class=\"glyphicon glyphicon-collapse-down\"></span></div>"+
-                                        "<a data-toggle=\"collapse\" onclick=\"initiateTOTP()\" style=\"display:inline-block; float:left; text-decoration: none;\">Scan QR Code</a>"+
+                                        "Scan QR Code</a>"+
                                     "</h4>"+
                                 "</div>"+
                                 "<div id=\"qrcanvdiv\" class=\"panel-collapse collapse\" style=\"display:none\">"+
@@ -74,8 +75,9 @@ function drawPage() {
                             "<div class=\"panel panel-default\">"+
                                 "<div class=\"panel-heading\" style=\"padding: 5px 5px 25px 5px;\">"+
                                     "<h4 class=\"panel-title\">"+
+                                        "<a data-toggle=\"collapse\" onclick=\"initiateTOTP()\" style=\"display:inline-block; float:left; text-decoration: none;\">"+
                                         "<div id=\"scanQR\" style=\"overflow:inherit; float:left; padding-right:2px;\"><span class=\"glyphicon glyphicon-collapse-down\"></span></div>"+
-                                        "<a data-toggle=\"collapse\" onclick=\"initiateTOTP()\" style=\"display:inline-block; float:left; text-decoration: none;\">Scan QR Code</a>"+
+                                        "Scan QR Code</a>"+
                                     "</h4>"+
                                 "</div>"+
                                 "<div id=\"qrcanvdiv\" class=\"panel-collapse collapse\" style=\"display:none\">"+
