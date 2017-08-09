@@ -125,7 +125,8 @@
                                         <div class="span6">
                                              <!-- Token Pin -->
                                              <div class="control-group">
-                                                <a onclick="validateCheckBox();">Show QR code to scan and enrol the user to mobile application</a>
+                                                <p>You have not enabled TOTP authentication. Please enable it.</p>
+                                                <a onclick="validateCheckBox();">Show QR code to scan and enrol the user</a>
                                                 <input type="hidden" id="ENABLE_TOTP" name="ENABLE_TOTP" value="false"/>
                                                 <input type='hidden' name='ske' id='ske' value='<%=request.getParameter("ske")%>'/>
                                                  <div class="container" style="width:90% !important; padding-left:0px; padding-right:0px; display:none;" id="qrContainer">
@@ -133,8 +134,9 @@
                                                         <div class="panel panel-default">
                                                             <div class="panel-heading" style="padding: 5px 5px 25px 5px;">
                                                                 <h4 class="panel-title">
+                                                                    <a data-toggle="collapse" onclick="initiateTOTP()" style="display:inline-block; float:left; text-decoration: none;">
                                                                     <div id="scanQR" style="overflow:inherit; float:left; padding-right:2px;"><b>+</b></div>
-                                                                    <a data-toggle="collapse" onclick="initiateTOTP()" style="display:inline-block; float:left; text-decoration: none;">QR Code</a>
+                                                                    </a>
                                                                 </h4>
                                                             </div>
                                                             <div id="qrcanvdiv" class="panel-collapse collapse" style="display:none">
