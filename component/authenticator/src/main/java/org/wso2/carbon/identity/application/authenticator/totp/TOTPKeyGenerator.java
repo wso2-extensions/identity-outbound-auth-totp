@@ -20,6 +20,8 @@ package org.wso2.carbon.identity.application.authenticator.totp;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
@@ -38,6 +40,8 @@ import java.util.Map;
  * @since 2.0.3
  */
 public class TOTPKeyGenerator {
+
+	private static Log log = LogFactory.getLog(TOTPKeyGenerator.class);
 
 	/**
 	 * Generate TOTP secret key, encoding method and QR Code url for user.
@@ -93,15 +97,18 @@ public class TOTPKeyGenerator {
 				claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, encodedQRCodeURL);
 			}
 		} catch (UserStoreException e) {
-			throw new TOTPException(
-					"TOTPKeyGenerator failed while trying to get the user store manager from user realm of the user : "
-							+ tenantAwareUsername, e);
+            String msg = "TOTPKeyGenerator failed while trying to get the user store manager "
+                    + "from user realm of the user : " + tenantAwareUsername;
+            log.error(msg, e);
+			throw new TOTPException(msg, e);
 		} catch (CryptoException e) {
-			throw new TOTPException("TOTPKeyGenerator failed while decrypt the storedSecretKey ",
-			                        e);
+            String msg = "TOTPKeyGenerator failed while decrypt the storedSecretKey ";
+            log.error(msg, e);
+            throw new TOTPException(msg, e);
 		} catch (AuthenticationFailedException e) {
-			throw new TOTPException(
-					"TOTPKeyGenerator cannot find the property value for encoding method", e);
+            String msg = "TOTPKeyGenerator cannot find the property value for encoding method";
+            log.error(msg, e);
+            throw new TOTPException(msg, e);
 		}
 		return claims;
 	}
@@ -127,10 +134,14 @@ public class TOTPKeyGenerator {
 				userRealm.getUserStoreManager().setUserClaimValues(tenantAwareUsername, claims, null);
 			}
 		} catch (UserStoreException e) {
-			throw new TOTPException("TOTPKeyGenerator failed while trying to access user store manager for the user : "
-					+ tenantAwareUsername, e);
+            String msg = "TOTPKeyGenerator failed while trying to access user store manager for the user : "
+                    + tenantAwareUsername;
+            log.error(msg, e);
+            throw new TOTPException(msg, e);
 		} catch (AuthenticationFailedException e) {
-			throw new TOTPException("TOTPKeyGenerator cannot get the user realm for the user", e);
+            String msg = "TOTPKeyGenerator cannot get the user realm for the user";
+            log.error(msg, e);
+            throw new TOTPException(msg, e);
 		}
 		return qrCodeURL;
 	}
@@ -160,7 +171,9 @@ public class TOTPKeyGenerator {
 						MultitenantUtils.getTenantDomain(username));
 			}
 		} catch (UserStoreException e) {
-			throw new TOTPException("Can not find the user realm for the user : " + username, e);
+            String msg = "Can not find the user realm for the user : " + username;
+            log.error(msg, e);
+            throw new TOTPException(msg, e);
 		}
 	}
 
