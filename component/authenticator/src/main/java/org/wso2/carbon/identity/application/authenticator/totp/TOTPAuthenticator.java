@@ -21,6 +21,7 @@ package org.wso2.carbon.identity.application.authenticator.totp;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.owasp.encoder.Encode;
 import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.extension.identity.helper.FederatedAuthenticatorUtil;
@@ -164,14 +165,16 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			if (log.isDebugEnabled()) {
 				log.debug("TOTP  is enabled by admin: " + isTOTPEnabledByAdmin);
 			}
+			String multiOptionURI = request.getParameter("multiOptionURI");
+			multiOptionURI = multiOptionURI != null ? "&multiOptionURI=" + Encode.forUriComponent(multiOptionURI) : "";
 			String totpLoginPageUrl =
 					getLoginPage(context) + ("?sessionDataKey=" + context.getContextIdentifier()) +
 					"&authenticators=" + getName() + "&type=totp" + retryParam + "&username=" +
-					username;
+					username + multiOptionURI;
 			String totpErrorPageUrl =
 					getErrorPage(context) + ("?sessionDataKey=" + context.getContextIdentifier()) +
 					"&authenticators=" + getName() + "&type=totp_error" + retryParam +
-					"&username=" + username;
+					"&username=" + username + multiOptionURI;
 			if (isTOTPEnabled && request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
 				//if TOTP is enabled for the user.
 				response.sendRedirect(totpLoginPageUrl);
@@ -188,7 +191,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 					context.setProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
 							claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL));
 					String qrURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
-					TOTPUtil.redirectToEnableTOTPReqPage(response, context, qrURL);
+					TOTPUtil.redirectToEnableTOTPReqPage(request, response, context, qrURL);
 				} else if (Boolean.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP))) {
 					//if TOTP is not enabled for the user and user continued the enrolment.
 					context.setProperty(TOTPAuthenticatorConstants.ENABLE_TOTP, true);
@@ -302,7 +305,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 				context.setSubject(AuthenticatedUser
 						                   .createLocalAuthenticatedUserFromSubjectIdentifier(
 								                   username));
-			} catch (TOTPException e) {
+			} catch (TOTPException | NumberFormatException e) {
 				throw new AuthenticationFailedException(
 						"TOTP Authentication process failed for user " + username, e);
 			}

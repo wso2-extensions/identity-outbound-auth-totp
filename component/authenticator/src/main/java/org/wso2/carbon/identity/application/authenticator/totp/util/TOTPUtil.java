@@ -22,6 +22,7 @@ import org.apache.commons.io.Charsets;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.owasp.encoder.Encode;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -50,6 +51,7 @@ import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 import org.xml.sax.SAXException;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -287,21 +289,43 @@ public class TOTPUtil {
 		}
 	}
 
-	/**
-	 * Redirect the enableTOTP request page.
-	 *
-	 * @param response The HttpServletResponse
-	 * @param context  The AuthenticationContext
-	 * @throws AuthenticationFailedException On error while getting value for enrolUserInAuthenticationFlow
-	 */
-	public static void redirectToEnableTOTPReqPage(HttpServletResponse response, AuthenticationContext context,
+    /**
+     * Redirect the enableTOTP request page.
+     *
+     * @param response The HttpServletResponse
+     * @param context  The AuthenticationContext
+     * @param skey  QR code claim
+     * @throws AuthenticationFailedException On error while getting value for enrolUserInAuthenticationFlow
+     */
+    public static void redirectToEnableTOTPReqPage(HttpServletResponse response, AuthenticationContext context,
+            String skey) throws AuthenticationFailedException {
+	    redirectToEnableTOTPReqPage(null, response, context, skey);
+    }
+
+    /**
+     * Redirect the enableTOTP request page.
+     *
+     * @param request The HttpServletRequest
+     * @param response The HttpServletResponse
+     * @param context  The AuthenticationContext
+     * @param skey  QR code claim
+     * @throws AuthenticationFailedException On error while getting value for enrolUserInAuthenticationFlow
+     */
+	public static void redirectToEnableTOTPReqPage(HttpServletRequest request, HttpServletResponse response,
+			AuthenticationContext context,
 			String skey) throws AuthenticationFailedException {
 		if (isEnrolUserInAuthenticationFlowEnabled(context)) {
+			String multiOptionURI = "";
+			if (request != null) {
+                multiOptionURI = request.getParameter("multiOptionURI");
+                multiOptionURI = multiOptionURI != null ? "&multiOptionURI=" + Encode.forUriComponent(multiOptionURI)
+                        : "";
+            }
 			String enableTOTPReqPageUrl = getEnableTOTPPage(context) +
 					("?sessionDataKey=" + context.getContextIdentifier()) +
 					"&authenticators=" +
 					TOTPAuthenticatorConstants.AUTHENTICATOR_NAME +
-					"&type=totp" + "&ske=" + skey;
+					"&type=totp" + "&ske=" + skey + multiOptionURI;
 			try {
 				response.sendRedirect(enableTOTPReqPageUrl);
 			} catch (IOException e) {

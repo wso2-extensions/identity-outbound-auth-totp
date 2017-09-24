@@ -43,8 +43,9 @@
             if (request.getParameter(Constants.AUTH_FAILURE_MSG) != null) {
                 errorMessage = request.getParameter(Constants.AUTH_FAILURE_MSG);
 
-                 if (errorMessage.equalsIgnoreCase("authentication.fail.message")) {
-                    errorMessage = "Authentication Failed! Please Retry";
+                 if (errorMessage.equalsIgnoreCase("authentication.fail.message") ||
+                         errorMessage.equalsIgnoreCase("login.fail.message")) {
+                    errorMessage = "Authentication Failed! Please Retry.";
                 }
             }
         }
@@ -129,7 +130,17 @@
                                             <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 form-group">
                                                 <a id="genToken" href="#" onclick="return requestTOTPToken();">Get a Verification Code</a></p>
                                             </div>
-                                        </div>
+                                            <%
+                                                String multiOptionURI = request.getParameter("multiOptionURI");
+                                                if (multiOptionURI != null) {
+                                            %>
+                                            <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 form-group" id="goBackLinkDiv">
+                                                <a id="goBackLink" href='<%=multiOptionURI%>'>Choose a different authentication option</a></p>
+                                            </div>
+                                            <%
+                                                }
+                                            %>
+                                </div>
                                     </form>
                                 </div>
                            <div class="clearfix"></div>
