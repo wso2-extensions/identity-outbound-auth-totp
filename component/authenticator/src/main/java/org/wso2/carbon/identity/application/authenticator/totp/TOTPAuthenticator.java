@@ -360,17 +360,23 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 	 * @return true, if token is generated successfully
 	 */
 	private boolean generateTOTPToken(AuthenticationContext context) {
-		String username = context.getProperty("username").toString();
-		try {
-			TOTPTokenGenerator.generateTOTPTokenLocal(username, context);
-			if (log.isDebugEnabled()) {
-				log.debug("TOTP Token is generated");
-			}
-		} catch (TOTPException e) {
-			log.error("Error when generating the totp token", e);
-			return false;
-		}
-		return true;
+        String username;
+        if (context.getProperty("username") == null) {
+            log.error("No username found in the authentication context.");
+            return false;
+        } else {
+            username = context.getProperty("username").toString();
+            try {
+                TOTPTokenGenerator.generateTOTPTokenLocal(username, context);
+                if (log.isDebugEnabled()) {
+                    log.debug("TOTP Token is generated");
+                }
+            } catch (TOTPException e) {
+                log.error("Error when generating the totp token", e);
+                return false;
+            }
+        }
+        return true;
 	}
 
 	/**
