@@ -78,7 +78,7 @@ public class TOTPKeyGeneratorTest {
     }
 
     @Test
-    public void testaddTOTPClaimsAndRetrievingQRCodeURL() throws AuthenticationFailedException,
+    public void testAddTOTPClaimsAndRetrievingQRCodeURL() throws AuthenticationFailedException,
             UserStoreException, TOTPException {
         Map<String, String> claims = new HashMap<>();
         String qrCodeUrl = "http://wso2.org/claims/identity/" +

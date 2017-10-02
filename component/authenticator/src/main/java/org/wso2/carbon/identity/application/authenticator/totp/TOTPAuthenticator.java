@@ -285,10 +285,14 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 				.valueOf(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString())) {
 			//adds the claims to the profile if the user enrol and continued.
 			Map<String, String> claims = new HashMap<>();
-			claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
-					context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString());
-			claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
-					context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL).toString());
+            if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
+                claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
+                        context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString());
+            }
+            if (context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL) != null) {
+                claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
+                        context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL).toString());
+            }
 			try {
 				TOTPKeyGenerator.addTOTPClaimsAndRetrievingQRCodeURL(claims, username, context);
 			} catch (TOTPException e) {

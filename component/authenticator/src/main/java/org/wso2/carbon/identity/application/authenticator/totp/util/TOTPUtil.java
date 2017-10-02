@@ -96,18 +96,23 @@ public class TOTPUtil {
 	 * @return encoding method
 	 */
 	public static String getEncodingMethod(String tenantDomain, AuthenticationContext context) {
-		String encodingMethod;
+		String encodingMethod = null;
 		if (tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
 			encodingMethod = String.valueOf(getTOTPParameters().get(TOTPAuthenticatorConstants.ENCODING_METHOD));
 		} else {
 			Object getPropertiesFromIdentityConfig = context
 					.getProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG);
 			if (getPropertiesFromIdentityConfig == null) {
-				encodingMethod = context.getProperty(TOTPAuthenticatorConstants.ENCODING_METHOD).toString();
+				if (context.getProperty(TOTPAuthenticatorConstants.ENCODING_METHOD) != null) {
+					encodingMethod = context.getProperty(TOTPAuthenticatorConstants.ENCODING_METHOD).toString();
+				}
 			} else {
-				encodingMethod = String.valueOf(
-						IdentityHelperUtil.getAuthenticatorParameters(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)
-								.get(TOTPAuthenticatorConstants.ENCODING_METHOD));
+				if (IdentityHelperUtil.getAuthenticatorParameters(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)
+						.get(TOTPAuthenticatorConstants.ENCODING_METHOD) != null) {
+					encodingMethod = String.valueOf(
+							IdentityHelperUtil.getAuthenticatorParameters(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)
+									.get(TOTPAuthenticatorConstants.ENCODING_METHOD));
+				}
 			}
 		}
 		if (TOTPAuthenticatorConstants.BASE64.equals(encodingMethod)) {
