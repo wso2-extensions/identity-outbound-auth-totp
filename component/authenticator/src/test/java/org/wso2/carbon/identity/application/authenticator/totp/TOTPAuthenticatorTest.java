@@ -18,10 +18,8 @@
  */
 package org.wso2.carbon.identity.application.authenticator.totp;
 
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.testng.PowerMockObjectFactory;
 import org.powermock.reflect.Whitebox;
@@ -33,32 +31,25 @@ import org.testng.annotations.Test;
 import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.extension.identity.helper.FederatedAuthenticatorUtil;
 import org.wso2.carbon.extension.identity.helper.util.IdentityHelperUtil;
-import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authentication.framework.AuthenticatorFlowStatus;
 import org.wso2.carbon.identity.application.authentication.framework.config.ConfigurationFacade;
 import org.wso2.carbon.identity.application.authentication.framework.config.builder.FileBasedConfigurationBuilder;
-import org.wso2.carbon.identity.application.authentication.framework.config.model.AuthenticatorConfig;
-import org.wso2.carbon.identity.application.authentication.framework.config.model.SequenceConfig;
-import org.wso2.carbon.identity.application.authentication.framework.config.model.StepConfig;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.exception.LogoutFailedException;
-import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.user.core.UserRealm;
-import org.wso2.carbon.user.core.UserStoreException;
 import org.wso2.carbon.user.core.UserStoreManager;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 import static org.powermock.api.mockito.PowerMockito.*;
@@ -66,7 +57,6 @@ import static org.powermock.api.mockito.PowerMockito.*;
 @PrepareForTest({TOTPUtil.class, TOTPTokenGenerator.class, ConfigurationFacade.class, TOTPTokenGenerator.class,
         FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, CarbonContext.class,
         FederatedAuthenticatorUtil.class})
-@PowerMockIgnore({"javax.crypto.*" })
 public class TOTPAuthenticatorTest {
 
     @Mock
@@ -96,28 +86,7 @@ public class TOTPAuthenticatorTest {
     private UserStoreManager userStoreManager;
 
     @Spy
-    private FederatedAuthenticatorUtil federatedAuthenticatorUtil;
-
-    @Mock
-    private SequenceConfig sequenceConfig;
-
-    @Mock
-    private Map<Integer, StepConfig> mockedMap;
-
-    @Mock
-    private StepConfig stepConfig;
-
-    @Mock
-    private AuthenticatorConfig authenticatorConfig;
-
-    @Mock
-    private ApplicationAuthenticator applicationAuthenticator;
-
-    @Spy
-    private AuthenticationContext mockedContext;
-
-    @Mock
-    private FileBasedConfigurationBuilder fileBasedConfigurationBuilder;
+    FederatedAuthenticatorUtil federatedAuthenticatorUtil;
 
     @BeforeMethod
     public void setUp() {
@@ -308,113 +277,6 @@ public class TOTPAuthenticatorTest {
         claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "AnySecretKey");
         userStoreManager.setUserClaimValues(MultitenantUtils.getTenantAwareUsername(username), claims, null );
         Whitebox.invokeMethod(totpAuthenticator, "isTOTPEnabledForLocalUser", "admin");
-    }
-
-    @Test(description = "Test case for initiateAuthenticationRequest() method when authenticated user is null",
-            expectedExceptions = {AuthenticationFailedException.class})
-    public void testInitiateAuthenticationRequestWithNullUser() throws AuthenticationFailedException {
-        context.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-        totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
-    }
-
-    @Test(description = "Test case for initiateAuthenticationRequest() method with totp enabled user.")
-    public void testInitiateAuthenticationRequest() throws AuthenticationFailedException, UserStoreException {
-        String username = "admin";
-        AuthenticatedUser authenticatedUser = AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
-        AuthenticationContext authenticationContext = new AuthenticationContext();
-        authenticationContext.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-        authenticationContext.setProperty("username", username);
-        authenticationContext.setProperty("authenticatedUser", authenticatedUser);
-        Map<String, String> claims = new HashMap<>();
-        claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "AnySecretKey");
-        when(TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
-        when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
-        when(userStoreManager.getUserClaimValues(username, new String[]
-                { TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL }, null)).thenReturn(claims);
-        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
-        when(TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).
-                thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
-        when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
-                thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
-
-        totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, authenticationContext);
-    }
-
-    @Test(description = "Test case for initiateAuthenticationRequest() method when admin does not enforces TOTP and " +
-            "TOTP is not enabled for the user.")
-    public void testInitiateAuthenticationRequestWithEnrollment() throws AuthenticationFailedException,
-            UserStoreException {
-        String username = "admin";
-        AuthenticatedUser authenticatedUser = AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
-        mockedContext.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-        mockedContext.setProperty("username", username);
-        mockedContext.setProperty("authenticatedUser", authenticatedUser);
-        Map<String, String> claims = new HashMap<>();
-        claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "AnySecretKey");
-        when(TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
-        when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
-        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
-        when(TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).
-                thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
-        when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
-                thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
-        when(mockedContext.getSequenceConfig()).thenReturn(sequenceConfig);
-        when(sequenceConfig.getStepMap()).thenReturn(mockedMap);
-        when(mockedMap.get(anyObject())).thenReturn(stepConfig);
-        when(stepConfig.getAuthenticatedAutenticator()).thenReturn(authenticatorConfig);
-        when(authenticatorConfig.getApplicationAuthenticator()).thenReturn(applicationAuthenticator);
-        totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, mockedContext);
-        Assert.assertEquals(mockedContext.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION),
-                TOTPAuthenticatorConstants.FEDERETOR);
-    }
-
-    @Test(description = "Test case for initiateAuthenticationRequest() method when admin enforces TOTP and " +
-            "TOTP is not enabled for the user.", priority=2)
-    public void testInitiateAuthenticationRequestAdminEnforces() throws AuthenticationFailedException, UserStoreException, IOException {
-        String username = "admin";
-        AuthenticatedUser authenticatedUser = AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
-        context.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-        context.setProperty("username", username);
-        context.setProperty("authenticatedUser", authenticatedUser);
-        Map<String, String> claims = new HashMap<>();
-        claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "AnySecretKey");
-        when(TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
-        when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
-        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
-        when(IdentityHelperUtil.checkSecondStepEnableByAdmin(context)).thenReturn(true);
-        when(TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).
-                thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
-        when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
-                thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
-        when(context.getSequenceConfig()).thenReturn(sequenceConfig);
-        when(sequenceConfig.getStepMap()).thenReturn(mockedMap);
-        when(mockedMap.get(anyObject())).thenReturn(stepConfig);
-        when(stepConfig.getAuthenticatedAutenticator()).thenReturn(authenticatorConfig);
-        when(authenticatorConfig.getApplicationAuthenticator()).thenReturn(applicationAuthenticator);
-        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-        totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
-        verify(httpServletResponse).sendRedirect(captor.capture());
-        Assert.assertTrue(captor.getValue().contains(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME));
-    }
-
-    @Test(description = "Test case for initiateAuthenticationRequest() method when admin enforces TOTP and " +
-            "TOTP is not enabled for the user.", priority=2)
-    public void testInitiateAuthenticationWithEnableTOTP() throws AuthenticationFailedException, UserStoreException, IOException {
-        String username = "admin";
-        AuthenticatedUser authenticatedUser = AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
-        context.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-        context.setProperty("username", username);
-        context.setProperty("authenticatedUser", authenticatedUser);
-        when(TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
-        when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
-        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
-        when(IdentityHelperUtil.checkSecondStepEnableByAdmin(context)).thenReturn(true);
-        when(TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).
-                thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
-        when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
-                thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
-        when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context)).thenReturn(true);
-        totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
     }
 
     @ObjectFactory
