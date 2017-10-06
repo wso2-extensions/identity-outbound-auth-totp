@@ -18,6 +18,8 @@
 package org.wso2.carbon.identity.application.authenticator.totp.services;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
@@ -39,6 +41,8 @@ import java.util.Map;
  * @since 2.0.3
  */
 public class TOTPAdminService {
+
+	private static Log log = LogFactory.getLog(TOTPAdminService.class);
 
 	/**
 	 * Generate TOTP Token for a given user.
@@ -117,13 +121,18 @@ public class TOTPAdminService {
 				}
 			}
 		} catch (AuthenticationFailedException e) {
-			throw new TOTPException("TOTPAdminService cannot find the property value for encoding method", e);
+			String msg = "TOTPAdminService cannot find the property value for encoding method";
+			log.error(msg, e);
+			throw new TOTPException(msg, e);
 		} catch (UserStoreException e) {
-			throw new TOTPException(
-					"TOTPAdminService failed while trying to get the user store manager from user realm of the user : "
-							+ tenantAwareUsername, e);
+			String msg = "TOTPAdminService failed while trying to get the user store manager from user realm of the "
+					+ "user : " + tenantAwareUsername;
+			log.error(msg, e);
+			throw new TOTPException(msg, e);
 		} catch (CryptoException e) {
-			throw new TOTPException("TOTPAdminService failed while decrypt the stored SecretKey ", e);
+			String msg = "TOTPAdminService failed while decrypt the stored SecretKey ";
+			log.error(msg, e);
+			throw new TOTPException(msg, e);
 		}
 		return secretKey;
 	}
