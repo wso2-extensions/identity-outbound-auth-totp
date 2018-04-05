@@ -88,6 +88,14 @@ public class TOTPUtil {
 		return new String(CryptoUtil.getDefaultCryptoUtil().base64DecodeAndDecrypt(cipherText), Charsets.UTF_8);
 	}
 
+	public static String getTOTPIssuerDisplayName(String tenantDomain) {
+		String issuer = getTOTPParameters().get(TOTPAuthenticatorConstants.TOTP_ISSUER);
+		if (StringUtils.isBlank(issuer)) {
+			issuer = tenantDomain;
+		}
+		return issuer;
+	}
+
 	/**
 	 * Get stored encoding method from AuthenticationContext.
 	 *
