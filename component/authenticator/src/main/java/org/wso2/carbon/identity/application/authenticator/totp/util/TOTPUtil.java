@@ -88,18 +88,83 @@ public class TOTPUtil {
 		return new String(CryptoUtil.getDefaultCryptoUtil().base64DecodeAndDecrypt(cipherText), Charsets.UTF_8);
 	}
 
-	public static String getTOTPIssuerDisplayName(String tenantDomain) throws TOTPException {
+	public static String getTOTPIssuerDisplayName(String tenantDomain, AuthenticationContext context) throws TOTPException {
 
-		String issuer;
+		String issuer = null;
 		if (TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN.equals(tenantDomain) ||
 				Boolean.parseBoolean(getTOTPParameters().get(TOTPAuthenticatorConstants.TOTP_COMMON_ISSUER))) {
 			issuer = getTOTPParameters().get(TOTPAuthenticatorConstants.TOTP_ISSUER);
-		} else {
+		} else if (context == null) {
 			issuer = getIssuerFromRegistry(tenantDomain);
+		} else if (context.getProperty(TOTPAuthenticatorConstants.TOTP_ISSUER) != null) {
+			issuer = (String) context.getProperty(TOTPAuthenticatorConstants.TOTP_ISSUER);
 		}
 
 		if (StringUtils.isBlank(issuer)) {
 			issuer = tenantDomain;
+		}
+		return issuer;
+	}
+
+	/**
+	 * Get xml file data from registry and get the value for Issuer.
+	 * @param tenantDomain
+	 * @return
+	 * @throws TOTPException On error during passing XML content or creating document builder.
+	 */
+	private static String getIssuerFromRegistry(String tenantDomain)
+			throws TOTPException {
+
+		String issuer = null;
+		int tenantID = IdentityTenantUtil.getTenantId(tenantDomain);
+		try {
+			PrivilegedCarbonContext.startTenantFlow();
+			PrivilegedCarbonContext privilegedCarbonContext = PrivilegedCarbonContext.getThreadLocalCarbonContext();
+			privilegedCarbonContext.setTenantId(tenantID);
+			privilegedCarbonContext.setTenantDomain(tenantDomain);
+			Registry registry = (Registry) privilegedCarbonContext.getRegistry(RegistryType.SYSTEM_GOVERNANCE);
+			Resource resource = registry.get(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME + "/" +
+					TOTPAuthenticatorConstants.APPLICATION_AUTHENTICATION_XML);
+			Object content = resource.getContent();
+			String xml = new String((byte[]) content);
+			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			factory.setNamespaceAware(true);
+			DocumentBuilder builder = factory.newDocumentBuilder();
+			Document doc = builder.parse(new ByteArrayInputStream(xml.getBytes()));
+			NodeList authConfigList = doc.getElementsByTagName("AuthenticatorConfig");
+			for (int authConfigIndex = 0; authConfigIndex < authConfigList.getLength(); authConfigIndex++) {
+				Node authConfigNode = authConfigList.item(authConfigIndex);
+				if (authConfigNode.getNodeType() == Node.ELEMENT_NODE) {
+					Element authConfigElement = (Element) authConfigNode;
+					String AuthConfig = authConfigElement.getAttribute(TOTPAuthenticatorConstants.NAME);
+					if (AuthConfig.equals(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)) {
+						NodeList AuthConfigChildList = authConfigElement.getChildNodes();
+						for (int j = 0; j < AuthConfigChildList.getLength(); j++) {
+							Node authConfigChildNode = AuthConfigChildList.item(j);
+							if (authConfigChildNode.getNodeType() == Node.ELEMENT_NODE) {
+								Element authConfigChildElement = (Element) authConfigChildNode;
+								String tagAttribute = AuthConfigChildList.item(j).getAttributes()
+										.getNamedItem(TOTPAuthenticatorConstants.NAME).getNodeValue();
+								if (tagAttribute.equals(TOTPAuthenticatorConstants.TOTP_ISSUER)) {
+									issuer = authConfigChildElement.getTextContent();
+								}
+							}
+						}
+						break;
+					}
+				}
+			}
+		} catch (RegistryException e) {
+			//Default to tenant domain name on registry exception.
+			issuer = tenantDomain;
+		} catch (SAXException e) {
+			throw new TOTPException("Error while parsing the content as XML", e);
+		} catch (ParserConfigurationException e) {
+			throw new TOTPException("Error while creating new Document Builder", e);
+		} catch (IOException e) {
+			throw new TOTPException("Error while parsing the content as XML via ByteArrayInputStream", e);
+		} finally {
+			PrivilegedCarbonContext.endTenantFlow();
 		}
 		return issuer;
 	}
@@ -173,68 +238,6 @@ public class TOTPUtil {
 		AuthenticatorConfig authConfig = FileBasedConfigurationBuilder.getInstance()
 				.getAuthenticatorBean(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
 		return authConfig.getParameterMap();
-	}
-
-	/**
-	 * Get xml file data from registry and get the value for Issuer.
-	 *
-	 * @throws TOTPException On error during passing XML content or creating document builder
-	 */
-	private static String getIssuerFromRegistry(String tenantDomain)
-			throws TOTPException {
-
-		String issuer = null;
-		int tenantID = IdentityTenantUtil.getTenantId(tenantDomain);
-		try {
-			PrivilegedCarbonContext.startTenantFlow();
-			PrivilegedCarbonContext privilegedCarbonContext = PrivilegedCarbonContext.getThreadLocalCarbonContext();
-			privilegedCarbonContext.setTenantId(tenantID);
-			privilegedCarbonContext.setTenantDomain(tenantDomain);
-			Registry registry = (Registry) privilegedCarbonContext.getRegistry(RegistryType.SYSTEM_GOVERNANCE);
-			Resource resource = registry.get(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME + "/" +
-					TOTPAuthenticatorConstants.APPLICATION_AUTHENTICATION_XML);
-			Object content = resource.getContent();
-			String xml = new String((byte[]) content);
-			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-			factory.setNamespaceAware(true);
-			DocumentBuilder builder = factory.newDocumentBuilder();
-			Document doc = builder.parse(new ByteArrayInputStream(xml.getBytes()));
-			NodeList authConfigList = doc.getElementsByTagName("AuthenticatorConfig");
-			for (int authConfigIndex = 0; authConfigIndex < authConfigList.getLength(); authConfigIndex++) {
-				Node authConfigNode = authConfigList.item(authConfigIndex);
-				if (authConfigNode.getNodeType() == Node.ELEMENT_NODE) {
-					Element authConfigElement = (Element) authConfigNode;
-					String AuthConfig = authConfigElement.getAttribute(TOTPAuthenticatorConstants.NAME);
-					if (AuthConfig.equals(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)) {
-						NodeList AuthConfigChildList = authConfigElement.getChildNodes();
-						for (int j = 0; j < AuthConfigChildList.getLength(); j++) {
-							Node authConfigChildNode = AuthConfigChildList.item(j);
-							if (authConfigChildNode.getNodeType() == Node.ELEMENT_NODE) {
-								Element authConfigChildElement = (Element) authConfigChildNode;
-								String tagAttribute = AuthConfigChildList.item(j).getAttributes()
-										.getNamedItem(TOTPAuthenticatorConstants.NAME).getNodeValue();
-								if (tagAttribute.equals(TOTPAuthenticatorConstants.TOTP_ISSUER)) {
-									issuer = authConfigChildElement.getTextContent();
-								}
-							}
-						}
-						break;
-					}
-				}
-			}
-		} catch (RegistryException e) {
-			//Default to tenant domain name on registry exception.
-			issuer = tenantDomain;
-		} catch (SAXException e) {
-			throw new TOTPException("Error while parsing the content as XML", e);
-		} catch (ParserConfigurationException e) {
-			throw new TOTPException("Error while creating new Document Builder", e);
-		} catch (IOException e) {
-			throw new TOTPException("Error while parsing the content as XML via ByteArrayInputStream", e);
-		} finally {
-			PrivilegedCarbonContext.endTenantFlow();
-		}
-		return issuer;
 	}
 
 	/**

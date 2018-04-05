@@ -86,7 +86,7 @@ public class TOTPKeyGenerator {
 					secretKey = decryptedSecretKey;
 				}
 
-				String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain);
+				String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
 				String qrCodeURL =
 						"otpauth://totp/" + issuer + ":" + tenantAwareUsername + "?secret=" +
 						secretKey +

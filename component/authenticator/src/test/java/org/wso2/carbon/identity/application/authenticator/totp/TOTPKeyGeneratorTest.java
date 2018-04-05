@@ -38,6 +38,7 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.powermock.api.mockito.PowerMockito.when;
@@ -64,7 +65,7 @@ public class TOTPKeyGeneratorTest {
         Map<String, String> claims = new HashMap<>();
         String username = "admin";
         when(TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
-        when(TOTPUtil.getTOTPIssuerDisplayName(anyString())).thenReturn("carbon.super");
+        when(TOTPUtil.getTOTPIssuerDisplayName(anyString(), (AuthenticationContext) anyObject())).thenReturn("carbon.super");
         claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "AnySecretKey");
         when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
         when(userStoreManager.getUserClaimValues(MultitenantUtils.getTenantAwareUsername(username), new String[] {
