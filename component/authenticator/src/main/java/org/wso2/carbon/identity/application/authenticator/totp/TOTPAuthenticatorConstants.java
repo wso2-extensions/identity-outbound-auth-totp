@@ -63,6 +63,8 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String ENABLE_TOTP = "ENABLE_TOTP";
 	public static final String SUPER_TENANT = "carbon.super";
 	public static final String TOTP_AUTHENTICATION_ENDPOINT_URL = "TOTPAuthenticationEndpointURL";
+	public static final String TOTP_ISSUER = "Issuer";
+	public static final String TOTP_COMMON_ISSUER = "UseCommonIssuer";
 	public static final String TOTP_AUTHENTICATION_ERROR_PAGE_URL = "TOTPAuthenticationEndpointErrorPage";
 	public static final String ENABLE_TOTP_REQUEST_PAGE_URL = "TOTPAuthenticationEndpointEnableTOTPPage";
 }
