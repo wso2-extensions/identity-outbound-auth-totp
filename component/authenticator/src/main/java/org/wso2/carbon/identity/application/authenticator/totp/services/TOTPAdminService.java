@@ -18,13 +18,18 @@
 package org.wso2.carbon.identity.application.authenticator.totp.services;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPKeyGenerator;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
+import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorConfig;
+import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorCredentials;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorKey;
+import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPKeyRepresentation;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
@@ -39,6 +44,8 @@ import java.util.Map;
  * @since 2.0.3
  */
 public class TOTPAdminService {
+
+	private static Log log = LogFactory.getLog(TOTPAdminService.class);
 
 	/**
 	 * Generate TOTP Token for a given user.
@@ -126,5 +133,44 @@ public class TOTPAdminService {
 			throw new TOTPException("TOTPAdminService failed while decrypt the stored SecretKey ", e);
 		}
 		return secretKey;
+	}
+
+	/**
+	 * Validates the user entered verification code.
+	 *
+	 * @param username         Username of the user.
+	 * @param context          Authentication context.
+	 * @param verificationCode OTP verification code.
+	 * @return whether OTP is valid or not.
+	 * @throws TOTPException when could not find the user.
+	 */
+	public boolean validateTOTP(String username, AuthenticationContext context, int verificationCode) throws
+			TOTPException {
+
+		TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;
+		String tenantDomain = MultitenantUtils.getTenantDomain(username);
+		String encodingMethod;
+		try {
+			if (context == null) {
+				encodingMethod = TOTPUtil.getEncodingMethod(tenantDomain);
+			} else {
+				encodingMethod = TOTPUtil.getEncodingMethod(tenantDomain, context);
+			}
+			if (TOTPAuthenticatorConstants.BASE64.equals(encodingMethod)) {
+				encoding = TOTPKeyRepresentation.BASE64;
+			}
+			TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder configBuilder =
+					new TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder()
+							.setKeyRepresentation(encoding);
+			TOTPAuthenticatorCredentials totpAuthenticator =
+					new TOTPAuthenticatorCredentials(configBuilder.build());
+			String secretKey = retrieveSecretKey(username, context);
+			if (log.isDebugEnabled()) {
+				log.debug("Validating TOTP verification code for the user: " + username);
+			}
+			return totpAuthenticator.authorize(secretKey, verificationCode);
+		} catch (AuthenticationFailedException e) {
+			throw new TOTPException("TOTPTokenVerifier cannot find the property value for encodingMethod.", e);
+		}
 	}
 }

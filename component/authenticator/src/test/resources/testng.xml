@@ -25,6 +25,7 @@
             <class name="org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtilTest" />
             <class name="org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorConfigTest" />
             <class name="org.wso2.carbon.identity.application.authenticator.totp.TOTPKeyGeneratorTest" />
+            <class name="org.wso2.carbon.identity.application.authenticator.totp.services.TOTPAdminServiceTest" />
         </classes>
     </test>
 </suite>
