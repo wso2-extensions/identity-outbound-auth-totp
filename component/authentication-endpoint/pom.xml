@@ -41,9 +41,9 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>jstl</artifactId>
-            <version>${javax.servelet.jstl.version}</version>
+            <groupId>org.apache.taglibs</groupId>
+            <artifactId>taglibs-standard-impl</artifactId>
+            <version>${taglibs-standard-impl.version}</version>
         </dependency>
         <dependency>
             <groupId>commons-codec</groupId>
