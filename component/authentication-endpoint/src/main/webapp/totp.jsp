@@ -23,6 +23,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ page import="org.wso2.carbon.identity.application.authentication.endpoint.util.TenantDataManager" %>
+<%@ page import="org.owasp.encoder.Encode" %>
 
 <fmt:bundle basename="org.wso2.carbon.identity.application.authentication.endpoint.i18n.Resources">
 
@@ -41,7 +42,7 @@
             authenticationFailed = "true";
 
             if (request.getParameter(Constants.AUTH_FAILURE_MSG) != null) {
-                errorMessage = request.getParameter(Constants.AUTH_FAILURE_MSG);
+                errorMessage = Encode.forHtmlAttribute(request.getParameter(Constants.AUTH_FAILURE_MSG));
 
                  if (errorMessage.equalsIgnoreCase("authentication.fail.message") ||
                          errorMessage.equalsIgnoreCase("login.fail.message")) {
@@ -110,7 +111,7 @@
                             %>
                                     <div class="alert alert-danger" id="failed-msg"><%=errorMessage%></div>
                             <% } %>
-                            <input id="username" type="hidden" value='<%=request.getParameter("username")%>'>
+                            <input id="username" type="hidden" value='<%=Encode.forHtmlAttribute(request.getParameter("username"))%>'>
                             <div class="row">
                                 <div class="span6">
                                     <form action="../../commonauth" method="post" id="totpForm" class="form-horizontal">
@@ -123,7 +124,7 @@
                                                 <input type="text" name="token" class="form-control" placeholder="Verification Code">
                                             </div>
                                             <div class="col-xs-2 col-sm-2 col-md-2 col-lg-2 form-group"></div>
-                                            <div><input id="sessionDataKey" type="hidden" name="sessionDataKey" value='<%=request.getParameter("sessionDataKey")%>' /></div>
+                                            <div><input id="sessionDataKey" type="hidden" name="sessionDataKey" value='<%=Encode.forHtmlAttribute(request.getParameter("sessionDataKey"))%>' /></div>
                                             <div class="col-xs-4 col-sm-4 col-md-4 col-lg-4 form-group">
                                                 <input type="submit" value="Authenticate" class="btn btn-primary">
                                             </div>
@@ -135,7 +136,7 @@
                                                 if (multiOptionURI != null) {
                                             %>
                                             <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 form-group" id="goBackLinkDiv">
-                                                <a id="goBackLink" href='<%=multiOptionURI%>'>Choose a different authentication option</a></p>
+                                                <a id="goBackLink" href='<%=Encode.forHtmlAttribute(multiOptionURI)%>'>Choose a different authentication option</a></p>
                                             </div>
                                             <%
                                                 }

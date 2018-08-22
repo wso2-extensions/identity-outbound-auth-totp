@@ -24,6 +24,7 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ page import="org.wso2.carbon.identity.application.authentication.endpoint.util.TenantDataManager" %>
+<%@ page import="org.owasp.encoder.Encode" %>
 
 <fmt:bundle basename="org.wso2.carbon.identity.application.authentication.endpoint.i18n.Resources">
 
@@ -42,7 +43,7 @@
             authenticationFailed = "true";
 
             if (request.getParameter(Constants.AUTH_FAILURE_MSG) != null) {
-                errorMessage = request.getParameter(Constants.AUTH_FAILURE_MSG);
+                errorMessage = Encode.forHtmlAttribute(request.getParameter(Constants.AUTH_FAILURE_MSG));
 
                  if (errorMessage.equalsIgnoreCase("authentication.fail.message")) {
                     errorMessage = "Authentication Failed! Please Retry";
@@ -128,7 +129,7 @@
                                                 <p>You have not enabled TOTP authentication. Please enable it.</p>
                                                 <a onclick="validateCheckBox();">Show QR code to scan and enrol the user</a>
                                                 <input type="hidden" id="ENABLE_TOTP" name="ENABLE_TOTP" value="false"/>
-                                                <input type='hidden' name='ske' id='ske' value='<%=request.getParameter("ske")%>'/>
+                                                <input type='hidden' name='ske' id='ske' value='<%=Encode.forHtmlAttribute(request.getParameter("ske"))%>'/>
                                                  <div class="container" style="width:90% !important; padding-left:0px; padding-right:0px; display:none;" id="qrContainer">
                                                     <div class="panel-group">
                                                         <div class="panel panel-default">
@@ -152,7 +153,7 @@
                                                     </div>
                                              </div>
                                              <input type="hidden" name="sessionDataKey"
-                                                value='<%=request.getParameter("sessionDataKey")%>'/>
+                                                value='<%=Encode.forHtmlAttribute(request.getParameter("sessionDataKey"))%>'/>
                                              <br><div>
                                                   <input type="button" name="continue" id="continue" value="Continue" class="btn btn-primary">
                                                   <input type="button" name="cancel" id="cancel" value="Cancel" class="btn btn-primary">
