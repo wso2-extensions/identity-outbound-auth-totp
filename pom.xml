@@ -19,7 +19,7 @@
     <groupId>org.wso2.carbon.extension.identity.authenticator.outbound.totp</groupId>
     <artifactId>identity-outbound-auth-totp</artifactId>
     <packaging>pom</packaging>
-    <version>2.0.15-SNAPSHOT</version>
+    <version>2.0.16-SNAPSHOT</version>
     <name>WSO2 Carbon Extension - Platform Aggregator Pom</name>
     <url>http://wso2.org</url>
     <parent>
@@ -362,8 +362,9 @@
         <javax.xml.parsers.import.pkg.version>[0.0.0, 1.0.0)</javax.xml.parsers.import.pkg.version>
         <ehcache.version>1.5.0.wso2v3</ehcache.version>
         <project.scm.id>my-scm-server</project.scm.id>
-        <identity.extension.utils>1.0.5</identity.extension.utils>
-
+        <identity.extension.utils>1.0.8</identity.extension.utils>
+        <identity.extension.utils.import.version.range>[1.0.8, 2.0.0)
+        </identity.extension.utils.import.version.range>
         <!--Test Dependencies-->
         <junit.version>4.12</junit.version>
         <testng.version>6.9.10</testng.version>
