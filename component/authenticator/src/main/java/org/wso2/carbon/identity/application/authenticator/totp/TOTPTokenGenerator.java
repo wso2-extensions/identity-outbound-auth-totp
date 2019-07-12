@@ -27,10 +27,14 @@ import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
+import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
+import org.wso2.carbon.identity.event.IdentityEventConstants;
+import org.wso2.carbon.identity.event.IdentityEventException;
+import org.wso2.carbon.identity.event.event.Event;
 import org.wso2.carbon.identity.mgt.IdentityMgtConfigException;
 import org.wso2.carbon.identity.mgt.IdentityMgtServiceException;
 import org.wso2.carbon.identity.mgt.NotificationSender;
@@ -53,7 +57,10 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 import java.util.Map;
+
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOKEN;
 
 /**
  * TOTP Token generator class.
@@ -119,7 +126,17 @@ public class TOTPTokenGenerator {
 						secretKeyByteArray = codec64.decode(secretKey);
 					}
 					token = getCode(secretKeyByteArray, getTimeIndex(context));
-					sendNotification(tenantAwareUsername, firstName, Long.toString(token), email);
+
+					// Check whether the authenticator is configured to use the event handler implementation.
+					if (TOTPUtil.isEventHandlerBasedEmailSenderEnabled()) {
+						AuthenticatedUser authenticatedUser = (AuthenticatedUser) context.getProperty
+								(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
+						triggerEvent(authenticatedUser.getUserName(), authenticatedUser.getTenantDomain(),
+								authenticatedUser.getUserStoreDomain(), TOTPAuthenticatorConstants.EVENT_NAME,
+								Long.toString(token));
+					} else{
+						sendNotification(tenantAwareUsername, firstName, Long.toString(token), email);
+					}
 					if (log.isDebugEnabled()) {
 						log.debug(
 								"Token is sent to via email to the user : " + tenantAwareUsername);
@@ -242,6 +259,35 @@ public class TOTPTokenGenerator {
 		} else {
 			throw new TOTPException(
 					"MAILTO transport sender is not defined in axis2 configuration file");
+		}
+	}
+
+	/**
+	 * Method to Trigger the TOTP otp event.
+	 *
+	 * @param userName : Identity user name
+	 * @param tenantDomain : Tenant domain of the user.
+	 * @param userStoreDomainName : User store domain name of the user.
+	 * @param notificationEvent : The name of the event.
+	 * @param otpCode : The OTP code returned for the authentication request.
+	 * @throws AuthenticationFailedException : In occasions of failing sending the email to the user.
+	 */
+	private static void triggerEvent(String userName, String tenantDomain, String userStoreDomainName,
+			String notificationEvent, String otpCode) throws AuthenticationFailedException {
+
+		String eventName = IdentityEventConstants.Event.TRIGGER_NOTIFICATION;
+		HashMap<String, Object> properties = new HashMap<>();
+		properties.put(IdentityEventConstants.EventProperty.USER_NAME, userName);
+		properties.put(IdentityEventConstants.EventProperty.USER_STORE_DOMAIN, userStoreDomainName);
+		properties.put(IdentityEventConstants.EventProperty.TENANT_DOMAIN, tenantDomain);
+		properties.put(TOKEN, otpCode);
+		properties.put(TOTPAuthenticatorConstants.TEMPLATE_TYPE, notificationEvent);
+		Event identityMgtEvent = new Event(eventName, properties);
+		try {
+			TOTPDataHolder.getInstance().getIdentityEventService().handleEvent(identityMgtEvent);
+		} catch (IdentityEventException e) {
+			String errorMsg = "Error occurred while calling triggerNotification. " + e.getMessage();
+			throw new AuthenticationFailedException(errorMsg, e.getCause());
 		}
 	}
 }

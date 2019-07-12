@@ -195,6 +195,8 @@
         <axis2-transports.version>2.0.0-wso2v21</axis2-transports.version>
         <axis2-transports.version.range>[2.0.0-wso2v21,3.0.0)</axis2-transports.version.range>
         <org.apache.axis2.transport.mail.version.range>[0.0.0,1.0.0)</org.apache.axis2.transport.mail.version.range>
+        <axis2.wso2.version>1.6.1.wso2v12</axis2.wso2.version>
+        <axis2.wso2.imp.pkg.version.range>[1.6.1.wso2v12, 2.0.0)</axis2.wso2.imp.pkg.version.range>
         <!-- Axiom Version -->
         <axiom.version>1.2.11-wso2v9</axiom.version>
         <axiom.wso2.version>1.2.11.wso2v9</axiom.wso2.version>
@@ -365,6 +367,8 @@
         <identity.extension.utils>1.0.8</identity.extension.utils>
         <identity.extension.utils.import.version.range>[1.0.8, 2.0.0)
         </identity.extension.utils.import.version.range>
+        <carbon.identity.event.version>5.13.33</carbon.identity.event.version>
+        <carbon.identity.event.version.range>[5.13.0,6.0.0)</carbon.identity.event.version.range>
         <!--Test Dependencies-->
         <junit.version>4.12</junit.version>
         <testng.version>6.9.10</testng.version>

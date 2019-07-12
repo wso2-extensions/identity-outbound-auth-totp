@@ -543,4 +543,17 @@ public class TOTPUtil {
 		}
 		return enableTOTPPage;
 	}
+
+
+	public static boolean isEventHandlerBasedEmailSenderEnabled(){
+
+		String eventHandlerBasedEmailSenderProperty =
+				getTOTPParameters().get(TOTPAuthenticatorConstants.USE_EVENT_HANDLER_BASED_EMAIL_SENDER);
+		if(eventHandlerBasedEmailSenderProperty != null && Boolean.parseBoolean(eventHandlerBasedEmailSenderProperty) ){
+			return true;
+		} else {
+			return false;
+		}
+
+	}
 }
