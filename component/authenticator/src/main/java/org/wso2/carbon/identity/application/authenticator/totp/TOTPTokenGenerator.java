@@ -262,7 +262,6 @@ public class TOTPTokenGenerator {
 		}
 	}
 
-
 	/**
 	 * Method to Trigger the TOTP otp event.
 	 *
