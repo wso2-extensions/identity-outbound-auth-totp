@@ -23,6 +23,7 @@ import org.apache.commons.logging.LogFactory;
 import org.osgi.service.component.ComponentContext;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticator;
+import org.wso2.carbon.identity.event.services.IdentityEventService;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.ConfigurationContextService;
 
@@ -36,6 +37,9 @@ import java.util.Hashtable;
  * unbind="unsetConfigurationContextService"
  * @scr.reference name="user.realmservice.default" interface="org.wso2.carbon.user.core.service.RealmService"
  * cardinality="1..1" policy="dynamic" bind="setRealmService" unbind="unsetRealmService"
+ * @scr.reference name="EventMgtService"
+ * interface="org.wso2.carbon.identity.event.services.IdentityEventService" cardinality="1..1"
+ * policy="dynamic" bind="setIdentityEventService" unbind="unsetIdentityEventService"
  */
 public class TOTPAuthenticatorServiceComponent {
 
@@ -105,5 +109,13 @@ public class TOTPAuthenticatorServiceComponent {
 	 */
 	protected void unsetRealmService(RealmService realmService) {
 		TOTPDataHolder.getInstance().setRealmService(null);
+	}
+
+	protected void unsetIdentityEventService(IdentityEventService eventService) {
+		TOTPDataHolder.getInstance().setIdentityEventService(null);
+	}
+
+	protected void setIdentityEventService(IdentityEventService eventService) {
+		TOTPDataHolder.getInstance().setIdentityEventService(eventService);
 	}
 }

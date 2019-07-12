@@ -96,6 +96,11 @@
             <version>1.6.5</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.framework</groupId>
+            <artifactId>org.wso2.carbon.identity.event</artifactId>
+            <version>${carbon.identity.event.version}</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -127,6 +132,7 @@
                             org.wso2.carbon.extension.identity.helper.*;
                             version="${identity.extension.utils.import.version.range}"
                         </Import-Package>
+                        <Import-Package>*;resolution:=optional</Import-Package>
                         <DynamicImport-Package>*</DynamicImport-Package>
                         <Export-Package>!org.wso2.carbon.identity.application.authenticator.totp.internal.*,
                             org.wso2.carbon.identity.application.authenticator.totp.*;
