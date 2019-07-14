@@ -84,6 +84,7 @@ public class TOTPDataHolder {
 	}
 
 	public void setIdentityEventService(IdentityEventService identityEventService) {
+
 		this.identityEventService = identityEventService;
 	}
 

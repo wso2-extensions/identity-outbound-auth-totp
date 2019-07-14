@@ -122,7 +122,7 @@
                             org.wso2.carbon.core.*,
                             org.osgi.service.*,
                             org.wso2.carbon.registry.core.*,
-                            org.wso2.carbon.utils.*;resolution:=optional,
+                            org.wso2.carbon.utils.*,
                             org.apache.commons.logging.*;version="${commons-logging.osgi.version.range}",
                             org.osgi.framework.*; version="${osgi.framework.imp.pkg.version.range}",
                             org.wso2.carbon.identity.application.authentication.framework.*;version="${carbon.identity.package.import.version.range}",

@@ -126,9 +126,11 @@ public class TOTPTokenGenerator {
 						secretKeyByteArray = codec64.decode(secretKey);
 					}
 					token = getCode(secretKeyByteArray, getTimeIndex(context));
-
 					// Check whether the authenticator is configured to use the event handler implementation.
 					if (TOTPUtil.isEventHandlerBasedEmailSenderEnabled()) {
+						if (log.isDebugEnabled()) {
+							log.debug("TOTP authenticator configured to use the event handler implementation.");
+						}
 						AuthenticatedUser authenticatedUser = (AuthenticatedUser) context
 								.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
 						triggerEvent(authenticatedUser.getUserName(), authenticatedUser.getTenantDomain(),

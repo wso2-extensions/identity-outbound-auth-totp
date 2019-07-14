@@ -548,18 +548,11 @@ public class TOTPUtil {
 	 * Get the useEventHandlerBasedEmailSender config value from the application-authentication.xml file.
 	 *
 	 * @return Is Event Handler Based Email Sender Enabled.
-	 * @throws AuthenticationFailedException
 	 */
 	public static boolean isEventHandlerBasedEmailSenderEnabled() {
 
 		String eventHandlerBasedEmailSenderProperty = getTOTPParameters()
 				.get(TOTPAuthenticatorConstants.USE_EVENT_HANDLER_BASED_EMAIL_SENDER);
-		if (eventHandlerBasedEmailSenderProperty != null && Boolean
-				.parseBoolean(eventHandlerBasedEmailSenderProperty)) {
-			return true;
-		} else {
-			return false;
-		}
-
+		return Boolean.parseBoolean(eventHandlerBasedEmailSenderProperty);
 	}
 }

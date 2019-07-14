@@ -112,10 +112,12 @@ public class TOTPAuthenticatorServiceComponent {
 	}
 
 	protected void unsetIdentityEventService(IdentityEventService eventService) {
+
 		TOTPDataHolder.getInstance().setIdentityEventService(null);
 	}
 
 	protected void setIdentityEventService(IdentityEventService eventService) {
+
 		TOTPDataHolder.getInstance().setIdentityEventService(eventService);
 	}
 }
