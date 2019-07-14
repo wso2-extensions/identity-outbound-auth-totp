@@ -129,8 +129,8 @@ public class TOTPTokenGenerator {
 
 					// Check whether the authenticator is configured to use the event handler implementation.
 					if (TOTPUtil.isEventHandlerBasedEmailSenderEnabled()) {
-						AuthenticatedUser authenticatedUser = (AuthenticatedUser) context.getProperty
-								(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
+						AuthenticatedUser authenticatedUser = (AuthenticatedUser) context
+								.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
 						triggerEvent(authenticatedUser.getUserName(), authenticatedUser.getTenantDomain(),
 								authenticatedUser.getUserStoreDomain(), TOTPAuthenticatorConstants.EVENT_NAME,
 								Long.toString(token));
