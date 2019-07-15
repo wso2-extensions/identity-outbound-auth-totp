@@ -365,6 +365,8 @@
         <identity.extension.utils>1.0.8</identity.extension.utils>
         <identity.extension.utils.import.version.range>[1.0.8, 2.0.0)
         </identity.extension.utils.import.version.range>
+        <carbon.identity.event.version>5.13.33</carbon.identity.event.version>
+        <carbon.identity.event.version.range>[5.13.0, 6.0.0)</carbon.identity.event.version.range>
         <!--Test Dependencies-->
         <junit.version>4.12</junit.version>
         <testng.version>6.9.10</testng.version>

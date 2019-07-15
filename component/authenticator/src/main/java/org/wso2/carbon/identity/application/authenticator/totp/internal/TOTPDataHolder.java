@@ -18,6 +18,7 @@
  */
 package org.wso2.carbon.identity.application.authenticator.totp.internal;
 
+import org.wso2.carbon.identity.event.services.IdentityEventService;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.ConfigurationContextService;
 
@@ -30,6 +31,7 @@ public class TOTPDataHolder {
 	private static TOTPDataHolder instance = new TOTPDataHolder();
 	private RealmService realmService;
 	private ConfigurationContextService configurationContextService;
+	private IdentityEventService identityEventService;
 
 	/**
 	 * Returns the DataHolder instance.
@@ -76,4 +78,14 @@ public class TOTPDataHolder {
 			ConfigurationContextService configurationContextService) {
 		this.configurationContextService = configurationContextService;
 	}
+
+	public IdentityEventService getIdentityEventService() {
+		return identityEventService;
+	}
+
+	public void setIdentityEventService(IdentityEventService identityEventService) {
+
+		this.identityEventService = identityEventService;
+	}
+
 }

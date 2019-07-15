@@ -96,6 +96,11 @@
             <version>1.6.5</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.framework</groupId>
+            <artifactId>org.wso2.carbon.identity.event</artifactId>
+            <version>${carbon.identity.event.version}</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -111,12 +116,13 @@
                     <instructions>
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <Bundle-Name>${project.artifactId}</Bundle-Name>
+                        <Private-Package>org.wso2.carbon.identity.application.authenticator.totp.internal</Private-Package>
                         <Import-Package>
                             org.wso2.carbon.core.utils.*,
                             org.wso2.carbon.core.*,
                             org.osgi.service.*,
                             org.wso2.carbon.registry.core.*,
-                            org.wso2.carbon.utils.*,
+                            org.wso2.carbon.utils.*;resolution:=optional,
                             org.apache.commons.logging.*;version="${commons-logging.osgi.version.range}",
                             org.osgi.framework.*; version="${osgi.framework.imp.pkg.version.range}",
                             org.wso2.carbon.identity.application.authentication.framework.*;version="${carbon.identity.package.import.version.range}",
@@ -125,7 +131,8 @@
                             org.wso2.carbon.identity.core.*; version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.identity.mgt.*; version="${carbon.identity.package.import.version.range}",
                             org.wso2.carbon.extension.identity.helper.*;
-                            version="${identity.extension.utils.import.version.range}"
+                            version="${identity.extension.utils.import.version.range}",
+                            org.wso2.carbon.identity.event.*;resolution:=optional;version="${carbon.identity.event.version.range}",
                         </Import-Package>
                         <DynamicImport-Package>*</DynamicImport-Package>
                         <Export-Package>!org.wso2.carbon.identity.application.authenticator.totp.internal.*,
