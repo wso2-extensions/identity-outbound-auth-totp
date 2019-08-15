@@ -45,7 +45,7 @@ import java.util.Map;
  */
 public class TOTPAdminService {
 
-	private static Log log = LogFactory.getLog(TOTPAdminService.class);
+	private static final Log log = LogFactory.getLog(TOTPAdminService.class);
 
 	/**
 	 * Generate TOTP Token for a given user.

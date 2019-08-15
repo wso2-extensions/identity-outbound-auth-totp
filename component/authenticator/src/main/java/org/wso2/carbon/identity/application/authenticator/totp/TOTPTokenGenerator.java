@@ -71,7 +71,7 @@ public class TOTPTokenGenerator {
 
 	private static final String FIRST_NAME = "firstname";
 	private static final String TOTP_TOKEN = "totp-token";
-	private static Log log = LogFactory.getLog(TOTPTokenGenerator.class);
+	private static final Log log = LogFactory.getLog(TOTPTokenGenerator.class);
 
 	/**
 	 * Get Time steps from unix epoch time.

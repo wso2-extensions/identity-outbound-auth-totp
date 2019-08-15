@@ -64,7 +64,7 @@ import java.util.Map;
  * TOTP Util class.
  */
 public class TOTPUtil {
-	private static Log log = LogFactory.getLog(TOTPUtil.class);
+	private static final Log log = LogFactory.getLog(TOTPUtil.class);
 
 	/**
 	 * Encrypt the given plain text.
