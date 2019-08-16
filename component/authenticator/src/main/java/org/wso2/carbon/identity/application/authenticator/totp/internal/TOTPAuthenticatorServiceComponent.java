@@ -43,7 +43,7 @@ import java.util.Hashtable;
  */
 public class TOTPAuthenticatorServiceComponent {
 
-	private static Log log = LogFactory.getLog(TOTPAuthenticatorServiceComponent.class);
+	private static final Log log = LogFactory.getLog(TOTPAuthenticatorServiceComponent.class);
 
 	/**
 	 * This method is to register the TOTP authenticator service.

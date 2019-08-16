@@ -60,7 +60,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 		implements LocalApplicationAuthenticator {
 
 	private static final long serialVersionUID = 2009231028659744926L;
-	private static Log log = LogFactory.getLog(TOTPAuthenticator.class);
+	private static final Log log = LogFactory.getLog(TOTPAuthenticator.class);
 
 	/**
 	 * Check whether token or action are in request.
