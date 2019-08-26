@@ -42,6 +42,7 @@ import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPKeyRepre
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
+import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -306,9 +307,17 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 					throw new AuthenticationFailedException(
 							"Authentication failed, user :  " + username);
 				}
-				context.setSubject(AuthenticatedUser
-						                   .createLocalAuthenticatedUserFromSubjectIdentifier(
-								                   username));
+				if (StringUtils.isNotBlank(username)) {
+					AuthenticatedUser authenticatedUser = new AuthenticatedUser();
+					authenticatedUser.setAuthenticatedSubjectIdentifier(username);
+					authenticatedUser.setUserName(UserCoreUtil.removeDomainFromName(
+							MultitenantUtils.getTenantAwareUsername(username)));
+					authenticatedUser.setUserStoreDomain(UserCoreUtil.extractDomainFromName(username));
+					authenticatedUser.setTenantDomain(MultitenantUtils.getTenantDomain(username));
+					context.setSubject(authenticatedUser);
+				} else {
+					context.setSubject(AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username));
+				}
 			} catch (TOTPException | NumberFormatException e) {
 				throw new AuthenticationFailedException(
 						"TOTP Authentication process failed for user " + username, e);
