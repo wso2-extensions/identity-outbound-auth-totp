@@ -42,6 +42,7 @@ import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPKeyRepre
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
+import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -275,16 +276,15 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 	 * @throws AuthenticationFailedException Authentication process failed for user
 	 */
 	@Override
-	protected void processAuthenticationResponse(HttpServletRequest request,
-	                                             HttpServletResponse response,
-	                                             AuthenticationContext context)
-			throws AuthenticationFailedException {
-		String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
-		String username = context.getProperty("username").toString();
-		if (context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP) != null && Boolean
-				.valueOf(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString())) {
-			//adds the claims to the profile if the user enrol and continued.
-			Map<String, String> claims = new HashMap<>();
+	protected void processAuthenticationResponse(HttpServletRequest request, HttpServletResponse response,
+            AuthenticationContext context) throws AuthenticationFailedException {
+
+        String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
+        String username = context.getProperty("username").toString();
+        if (context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP) != null && Boolean
+                .valueOf(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString())) {
+            // Adds the claims to the profile if the user enrol and continued.
+            Map<String, String> claims = new HashMap<>();
             if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
                 claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
                         context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString());
@@ -293,28 +293,34 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
                         context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL).toString());
             }
-			try {
-				TOTPKeyGenerator.addTOTPClaimsAndRetrievingQRCodeURL(claims, username, context);
-			} catch (TOTPException e) {
-				throw new AuthenticationFailedException("Error while adding TOTP claims to the user : " + username, e);
-			}
-		}
-		if (token != null) {
-			try {
-				int tokenValue = Integer.parseInt(token);
-				if (!isValidTokenLocalUser(tokenValue, username, context)) {
-					throw new AuthenticationFailedException(
-							"Authentication failed, user :  " + username);
-				}
-				context.setSubject(AuthenticatedUser
-						                   .createLocalAuthenticatedUserFromSubjectIdentifier(
-								                   username));
-			} catch (TOTPException | NumberFormatException e) {
-				throw new AuthenticationFailedException(
-						"TOTP Authentication process failed for user " + username, e);
-			}
-		}
-	}
+            try {
+                TOTPKeyGenerator.addTOTPClaimsAndRetrievingQRCodeURL(claims, username, context);
+            } catch (TOTPException e) {
+                throw new AuthenticationFailedException("Error while adding TOTP claims to the user : " + username, e);
+            }
+        }
+        if (token != null) {
+            try {
+                int tokenValue = Integer.parseInt(token);
+                if (!isValidTokenLocalUser(tokenValue, username, context)) {
+                    throw new AuthenticationFailedException("Authentication failed, user :  " + username);
+                }
+                if (StringUtils.isNotBlank(username)) {
+                    AuthenticatedUser authenticatedUser = new AuthenticatedUser();
+                    authenticatedUser.setAuthenticatedSubjectIdentifier(username);
+                    authenticatedUser.setUserName(
+                            UserCoreUtil.removeDomainFromName(MultitenantUtils.getTenantAwareUsername(username)));
+                    authenticatedUser.setUserStoreDomain(UserCoreUtil.extractDomainFromName(username));
+                    authenticatedUser.setTenantDomain(MultitenantUtils.getTenantDomain(username));
+                    context.setSubject(authenticatedUser);
+                } else {
+                    context.setSubject(AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username));
+                }
+            } catch (TOTPException | NumberFormatException e) {
+                throw new AuthenticationFailedException("TOTP Authentication process failed for user " + username, e);
+            }
+        }
+    }
 
 	/**
 	 * Check whether status of retrying authentication.
