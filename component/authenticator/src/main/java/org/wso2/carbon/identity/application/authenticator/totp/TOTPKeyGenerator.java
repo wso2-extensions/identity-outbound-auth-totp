@@ -109,6 +109,19 @@ public class TOTPKeyGenerator {
 	}
 
 	/**
+	 * Generate TOTP secret key, encoding method and QR Code url for user.
+	 *
+	 * @param username Username of the user
+	 * @param refresh  Boolean type of refreshing the secret token
+	 * @return claims
+	 * @throws TOTPException when user realm is null or while decrypting the key
+	 */
+	public static Map<String, String> generateClaims(String username, boolean refresh) throws TOTPException {
+
+		return generateClaims(username, refresh, null);
+	}
+
+	/**
 	 * Add TOTP secret key, encoding method and retrieve QR Code url for user.
 	 *
 	 * @param claims  Map with the TOTP claims
@@ -135,6 +148,20 @@ public class TOTPKeyGenerator {
 			throw new TOTPException("TOTPKeyGenerator cannot get the user realm for the user", e);
 		}
 		return qrCodeURL;
+	}
+
+	/**
+	 * Add TOTP secret key, encoding method and retrieve QR Code url for user.
+	 *
+	 * @param claims  Map with the TOTP claims
+	 * @param username Username of the user
+	 * @return QR code URL
+	 * @throws TOTPException when user realm is null or while decrypting the key
+	 */
+	public static String addTOTPClaimsAndRetrievingQRCodeURL(Map<String, String> claims, String username)
+			throws TOTPException {
+
+		return addTOTPClaimsAndRetrievingQRCodeURL(claims, username, null);
 	}
 
 	/**
@@ -192,5 +219,18 @@ public class TOTPKeyGenerator {
 		TOTPAuthenticatorCredentials totpAuthenticator =
 				new TOTPAuthenticatorCredentials(configBuilder.build());
 		return totpAuthenticator.createCredentials();
+	}
+
+	/**
+	 * Generate TOTPAuthenticator key.
+	 *
+	 * @param tenantDomain Tenant domain
+	 * @return TOTPAuthenticatorKey when user realm is null or decrypt the secret key
+	 * @throws AuthenticationFailedException when tenantDomain is not specified
+	 */
+	public static TOTPAuthenticatorKey generateKey(String tenantDomain)
+			throws AuthenticationFailedException {
+
+		return generateKey(tenantDomain, null);
 	}
 }
