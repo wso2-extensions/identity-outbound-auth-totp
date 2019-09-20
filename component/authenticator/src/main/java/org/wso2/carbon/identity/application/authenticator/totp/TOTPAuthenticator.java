@@ -40,6 +40,7 @@ import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenti
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorCredentials;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPKeyRepresentation;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
@@ -171,14 +172,14 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 					getLoginPage(context) + ("?sessionDataKey=" + context.getContextIdentifier()) +
 					"&authenticators=" + getName() + "&type=totp" + retryParam + "&username=" +
 					username + multiOptionURI;
-			String totpErrorPageUrl =
-					getErrorPage(context) + ("?sessionDataKey=" + context.getContextIdentifier()) +
-					"&authenticators=" + getName() + "&type=totp_error" + retryParam +
-					"&username=" + username + multiOptionURI;
-			if (isTOTPEnabled && request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
-				//if TOTP is enabled for the user.
-				response.sendRedirect(totpLoginPageUrl);
-			} else {
+            String totpErrorPageUrl =
+                    getErrorPage(context) + ("?sessionDataKey=" + context.getContextIdentifier()) +
+                            "&authenticators=" + getName() + "&type=totp_error" + retryParam +
+                            "&username=" + username + multiOptionURI;
+            if (isTOTPEnabled && request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
+                //if TOTP is enabled for the user.
+                response.sendRedirect(totpLoginPageUrl);
+            } else {
 				if (TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context)
 						&& request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
 					//if TOTP is not enabled for the user and he hasn't redirected to the enrolment page yet.
