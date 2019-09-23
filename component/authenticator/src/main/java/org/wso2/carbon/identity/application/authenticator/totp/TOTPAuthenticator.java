@@ -40,6 +40,7 @@ import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenti
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorCredentials;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPKeyRepresentation;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
@@ -178,7 +179,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 					"&username=" + username + multiOptionURI;
 			if (isTOTPEnabled && request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
 				//if TOTP is enabled for the user.
-				response.sendRedirect(totpLoginPageUrl);
+				response.sendRedirect(IdentityUtil.getServerURL(totpLoginPageUrl, true,
+                        true));
 			} else {
 				if (TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context)
 						&& request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
