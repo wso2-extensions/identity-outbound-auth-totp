@@ -24,6 +24,8 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ page import="org.wso2.carbon.identity.application.authentication.endpoint.util.TenantDataManager" %>
 <%@ page import="org.owasp.encoder.Encode" %>
+<%@ page import="java.net.URI" %>
+<%@ page import="java.net.URISyntaxException" %>
 
 <fmt:bundle basename="org.wso2.carbon.identity.application.authentication.endpoint.i18n.Resources">
 
@@ -142,7 +144,16 @@
                                             </div>
                                             <%
                                                 String multiOptionURI = request.getParameter("multiOptionURI");
+                                                boolean isValidURI = false;
                                                 if (multiOptionURI != null) {
+                                                    try {
+                                                        new URI(multiOptionURI);
+                                                        isValidURI = true;
+                                                    } catch (URISyntaxException e) {
+                                                        // Invalid URI provided for the multi option URI.
+                                                    }
+                                                }
+                                                if (isValidURI) {
                                             %>
                                             <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 form-group" id="goBackLinkDiv">
                                                 <a id="goBackLink" href='<%=Encode.forHtmlAttribute(multiOptionURI)%>'>Choose a different authentication option</a></p>
