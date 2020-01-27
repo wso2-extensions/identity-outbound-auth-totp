@@ -80,6 +80,7 @@ public class TOTPDataHolder {
 	}
 
 	public IdentityEventService getIdentityEventService() {
+
 		return identityEventService;
 	}
 
