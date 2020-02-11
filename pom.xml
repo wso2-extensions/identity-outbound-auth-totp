@@ -28,7 +28,6 @@
         <version>1</version>
     </parent>
     <modules>
-        <module>component/authentication-endpoint</module>
         <module>component/authenticator</module>
         <module>feature</module>
     </modules>
