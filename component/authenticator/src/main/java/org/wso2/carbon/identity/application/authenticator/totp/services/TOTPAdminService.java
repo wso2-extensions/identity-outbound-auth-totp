@@ -80,6 +80,12 @@ public class TOTPAdminService {
 				claimsToPersist.put(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL,
 						claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
 				userRealm.getUserStoreManager().setUserClaimValues(tenantAwareUsername, claimsToPersist, null);
+			} else {
+				if (log.isDebugEnabled()) {
+					log.debug(
+							"Couldn't retrieve the user realm successfully. User realm is null for user: " + username);
+				}
+				throw new TOTPException("Couldn't retrieve the user realm successfully.");
 			}
 		} catch (UserStoreException e) {
 			throw new TOTPException(
@@ -131,6 +137,12 @@ public class TOTPAdminService {
 				Map<String, String> clamsToRemove = new HashMap<>();
 				clamsToRemove.put(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL, "");
 				userRealm.getUserStoreManager().setUserClaimValues(tenantAwareUsername, clamsToRemove, null);
+			}  else {
+				if (log.isDebugEnabled()) {
+					log.debug(
+							"Couldn't retrieve the user realm successfully. User realm is null for user: " + username);
+				}
+				return false;
 			}
 		} catch (UserStoreException e) {
 			throw new TOTPException(
