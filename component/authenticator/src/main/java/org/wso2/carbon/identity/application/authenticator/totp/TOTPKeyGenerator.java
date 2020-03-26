@@ -56,7 +56,6 @@ public class TOTPKeyGenerator {
 		String encodedQRCodeURL;
 		String tenantAwareUsername = null;
 		Map<String, String> claims = new HashMap<>();
-		String encoding;
 		try {
 			UserRealm userRealm = TOTPUtil.getUserRealm(username);
 			String tenantDomain = MultitenantUtils.getTenantDomain(username);
@@ -70,11 +69,6 @@ public class TOTPKeyGenerator {
 				if (StringUtils.isEmpty(storedSecretKey) || refresh) {
 					TOTPAuthenticatorKey key = generateKey(tenantDomain, context);
 					generatedSecretKey = key.getKey();
-					if (context == null) {
-						encoding = TOTPUtil.getEncodingMethod(tenantDomain);
-					} else {
-						encoding = TOTPUtil.getEncodingMethod(tenantDomain, context);
-					}
 					claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
 					           TOTPUtil.encrypt(generatedSecretKey));
 				} else {
@@ -87,10 +81,8 @@ public class TOTPKeyGenerator {
 				}
 
 				String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
-				String qrCodeURL =
-						"otpauth://totp/" + issuer + ":" + tenantAwareUsername + "?secret=" +
-						secretKey +
-						"&issuer=" + issuer;
+				String qrCodeURL = "otpauth://totp/" + issuer + ":" + tenantAwareUsername + "?secret=" +
+						secretKey + "&issuer=" + issuer;
 				encodedQRCodeURL = Base64.encodeBase64String(qrCodeURL.getBytes());
 				claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, encodedQRCodeURL);
 			}

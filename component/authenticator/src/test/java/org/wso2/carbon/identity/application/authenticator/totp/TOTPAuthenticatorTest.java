@@ -221,8 +221,8 @@ public class TOTPAuthenticatorTest {
         when(TOTPTokenGenerator.generateTOTPTokenLocal(username, new AuthenticationContext())).thenReturn("123456");
         AuthenticationContext authenticationContext = new AuthenticationContext();
         authenticationContext.setProperty("username", username);
-        Assert.assertEquals(Whitebox.invokeMethod(totpAuthenticator, "generateTOTPToken",
-                authenticationContext), true);
+        Assert.assertTrue(Whitebox.invokeMethod(totpAuthenticator, "generateTOTPToken",
+                authenticationContext));
     }
 
     @Test(description = "Test case for successful logout request.")
