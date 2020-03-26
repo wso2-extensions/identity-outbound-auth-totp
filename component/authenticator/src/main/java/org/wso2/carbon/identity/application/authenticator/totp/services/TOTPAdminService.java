@@ -117,7 +117,7 @@ public class TOTPAdminService {
 
 				Map<String, String> userClaimValues = userRealm.getUserStoreManager().
 						getUserClaimValues(tenantAwareUsername,
-								new String[] { TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL }, null);
+								new String[]{TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL}, null);
 				encryptedSecretKey = userClaimValues.get(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL);
 
 				if (StringUtils.isBlank(encryptedSecretKey)) {
@@ -132,12 +132,10 @@ public class TOTPAdminService {
 
 				Map<String, String> claims = new HashMap<>();
 				claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, encryptedSecretKey);
+				claims.put(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL, "");
 				userRealm.getUserStoreManager().setUserClaimValues(tenantAwareUsername, claims, null);
 
-				Map<String, String> clamsToRemove = new HashMap<>();
-				clamsToRemove.put(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL, "");
-				userRealm.getUserStoreManager().setUserClaimValues(tenantAwareUsername, clamsToRemove, null);
-			}  else {
+			} else {
 				if (log.isDebugEnabled()) {
 					log.debug(
 							"Couldn't retrieve the user realm successfully. User realm is null for user: " + username);
@@ -148,9 +146,9 @@ public class TOTPAdminService {
 			throw new TOTPException(
 					"Failed to access user store manager to store secret key for the user: " + tenantAwareUsername, e);
 		} catch (AuthenticationFailedException e) {
-			throw new TOTPException("Error while retrieving the user realm for the user: " +tenantAwareUsername, e);
+			throw new TOTPException("Error while retrieving the user realm for the user: " + tenantAwareUsername, e);
 		} catch (CryptoException e) {
-			throw new TOTPException("Error while encrypting the secret key for user: " +tenantAwareUsername, e);
+			throw new TOTPException("Error while encrypting the secret key for user: " + tenantAwareUsername, e);
 		}
 
 		return true;
