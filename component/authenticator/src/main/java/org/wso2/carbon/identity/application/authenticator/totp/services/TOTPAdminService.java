@@ -62,6 +62,89 @@ public class TOTPAdminService {
 	}
 
 	/**
+	 * Generate TOTP secret for a given user and will be saved in http://wso2.org/claims/identity/verifySecretkey claim.
+	 *
+	 * @param username Username of the user
+	 * @return Encoded QR Code URL.
+	 * @throws TOTPException
+	 */
+	public String generateSecret(String username) throws TOTPException {
+
+		Map<String, String> claims = TOTPKeyGenerator.generateClaims(username, false);
+
+		String tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
+		try {
+			UserRealm userRealm = TOTPUtil.getUserRealm(username);
+			if (userRealm != null) {
+				Map<String, String> claimsToPersist = new HashMap<>();
+				claimsToPersist.put(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL,
+						claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
+				userRealm.getUserStoreManager().setUserClaimValues(tenantAwareUsername, claimsToPersist, null);
+			}
+		} catch (UserStoreException e) {
+			throw new TOTPException(
+					"Failed to access user store manager to store secret key for the user: " + tenantAwareUsername, e);
+		} catch (AuthenticationFailedException e) {
+			throw new TOTPException("Error while retrieving the user realm for the user: " + tenantAwareUsername, e);
+		}
+
+		return claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
+	}
+
+	/**
+	 * Enable the TOTP for the given user. OTP will be validated against the secret saved in
+	 * http://wso2.org/claims/identity/verifySecretkey claim and if successful, secret is moved to
+	 * http://wso2.org/claims/identity/secretkey claim.
+	 *
+	 * @param username            Username of the user
+	 * @param verificationCode    verification code generated from the secret issued with {@link #generateSecret(String)}
+	 * @return if TOTP enabling is successful or not.
+	 * @throws TOTPException
+	 */
+	public boolean enableTOTP(String username, int verificationCode) throws TOTPException {
+
+		String tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
+		try {
+			UserRealm userRealm = TOTPUtil.getUserRealm(username);
+			if (userRealm != null) {
+				String encryptedSecretKey;
+
+				Map<String, String> userClaimValues = userRealm.getUserStoreManager().
+						getUserClaimValues(tenantAwareUsername,
+								new String[] { TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL }, null);
+				encryptedSecretKey = userClaimValues.get(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL);
+
+				if (StringUtils.isBlank(encryptedSecretKey)) {
+					throw new TOTPException("Secret key is not generated yet.");
+				}
+
+				boolean validationResult = validateTOTP(username, verificationCode,
+						TOTPUtil.decrypt(encryptedSecretKey), null);
+				if (!validationResult) {
+					return false;
+				}
+
+				Map<String, String> claims = new HashMap<>();
+				claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, encryptedSecretKey);
+				userRealm.getUserStoreManager().setUserClaimValues(tenantAwareUsername, claims, null);
+
+				Map<String, String> clamsToRemove = new HashMap<>();
+				clamsToRemove.put(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL, "");
+				userRealm.getUserStoreManager().setUserClaimValues(tenantAwareUsername, clamsToRemove, null);
+			}
+		} catch (UserStoreException e) {
+			throw new TOTPException(
+					"Failed to access user store manager to store secret key for the user: " + tenantAwareUsername, e);
+		} catch (AuthenticationFailedException e) {
+			throw new TOTPException("Error while retrieving the user realm for the user: " +tenantAwareUsername, e);
+		} catch (CryptoException e) {
+			throw new TOTPException("Error while encrypting the secret key for user: " +tenantAwareUsername, e);
+		}
+
+		return true;
+	}
+
+	/**
 	 * Resets TOTP credentials of the user.
 	 *
 	 * @param username Username of the user
@@ -147,6 +230,14 @@ public class TOTPAdminService {
 	public boolean validateTOTP(String username, AuthenticationContext context, int verificationCode) throws
 			TOTPException {
 
+		String secretKey = retrieveSecretKey(username, context);
+
+		return validateTOTP(username, verificationCode, secretKey, context);
+	}
+
+	private boolean validateTOTP(String username, int verificationCode, String secretKey, AuthenticationContext context)
+			throws TOTPException {
+
 		TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;
 		String tenantDomain = MultitenantUtils.getTenantDomain(username);
 		String encodingMethod;
@@ -164,7 +255,6 @@ public class TOTPAdminService {
 							.setKeyRepresentation(encoding);
 			TOTPAuthenticatorCredentials totpAuthenticator =
 					new TOTPAuthenticatorCredentials(configBuilder.build());
-			String secretKey = retrieveSecretKey(username, context);
 			if (log.isDebugEnabled()) {
 				log.debug("Validating TOTP verification code for the user: " + username);
 			}
