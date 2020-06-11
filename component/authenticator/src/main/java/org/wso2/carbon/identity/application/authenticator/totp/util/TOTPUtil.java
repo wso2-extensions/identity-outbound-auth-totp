@@ -559,7 +559,7 @@ public class TOTPUtil {
 	}
 
 	/**
-	 *  Get Account Lock Connector Configs.
+	 * Get Account Lock Connector Configs.
 	 *
 	 * @param tenantDomain Tenant domain.
 	 * @return Account Lock Connector Configs.
@@ -596,6 +596,15 @@ public class TOTPUtil {
 				getTOTPParameters().get(TOTPAuthenticatorConstants.ENABLE_ACCOUNT_LOCKING_FOR_FAILED_ATTEMPTS));
 	}
 
+	/**
+	 * Check whether the user account is locked.
+	 *
+	 * @param userName        The username of the user.
+	 * @param tenantDomain    The tenant domain.
+	 * @param userStoreDomain The userstore domain.
+	 * @return True if the account is locked.
+	 * @throws AuthenticationFailedException Exception on authentication failure.
+	 */
 	public static boolean isAccountLocked(String userName, String tenantDomain, String userStoreDomain)
 			throws AuthenticationFailedException {
 
@@ -617,13 +626,11 @@ public class TOTPUtil {
 	public static boolean isLocalUser(AuthenticationContext context) {
 
 		Map<Integer, StepConfig> stepConfigMap = context.getSequenceConfig().getStepMap();
-		if(stepConfigMap != null) {
+		if (stepConfigMap != null) {
 			for (StepConfig stepConfig : stepConfigMap.values()) {
-				if (stepConfig.getAuthenticatedUser() != null && stepConfig.isSubjectAttributeStep()) {
-					if (stepConfig.getAuthenticatedIdP().equals(TOTPAuthenticatorConstants.LOCAL_AUTHENTICATOR)) {
-						return true;
-					}
-					break;
+				if (stepConfig.getAuthenticatedUser() != null && stepConfig.isSubjectAttributeStep() && StringUtils
+						.equals(TOTPAuthenticatorConstants.LOCAL_AUTHENTICATOR, stepConfig.getAuthenticatedIdP())) {
+					return true;
 				}
 			}
 		}
