@@ -38,6 +38,11 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String VERIFY_SECRET_KEY_CLAIM_URL = "http://wso2.org/claims/identity/verifySecretkey";
 	public static final String ENCODING_CLAIM_URL = "http://wso2.org/claims/identity/encoding";
 	public static final String FIRST_NAME_CLAIM_URL = "http://wso2.org/claims/givenname";
+	public static final String TOTP_FAILED_ATTEMPTS_CLAIM = "http://wso2.org/claims/identity/failedTotpAttempts";
+	public static final String FAILED_LOGIN_LOCKOUT_COUNT_CLAIM =
+			"http://wso2.org/claims/identity/failedLoginLockoutCount";
+	public static final String ACCOUNT_LOCKED_CLAIM = "http://wso2.org/claims/identity/accountLocked";
+	public static final String ACCOUNT_UNLOCK_TIME_CLAIM = "http://wso2.org/claims/identity/unlockTime";
 	public static final String BASE32 = "Base32";
 	public static final String BASE64 = "Base64";
 	public static final String APPLICATION_AUTHENTICATION_XML = "application-authentication.xml";
@@ -72,4 +77,11 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String TEMPLATE_TYPE = "TEMPLATE_TYPE";
 	public static final String EVENT_NAME = "TOTP";
 	public static final String AUTHENTICATED_USER = "authenticatedUser";
+	public static final String LOCAL_AUTHENTICATOR = "LOCAL";
+	public static final String ENABLE_ACCOUNT_LOCKING_FOR_FAILED_ATTEMPTS = "EnableAccountLockingForFailedAttempts";
+	public static final String PROPERTY_LOGIN_FAIL_TIMEOUT_RATIO = "account.lock.handler.login.fail.timeout.ratio";
+	public static final String PROPERTY_ACCOUNT_LOCK_ON_FAILURE = "account.lock.handler.enable";
+	public static final String PROPERTY_ACCOUNT_LOCK_ON_FAILURE_MAX = "account.lock.handler.On.Failure.Max.Attempts";
+	public static final String PROPERTY_ACCOUNT_LOCK_TIME = "account.lock.handler.Time";
+	public static final String ADMIN_INITIATED = "AdminInitiated";
 }
