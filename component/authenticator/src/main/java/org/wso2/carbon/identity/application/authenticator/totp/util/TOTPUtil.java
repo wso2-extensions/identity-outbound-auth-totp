@@ -44,6 +44,8 @@ import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPExc
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
 import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
+import org.wso2.carbon.identity.governance.IdentityGovernanceException;
+import org.wso2.carbon.identity.handler.event.account.lock.exception.AccountLockServiceException;
 import org.wso2.carbon.registry.core.Registry;
 import org.wso2.carbon.registry.core.Resource;
 import org.wso2.carbon.registry.core.exceptions.RegistryException;
@@ -578,7 +580,7 @@ public class TOTPUtil {
 									TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_TIME,
 									TOTPAuthenticatorConstants.PROPERTY_LOGIN_FAIL_TIMEOUT_RATIO
 							}, tenantDomain);
-		} catch (Exception e) {
+		} catch (IdentityGovernanceException e) {
 			throw new AuthenticationFailedException(
 					"Error occurred while retrieving account lock connector configuration", e);
 		}
@@ -611,7 +613,7 @@ public class TOTPUtil {
 		try {
 			return TOTPDataHolder.getInstance().getAccountLockService()
 					.isAccountLocked(userName, tenantDomain, userStoreDomain);
-		} catch (Exception e) {
+		} catch (AccountLockServiceException e) {
 			throw new AuthenticationFailedException(
 					String.format("Error while validating account lock status of user: %s.", userName), e);
 		}
