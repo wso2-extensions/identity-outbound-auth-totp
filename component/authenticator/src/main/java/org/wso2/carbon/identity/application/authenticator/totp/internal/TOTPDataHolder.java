@@ -19,6 +19,8 @@
 package org.wso2.carbon.identity.application.authenticator.totp.internal;
 
 import org.wso2.carbon.identity.event.services.IdentityEventService;
+import org.wso2.carbon.identity.governance.IdentityGovernanceService;
+import org.wso2.carbon.identity.handler.event.account.lock.service.AccountLockService;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.ConfigurationContextService;
 
@@ -32,6 +34,8 @@ public class TOTPDataHolder {
 	private RealmService realmService;
 	private ConfigurationContextService configurationContextService;
 	private IdentityEventService identityEventService;
+	private AccountLockService accountLockService;
+	private IdentityGovernanceService identityGovernanceService;
 
 	/**
 	 * Returns the DataHolder instance.
@@ -87,6 +91,49 @@ public class TOTPDataHolder {
 	public void setIdentityEventService(IdentityEventService identityEventService) {
 
 		this.identityEventService = identityEventService;
+	}
+
+	/**
+	 * Get the IdentityGovernance service.
+	 *
+	 * @return IdentityGovernance service.
+	 */
+	public IdentityGovernanceService getIdentityGovernanceService() {
+
+		if (identityGovernanceService == null) {
+			throw new RuntimeException("IdentityGovernanceService not available. Component is not started properly.");
+		}
+		return identityGovernanceService;
+	}
+
+	/**
+	 * Set the IdentityGovernance service.
+	 *
+	 * @param identityGovernanceService The IdentityGovernance service.
+	 */
+	public void setIdentityGovernanceService(IdentityGovernanceService identityGovernanceService) {
+
+		this.identityGovernanceService = identityGovernanceService;
+	}
+
+	/**
+	 * Get the AccountLock service.
+	 *
+	 * @return AccountLock service.
+	 */
+	public AccountLockService getAccountLockService() {
+
+		return accountLockService;
+	}
+
+	/**
+	 * Set the AccountLock service.
+	 *
+	 * @param accountLockService The AccountLock service.
+	 */
+	public void setAccountLockService(AccountLockService accountLockService) {
+
+		this.accountLockService = accountLockService;
 	}
 
 }
