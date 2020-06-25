@@ -36,12 +36,16 @@ import org.wso2.carbon.extension.identity.helper.util.IdentityHelperUtil;
 import org.wso2.carbon.identity.application.authentication.framework.config.ConfigurationFacade;
 import org.wso2.carbon.identity.application.authentication.framework.config.builder.FileBasedConfigurationBuilder;
 import org.wso2.carbon.identity.application.authentication.framework.config.model.AuthenticatorConfig;
+import org.wso2.carbon.identity.application.authentication.framework.config.model.StepConfig;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
+import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
+import org.wso2.carbon.identity.governance.IdentityGovernanceException;
+import org.wso2.carbon.identity.handler.event.account.lock.exception.AccountLockServiceException;
 import org.wso2.carbon.registry.core.Registry;
 import org.wso2.carbon.registry.core.Resource;
 import org.wso2.carbon.registry.core.exceptions.RegistryException;
@@ -542,5 +546,84 @@ public class TOTPUtil {
 					.valueOf(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE_URL));
 		}
 		return enableTOTPPage;
+	}
+
+	/**
+	 * Get Account Lock Connector Configs.
+	 *
+	 * @param tenantDomain Tenant domain.
+	 * @return Account Lock Connector Configs.
+	 * @throws AuthenticationFailedException Exception on authentication failure.
+	 */
+	public static Property[] getAccountLockConnectorConfigs(String tenantDomain) throws AuthenticationFailedException {
+
+		Property[] connectorConfigs;
+		try {
+			connectorConfigs = TOTPDataHolder.getInstance()
+					.getIdentityGovernanceService()
+					.getConfiguration(
+							new String[]{
+									TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_ON_FAILURE,
+									TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_ON_FAILURE_MAX,
+									TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_TIME,
+									TOTPAuthenticatorConstants.PROPERTY_LOGIN_FAIL_TIMEOUT_RATIO
+							}, tenantDomain);
+		} catch (IdentityGovernanceException e) {
+			throw new AuthenticationFailedException(
+					"Error occurred while retrieving account lock connector configuration", e);
+		}
+		return connectorConfigs;
+	}
+
+	/**
+	 * Check whether account locking is enabled for TOTP.
+	 *
+	 * @return True if account locking is enabled for TOTP.
+	 */
+	public static boolean isAccountLockingEnabledForTotp() {
+
+		return Boolean.parseBoolean(
+				getTOTPParameters().get(TOTPAuthenticatorConstants.ENABLE_ACCOUNT_LOCKING_FOR_FAILED_ATTEMPTS));
+	}
+
+	/**
+	 * Check whether the user account is locked.
+	 *
+	 * @param userName        The username of the user.
+	 * @param tenantDomain    The tenant domain.
+	 * @param userStoreDomain The userstore domain.
+	 * @return True if the account is locked.
+	 * @throws AuthenticationFailedException Exception on authentication failure.
+	 */
+	public static boolean isAccountLocked(String userName, String tenantDomain, String userStoreDomain)
+			throws AuthenticationFailedException {
+
+		try {
+			return TOTPDataHolder.getInstance().getAccountLockService()
+					.isAccountLocked(userName, tenantDomain, userStoreDomain);
+		} catch (AccountLockServiceException e) {
+			throw new AuthenticationFailedException(
+					String.format("Error while validating account lock status of user: %s.", userName), e);
+		}
+	}
+
+	/**
+	 * Check whether the user being authenticated via a local authenticator or not.
+	 *
+	 * @param context Authentication context.
+	 * @return Whether the user being authenticated via a local authenticator.
+	 */
+	public static boolean isLocalUser(AuthenticationContext context) {
+
+		Map<Integer, StepConfig> stepConfigMap = context.getSequenceConfig().getStepMap();
+		if (stepConfigMap != null) {
+			for (StepConfig stepConfig : stepConfigMap.values()) {
+				if (stepConfig.getAuthenticatedUser() != null && stepConfig.isSubjectAttributeStep() && StringUtils
+						.equals(TOTPAuthenticatorConstants.LOCAL_AUTHENTICATOR, stepConfig.getAuthenticatedIdP())) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 }
