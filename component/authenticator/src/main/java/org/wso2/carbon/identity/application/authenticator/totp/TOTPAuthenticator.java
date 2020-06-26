@@ -302,33 +302,16 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			}
 			throw new AuthenticationFailedException(errorMessage);
 		}
-		if (context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP) != null && Boolean
-				.valueOf(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString())) {
-			// Adds the claims to the profile if the user enrol and continued.
-			Map<String, String> claims = new HashMap<>();
-			if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
-				claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
-						context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString());
-			}
-			if (context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL) != null) {
-				claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
-						context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL).toString());
-			}
-			try {
-				TOTPKeyGenerator.addTOTPClaimsAndRetrievingQRCodeURL(claims, username, context);
-			} catch (TOTPException e) {
-				throw new AuthenticationFailedException("Error while adding TOTP claims to the user : " + username, e);
-			}
-		}
-		if (StringUtils.isEmpty(token)) {
+		if (StringUtils.isBlank(token)) {
 			handleTotpVerificationFail(context);
-			throw new AuthenticationFailedException("TOTP Authentication process failed for user " + username);
+			throw new AuthenticationFailedException("TOTP is empty.");
 		}
+		checkTotpEnabled(context, username);
 		try {
 			int tokenValue = Integer.parseInt(token);
 			if (!isValidTokenLocalUser(tokenValue, username, context)) {
 				handleTotpVerificationFail(context);
-				throw new AuthenticationFailedException("Authentication failed, user :  " + username);
+				throw new AuthenticationFailedException("Invalid Token. Authentication failed, user :  " + username);
 			}
 			if (StringUtils.isNotBlank(username)) {
 				AuthenticatedUser authenticatedUser = new AuthenticatedUser();
@@ -349,6 +332,28 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 		}
 		// It reached here means the authentication was successful.
 		resetTotpFailedAttempts(context);
+	}
+
+	private void checkTotpEnabled(AuthenticationContext context, String username) throws AuthenticationFailedException {
+
+		if (context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP) != null && Boolean
+				.valueOf(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString())) {
+			// Adds the claims to the profile if the user enrol and continued.
+			Map<String, String> claims = new HashMap<>();
+			if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
+				claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
+						context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString());
+			}
+			if (context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL) != null) {
+				claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
+						context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL).toString());
+			}
+			try {
+				TOTPKeyGenerator.addTOTPClaimsAndRetrievingQRCodeURL(claims, username, context);
+			} catch (TOTPException e) {
+				throw new AuthenticationFailedException("Error while adding TOTP claims to the user : " + username, e);
+			}
+		}
 	}
 
 	/**
@@ -562,8 +567,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			claimValues = new HashMap<>();
 		}
 		int currentAttempts = 0;
-		if (NumberUtils.isNumber(claimValues.get(TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM))) {
-			currentAttempts = Integer.parseInt(claimValues.get(TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM));
+		if (NumberUtils.isNumber(claimValues.get(TOTPAuthenticatorConstants.FAILED_TOTP_ATTEMPTS_CLAIM))) {
+			currentAttempts = Integer.parseInt(claimValues.get(TOTPAuthenticatorConstants.FAILED_TOTP_ATTEMPTS_CLAIM));
 		}
 		int failedLoginLockoutCountValue = 0;
 		if (NumberUtils.isNumber(claimValues.get(TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM))) {
@@ -579,7 +584,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			// Calculate unlock-time by adding current-time and unlock-time-interval in milli seconds.
 			long unlockTime = System.currentTimeMillis() + unlockTimePropertyValue;
 			updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_LOCKED_CLAIM, Boolean.TRUE.toString());
-			updatedClaims.put(TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM, "0");
+			updatedClaims.put(TOTPAuthenticatorConstants.FAILED_TOTP_ATTEMPTS_CLAIM, "0");
 			updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_UNLOCK_TIME_CLAIM, String.valueOf(unlockTime));
 			updatedClaims.put(TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM,
 					String.valueOf(failedLoginLockoutCountValue + 1));
@@ -589,7 +594,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			throw new AuthenticationFailedException(errorMessage);
 		} else {
 			updatedClaims
-					.put(TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM, String.valueOf(currentAttempts + 1));
+					.put(TOTPAuthenticatorConstants.FAILED_TOTP_ATTEMPTS_CLAIM, String.valueOf(currentAttempts + 1));
 			setUserClaimValues(authenticatedUser, username, updatedClaims);
 		}
 	}
@@ -623,18 +628,18 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			UserStoreManager userStoreManager = userRealm.getUserStoreManager();
 
 			// Avoid updating the claims if they are already zero.
-			String[] claimsToCheck = {TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM,
+			String[] claimsToCheck = {TOTPAuthenticatorConstants.FAILED_TOTP_ATTEMPTS_CLAIM,
 					TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM};
 			Map<String, String> userClaims = userStoreManager.getUserClaimValues(usernameWithDomain, claimsToCheck,
 					UserCoreConstants.DEFAULT_PROFILE);
-			String failedSmsOtpAttempts = userClaims.get(TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM);
+			String failedSmsOtpAttempts = userClaims.get(TOTPAuthenticatorConstants.FAILED_TOTP_ATTEMPTS_CLAIM);
 			String failedLoginLockoutCount =
 					userClaims.get(TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM);
 
 			if (NumberUtils.isNumber(failedSmsOtpAttempts) && Integer.parseInt(failedSmsOtpAttempts) > 0 ||
 					NumberUtils.isNumber(failedLoginLockoutCount) && Integer.parseInt(failedLoginLockoutCount) > 0) {
 				Map<String, String> updatedClaims = new HashMap<>();
-				updatedClaims.put(TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM, "0");
+				updatedClaims.put(TOTPAuthenticatorConstants.FAILED_TOTP_ATTEMPTS_CLAIM, "0");
 				updatedClaims.put(TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM, "0");
 				userStoreManager
 						.setUserClaimValues(usernameWithDomain, updatedClaims, UserCoreConstants.DEFAULT_PROFILE);
@@ -657,7 +662,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			UserStoreManager userStoreManager = userRealm.getUserStoreManager();
 			claimValues = userStoreManager.getUserClaimValues(IdentityUtil.addDomainToName(
 					authenticatedUser.getUserName(), authenticatedUser.getUserStoreDomain()), new String[]{
-							TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM,
+							TOTPAuthenticatorConstants.FAILED_TOTP_ATTEMPTS_CLAIM,
 							TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM},
 					UserCoreConstants.DEFAULT_PROFILE);
 		} catch (UserStoreException e) {

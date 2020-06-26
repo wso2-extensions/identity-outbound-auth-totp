@@ -37,7 +37,7 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String SECRET_KEY_CLAIM_URL = "http://wso2.org/claims/identity/secretkey";
 	public static final String ENCODING_CLAIM_URL = "http://wso2.org/claims/identity/encoding";
 	public static final String FIRST_NAME_CLAIM_URL = "http://wso2.org/claims/givenname";
-	public static final String TOTP_FAILED_ATTEMPTS_CLAIM = "http://wso2.org/claims/identity/failedTotpAttempts";
+	public static final String FAILED_TOTP_ATTEMPTS_CLAIM = "http://wso2.org/claims/identity/failedTotpAttempts";
 	public static final String FAILED_LOGIN_LOCKOUT_COUNT_CLAIM =
 			"http://wso2.org/claims/identity/failedLoginLockoutCount";
 	public static final String ACCOUNT_LOCKED_CLAIM = "http://wso2.org/claims/identity/accountLocked";
