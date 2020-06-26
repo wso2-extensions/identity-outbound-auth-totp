@@ -654,9 +654,9 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			}
 		} catch (UserStoreException e) {
 			if (log.isDebugEnabled()) {
-				log.debug("Error while resetting failed TOTP attempts", e);
+				log.debug("Error while resetting failed TOTP attempts count for user: " + username, e);
 			}
-			String errorMessage = "Failed to reset failed attempts count for user : " + authenticatedUser.getUserName();
+			String errorMessage = "Failed to reset failed attempts count for user : " + username;
 			throw new AuthenticationFailedException(errorMessage, e);
 		}
 	}
