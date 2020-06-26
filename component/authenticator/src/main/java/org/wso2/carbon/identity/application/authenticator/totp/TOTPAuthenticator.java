@@ -639,11 +639,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 					TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM};
 			Map<String, String> userClaims = userStoreManager.getUserClaimValues(usernameWithDomain, claimsToCheck,
 					UserCoreConstants.DEFAULT_PROFILE);
-			String failedSmsOtpAttempts = userClaims.get(TOTPAuthenticatorConstants.FAILED_TOTP_ATTEMPTS_CLAIM);
+			String failedTotpAttempts = userClaims.get(TOTPAuthenticatorConstants.FAILED_TOTP_ATTEMPTS_CLAIM);
 			String failedLoginLockoutCount =
 					userClaims.get(TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM);
 
-			if (NumberUtils.isNumber(failedSmsOtpAttempts) && Integer.parseInt(failedSmsOtpAttempts) > 0 ||
+			if (NumberUtils.isNumber(failedTotpAttempts) && Integer.parseInt(failedTotpAttempts) > 0 ||
 					NumberUtils.isNumber(failedLoginLockoutCount) && Integer.parseInt(failedLoginLockoutCount) > 0) {
 				Map<String, String> updatedClaims = new HashMap<>();
 				updatedClaims.put(TOTPAuthenticatorConstants.FAILED_TOTP_ATTEMPTS_CLAIM, "0");
