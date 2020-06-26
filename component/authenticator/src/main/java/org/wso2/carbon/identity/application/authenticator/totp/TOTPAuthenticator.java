@@ -287,24 +287,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
 		String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
 		String username = context.getProperty("username").toString();
-		AuthenticatedUser authenticatedUserObject =
-				(AuthenticatedUser) context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
-		String tenantDomain = MultitenantUtils.getTenantDomain(username);
-		String userStoreDomain = UserCoreUtil.extractDomainFromName(username);
-		boolean isLocalUser = TOTPUtil.isLocalUser(context);
-		if (isLocalUser &&
-				TOTPUtil.isAccountLocked(authenticatedUserObject.getUserName(), tenantDomain, userStoreDomain)) {
-			String errorMessage =
-					String.format("Authentication failed since authenticated user: %s, account is locked.",
-							getUserStoreAppendedName(username));
-			if (log.isDebugEnabled()) {
-				log.debug(errorMessage);
-			}
-			throw new AuthenticationFailedException(errorMessage);
-		}
+		validateAccountLockStatusForLocalUser(context, username);
 		if (StringUtils.isBlank(token)) {
 			handleTotpVerificationFail(context);
-			throw new AuthenticationFailedException("TOTP is empty.");
+			throw new AuthenticationFailedException("Empty TOTP in the request. Authentication Failed for user: " +
+					username);
 		}
 		checkTotpEnabled(context, username);
 		try {
@@ -353,6 +340,26 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			} catch (TOTPException e) {
 				throw new AuthenticationFailedException("Error while adding TOTP claims to the user : " + username, e);
 			}
+		}
+	}
+
+	private void validateAccountLockStatusForLocalUser(AuthenticationContext context, String username)
+			throws AuthenticationFailedException {
+
+		boolean isLocalUser = TOTPUtil.isLocalUser(context);
+		AuthenticatedUser authenticatedUserObject =
+				(AuthenticatedUser) context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
+		String tenantDomain = MultitenantUtils.getTenantDomain(username);
+		String userStoreDomain = UserCoreUtil.extractDomainFromName(username);
+		if (isLocalUser &&
+				TOTPUtil.isAccountLocked(authenticatedUserObject.getUserName(), tenantDomain, userStoreDomain)) {
+			String errorMessage =
+					String.format("Authentication failed since authenticated user: %s, account is locked.",
+							getUserStoreAppendedName(username));
+			if (log.isDebugEnabled()) {
+				log.debug(errorMessage);
+			}
+			throw new AuthenticationFailedException(errorMessage);
 		}
 	}
 
