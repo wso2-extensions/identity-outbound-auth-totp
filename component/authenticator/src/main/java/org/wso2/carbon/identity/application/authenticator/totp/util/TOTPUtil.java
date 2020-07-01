@@ -310,11 +310,39 @@ public class TOTPUtil {
 	}
 
 	/**
+	 * Get stored time step size.
+	 *
+	 * @param tenantDomain Tenant domain name.
+	 * @return Time step size.
+	 * @throws AuthenticationFailedException On Error while getting value for time step size from registry.
+	 */
+	public static Long getTimeStepSize(String tenantDomain) throws AuthenticationFailedException {
+
+		Long timeStepSize;
+		if (tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
+			timeStepSize = Long.parseLong(getTOTPParameters().get(TOTPAuthenticatorConstants.TIME_STEP_SIZE));
+		} else {
+			try {
+				timeStepSize = getTimeStepSizeFromRegistry(tenantDomain, null);
+				if (timeStepSize == -1) {
+					timeStepSize = Long.parseLong(
+							IdentityHelperUtil.getAuthenticatorParameters(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)
+									.get(TOTPAuthenticatorConstants.TIME_STEP_SIZE));
+				}
+			} catch (TOTPException e) {
+				throw new AuthenticationFailedException("Cannot find the property value for timeStepSize", e);
+			}
+		}
+		return timeStepSize;
+	}
+
+	/**
 	 * Get time step size.
 	 *
 	 * @return timeStepSize
 	 */
 	public static long getTimeStepSize(AuthenticationContext context) {
+
 		if (log.isDebugEnabled()) {
 			log.debug("Read the user Time Step Size value from application authentication xml file");
 		}
@@ -329,6 +357,74 @@ public class TOTPUtil {
 		} else {
 			return Long.parseLong(context.getProperty(TOTPAuthenticatorConstants.TIME_STEP_SIZE).toString());
 		}
+	}
+
+	/**
+	 * Get stored time step size.
+	 *
+	 * @param tenantDomain Tenant domain name.
+	 * @return Time step size.
+	 * @throws TOTPException On Error while getting value for time step size from registry.
+	 */
+	public static long getTimeStepSizeFromRegistry(String tenantDomain, AuthenticationContext context)
+			throws TOTPException {
+
+		Long timeStepSize = null;
+		int tenantID = IdentityTenantUtil.getTenantId(tenantDomain);
+		try {
+			PrivilegedCarbonContext.startTenantFlow();
+			PrivilegedCarbonContext privilegedCarbonContext = PrivilegedCarbonContext.getThreadLocalCarbonContext();
+			privilegedCarbonContext.setTenantId(tenantID);
+			privilegedCarbonContext.setTenantDomain(tenantDomain);
+			Registry registry = (Registry) privilegedCarbonContext.getRegistry(RegistryType.SYSTEM_GOVERNANCE);
+			Resource resource = registry.get(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME + "/" +
+					TOTPAuthenticatorConstants.APPLICATION_AUTHENTICATION_XML);
+			Object content = resource.getContent();
+			String xml = new String((byte[]) content);
+			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			factory.setNamespaceAware(true);
+			DocumentBuilder builder = factory.newDocumentBuilder();
+			Document doc = builder.parse(new ByteArrayInputStream(xml.getBytes()));
+			NodeList authConfigList = doc.getElementsByTagName("AuthenticatorConfig");
+			for (int authConfigIndex = 0; authConfigIndex < authConfigList.getLength(); authConfigIndex++) {
+				Node authConfigNode = authConfigList.item(authConfigIndex);
+				if (authConfigNode.getNodeType() == Node.ELEMENT_NODE) {
+					Element authConfigElement = (Element) authConfigNode;
+					String AuthConfig = authConfigElement.getAttribute(TOTPAuthenticatorConstants.NAME);
+					if (AuthConfig.equals(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)) {
+						NodeList AuthConfigChildList = authConfigElement.getChildNodes();
+						for (int j = 0; j < AuthConfigChildList.getLength(); j++) {
+							Node authConfigChildNode = AuthConfigChildList.item(j);
+							if (authConfigChildNode.getNodeType() == Node.ELEMENT_NODE) {
+								Element authConfigChildElement = (Element) authConfigChildNode;
+								String tagAttribute = AuthConfigChildList.item(j).getAttributes()
+										.getNamedItem(TOTPAuthenticatorConstants.NAME).getNodeValue();
+								if (tagAttribute.equals(TOTPAuthenticatorConstants.TIME_STEP_SIZE)) {
+									timeStepSize = Long.parseLong(authConfigChildElement.getTextContent());
+								}
+							}
+						}
+						break;
+					}
+				}
+			}
+		} catch (RegistryException e) {
+			if (context != null) {
+				context.setProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG,
+						TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG);
+			} else {
+				return -1;
+			}
+		} catch (SAXException e) {
+			throw new TOTPException("Error while parsing the content as XML", e);
+		} catch (ParserConfigurationException e) {
+			throw new TOTPException("Error while creating new Document Builder", e);
+		} catch (IOException e) {
+			throw new TOTPException("Error while parsing the content as XML via ByteArrayInputStream", e);
+		} finally {
+			PrivilegedCarbonContext.endTenantFlow();
+		}
+		return timeStepSize;
 	}
 
 	/**

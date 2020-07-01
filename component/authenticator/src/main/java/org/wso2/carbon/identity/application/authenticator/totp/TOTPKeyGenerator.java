@@ -56,11 +56,16 @@ public class TOTPKeyGenerator {
 		String encodedQRCodeURL;
 		String tenantAwareUsername = null;
 		Map<String, String> claims = new HashMap<>();
+		long timeStep;
 		try {
 			UserRealm userRealm = TOTPUtil.getUserRealm(username);
 			String tenantDomain = MultitenantUtils.getTenantDomain(username);
 			tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
-			long timeStep = TOTPUtil.getTimeStepSize(context);
+			if (context == null) {
+				timeStep = TOTPUtil.getTimeStepSize(tenantDomain);
+			} else {
+				timeStep = TOTPUtil.getTimeStepSize(context);
+			}
 			if (userRealm != null) {
 				Map<String, String> userClaimValues = userRealm.getUserStoreManager().
 						getUserClaimValues(tenantAwareUsername, new String[] {
