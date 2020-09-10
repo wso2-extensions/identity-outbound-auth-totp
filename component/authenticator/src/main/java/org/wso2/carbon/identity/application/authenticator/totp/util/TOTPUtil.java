@@ -123,32 +123,11 @@ public class TOTPUtil {
      */
     private static String getIssuerFromRegistry(String tenantDomain) throws TOTPException {
 
-        String issuer = null;
+        String issuer;
         int tenantID = IdentityTenantUtil.getTenantId(tenantDomain);
         try {
             NodeList authConfigList = getAuthenticationConfigNodeList(tenantDomain, tenantID);
-            for (int authConfigIndex = 0; authConfigIndex < authConfigList.getLength(); authConfigIndex++) {
-                Node authConfigNode = authConfigList.item(authConfigIndex);
-                if (authConfigNode.getNodeType() == Node.ELEMENT_NODE) {
-                    Element authConfigElement = (Element) authConfigNode;
-                    String AuthConfig = authConfigElement.getAttribute(TOTPAuthenticatorConstants.NAME);
-                    if (AuthConfig.equals(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)) {
-                        NodeList AuthConfigChildList = authConfigElement.getChildNodes();
-                        for (int j = 0; j < AuthConfigChildList.getLength(); j++) {
-                            Node authConfigChildNode = AuthConfigChildList.item(j);
-                            if (authConfigChildNode.getNodeType() == Node.ELEMENT_NODE) {
-                                Element authConfigChildElement = (Element) authConfigChildNode;
-                                String tagAttribute = AuthConfigChildList.item(j).getAttributes()
-                                        .getNamedItem(TOTPAuthenticatorConstants.NAME).getNodeValue();
-                                if (tagAttribute.equals(TOTPAuthenticatorConstants.TOTP_ISSUER)) {
-                                    issuer = authConfigChildElement.getTextContent();
-                                }
-                            }
-                        }
-                        break;
-                    }
-                }
-            }
+            issuer = getAttributeFromRegistry(authConfigList, TOTPAuthenticatorConstants.TOTP_ISSUER);
         } catch (RegistryException e) {
             //Default to tenant domain name on registry exception.
             issuer = tenantDomain;
@@ -162,6 +141,34 @@ public class TOTPUtil {
             PrivilegedCarbonContext.endTenantFlow();
         }
         return issuer;
+    }
+
+    private static String getAttributeFromRegistry(NodeList authConfigList, String attributeTag) {
+
+        String attributeValue = null;
+        for (int authConfigIndex = 0; authConfigIndex < authConfigList.getLength(); authConfigIndex++) {
+            Node authConfigNode = authConfigList.item(authConfigIndex);
+            if (authConfigNode.getNodeType() == Node.ELEMENT_NODE) {
+                Element authConfigElement = (Element) authConfigNode;
+                String AuthConfig = authConfigElement.getAttribute(TOTPAuthenticatorConstants.NAME);
+                if (AuthConfig.equals(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)) {
+                    NodeList AuthConfigChildList = authConfigElement.getChildNodes();
+                    for (int j = 0; j < AuthConfigChildList.getLength(); j++) {
+                        Node authConfigChildNode = AuthConfigChildList.item(j);
+                        if (authConfigChildNode.getNodeType() == Node.ELEMENT_NODE) {
+                            Element authConfigChildElement = (Element) authConfigChildNode;
+                            String tagAttribute = AuthConfigChildList.item(j).getAttributes()
+                                    .getNamedItem(TOTPAuthenticatorConstants.NAME).getNodeValue();
+                            if (tagAttribute.equals(attributeTag)) {
+                                attributeValue = authConfigChildElement.getTextContent();
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        return attributeValue;
     }
 
     private static NodeList getAuthenticationConfigNodeList(String tenantDomain, int tenantID)
@@ -199,7 +206,7 @@ public class TOTPUtil {
     public static String getEncodingMethod(String tenantDomain, AuthenticationContext context) {
 
         String encodingMethod = null;
-        if (tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
+        if (TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN.equals(tenantDomain)) {
             encodingMethod = String.valueOf(getTOTPParameters().get(TOTPAuthenticatorConstants.ENCODING_METHOD));
         } else {
             Object getPropertiesFromIdentityConfig = context
@@ -233,7 +240,7 @@ public class TOTPUtil {
     public static String getEncodingMethod(String tenantDomain) throws AuthenticationFailedException {
 
         String encodingMethod;
-        if (tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
+        if (TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN.equals(tenantDomain)) {
             encodingMethod = String.valueOf(getTOTPParameters().get(TOTPAuthenticatorConstants.ENCODING_METHOD));
         } else {
             try {
@@ -275,28 +282,7 @@ public class TOTPUtil {
         int tenantID = IdentityTenantUtil.getTenantId(tenantDomain);
         try {
             NodeList authConfigList = getAuthenticationConfigNodeList(tenantDomain, tenantID);
-            for (int authConfigIndex = 0; authConfigIndex < authConfigList.getLength(); authConfigIndex++) {
-                Node authConfigNode = authConfigList.item(authConfigIndex);
-                if (authConfigNode.getNodeType() == Node.ELEMENT_NODE) {
-                    Element authConfigElement = (Element) authConfigNode;
-                    String AuthConfig = authConfigElement.getAttribute(TOTPAuthenticatorConstants.NAME);
-                    if (AuthConfig.equals(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)) {
-                        NodeList AuthConfigChildList = authConfigElement.getChildNodes();
-                        for (int j = 0; j < AuthConfigChildList.getLength(); j++) {
-                            Node authConfigChildNode = AuthConfigChildList.item(j);
-                            if (authConfigChildNode.getNodeType() == Node.ELEMENT_NODE) {
-                                Element authConfigChildElement = (Element) authConfigChildNode;
-                                String tagAttribute = AuthConfigChildList.item(j).getAttributes()
-                                        .getNamedItem(TOTPAuthenticatorConstants.NAME).getNodeValue();
-                                if (tagAttribute.equals(TOTPAuthenticatorConstants.ENCODING_METHOD)) {
-                                    encodingMethod = authConfigChildElement.getTextContent();
-                                }
-                            }
-                        }
-                        break;
-                    }
-                }
-            }
+            encodingMethod = getAttributeFromRegistry(authConfigList, TOTPAuthenticatorConstants.ENCODING_METHOD);
         } catch (RegistryException e) {
             if (context != null) {
                 context.setProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG,
@@ -326,7 +312,7 @@ public class TOTPUtil {
     public static long getTimeStepSize(String tenantDomain) throws AuthenticationFailedException {
 
         long timeStepSize;
-        if (tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
+        if (TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN.equals(tenantDomain)) {
             timeStepSize = Long.parseLong(getTOTPParameters().get(TOTPAuthenticatorConstants.TIME_STEP_SIZE));
         } else {
             try {
@@ -380,28 +366,8 @@ public class TOTPUtil {
         int tenantID = IdentityTenantUtil.getTenantId(tenantDomain);
         try {
             NodeList authConfigList = getAuthenticationConfigNodeList(tenantDomain, tenantID);
-            for (int authConfigIndex = 0; authConfigIndex < authConfigList.getLength(); authConfigIndex++) {
-                Node authConfigNode = authConfigList.item(authConfigIndex);
-                if (authConfigNode.getNodeType() == Node.ELEMENT_NODE) {
-                    Element authConfigElement = (Element) authConfigNode;
-                    String AuthConfig = authConfigElement.getAttribute(TOTPAuthenticatorConstants.NAME);
-                    if (AuthConfig.equals(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)) {
-                        NodeList AuthConfigChildList = authConfigElement.getChildNodes();
-                        for (int j = 0; j < AuthConfigChildList.getLength(); j++) {
-                            Node authConfigChildNode = AuthConfigChildList.item(j);
-                            if (authConfigChildNode.getNodeType() == Node.ELEMENT_NODE) {
-                                Element authConfigChildElement = (Element) authConfigChildNode;
-                                String tagAttribute = AuthConfigChildList.item(j).getAttributes()
-                                        .getNamedItem(TOTPAuthenticatorConstants.NAME).getNodeValue();
-                                if (tagAttribute.equals(TOTPAuthenticatorConstants.TIME_STEP_SIZE)) {
-                                    timeStepSize = Long.parseLong(authConfigChildElement.getTextContent());
-                                }
-                            }
-                        }
-                        break;
-                    }
-                }
-            }
+            timeStepSize = Long.parseLong(getAttributeFromRegistry(authConfigList,
+                    TOTPAuthenticatorConstants.TIME_STEP_SIZE));
         } catch (RegistryException e) {
             if (context != null) {
                 context.setProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG,
@@ -461,7 +427,7 @@ public class TOTPUtil {
         //If the config file is not in registry and the it is super tenant, getting the property from local.
         // Else getting it from context.
         if ((getPropertiesFromIdentityConfig != null ||
-                tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN))) {
+                TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN.equals(tenantDomain))) {
             return Boolean.parseBoolean(IdentityHelperUtil.getAuthenticatorParameters(
                     context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION).toString())
                     .get(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW));
