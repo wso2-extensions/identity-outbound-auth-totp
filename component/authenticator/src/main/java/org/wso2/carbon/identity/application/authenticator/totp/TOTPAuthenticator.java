@@ -22,7 +22,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.owasp.encoder.Encode;
 import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.extension.identity.helper.FederatedAuthenticatorUtil;
@@ -30,18 +29,21 @@ import org.wso2.carbon.extension.identity.helper.util.IdentityHelperUtil;
 import org.wso2.carbon.identity.application.authentication.framework.AbstractApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authentication.framework.AuthenticatorFlowStatus;
 import org.wso2.carbon.identity.application.authentication.framework.LocalApplicationAuthenticator;
-import org.wso2.carbon.identity.application.authentication.framework.config.ConfigurationFacade;
 import org.wso2.carbon.identity.application.authentication.framework.config.model.StepConfig;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.exception.LogoutFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
+import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorConfig;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorCredentials;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPKeyRepresentation;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.application.common.model.Property;
+import org.wso2.carbon.identity.core.ServiceURLBuilder;
+import org.wso2.carbon.identity.core.URLBuilderException;
+import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
@@ -50,12 +52,18 @@ import org.wso2.carbon.user.core.UserCoreConstants;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getDefaultTOTPPage;
+import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getMultiOptionURIQueryParam;
 
 /**
  * Authenticator of TOTP.
@@ -171,20 +179,15 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			if (log.isDebugEnabled()) {
 				log.debug("TOTP  is enabled by admin: " + isTOTPEnabledByAdmin);
 			}
-			String multiOptionURI = request.getParameter("multiOptionURI");
-			multiOptionURI = multiOptionURI != null ? "&multiOptionURI=" + Encode.forUriComponent(multiOptionURI) : "";
-			String totpLoginPageUrl =
-					getLoginPage(context) + ("?sessionDataKey=" + context.getContextIdentifier()) +
-					"&authenticators=" + getName() + "&type=totp" + retryParam + "&username=" +
-					username + multiOptionURI;
-			String totpErrorPageUrl =
-					getErrorPage(context) + ("?sessionDataKey=" + context.getContextIdentifier()) +
-					"&authenticators=" + getName() + "&type=totp_error" + retryParam +
-					"&username=" + username + multiOptionURI;
+
+			// This multi option URI is used to navigate back to multi option page to select a different
+			// authentication option from TOTP pages.
+			String multiOptionURI = getMultiOptionURIQueryParam(request);
+
 			if (isTOTPEnabled && request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
 				//if TOTP is enabled for the user.
-				response.sendRedirect(IdentityUtil.getServerURL(totpLoginPageUrl, true,
-                        true));
+				String totpLoginPageUrl = buildTOTPLoginPageURL(context, username, retryParam, multiOptionURI);
+				response.sendRedirect(totpLoginPageUrl);
 			} else {
 				if (TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context)
 						&& request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
@@ -202,10 +205,13 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 				} else if (Boolean.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP))) {
 					//if TOTP is not enabled for the user and user continued the enrolment.
 					context.setProperty(TOTPAuthenticatorConstants.ENABLE_TOTP, true);
+
+					String totpLoginPageUrl = buildTOTPLoginPageURL(context, username, retryParam, multiOptionURI);
 					response.sendRedirect(totpLoginPageUrl);
 				} else {
 					if (isTOTPEnabledByAdmin) {
 						//if TOTP is not enabled for the user and admin enforces TOTP.
+						String totpErrorPageUrl = buildTOTPErrorPageURL(context, username, retryParam, multiOptionURI);
 						response.sendRedirect(totpErrorPageUrl);
 					} else {
 						//if admin does not enforces TOTP and TOTP is not enabled for the user.
@@ -232,6 +238,38 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 		} catch (AuthenticationFailedException e) {
 			throw new AuthenticationFailedException(
 					"Authentication failed!. Cannot get the username from first step.", e);
+		} catch (URLBuilderException | URISyntaxException e) {
+			throw new AuthenticationFailedException("Error while building TOTP page URL.", e);
+		}
+	}
+
+	private String buildTOTPLoginPageURL(AuthenticationContext context, String username, String retryParam,
+										 String multiOptionURI)
+			throws AuthenticationFailedException, URISyntaxException, URLBuilderException {
+
+		String queryString = "sessionDataKey=" + context.getContextIdentifier() + "&authenticators=" + getName()
+				+ "&type=totp" + retryParam + "&username=" + username + multiOptionURI;
+		String loginPage = FrameworkUtils.appendQueryParamsStringToUrl(getLoginPage(context), queryString);
+		return buildAbsoluteURL(loginPage);
+	}
+
+	private String buildTOTPErrorPageURL(AuthenticationContext context, String username, String retryParam,
+										 String multiOptionURI)
+			throws AuthenticationFailedException, URISyntaxException, URLBuilderException {
+
+		String queryString = "sessionDataKey=" + context.getContextIdentifier() + "&authenticators=" + getName()
+				+ "&type=totp_error" + retryParam + "&username=" + username + multiOptionURI;
+		String errorPage = FrameworkUtils.appendQueryParamsStringToUrl(getErrorPage(context), queryString);
+		return buildAbsoluteURL(errorPage);
+	}
+
+	private String buildAbsoluteURL(String redirectUrl) throws URISyntaxException, URLBuilderException {
+
+		URI uri = new URI(redirectUrl);
+		if (uri.isAbsolute()) {
+			return redirectUrl;
+		} else {
+			return ServiceURLBuilder.create().addPath(redirectUrl).build().getAbsolutePublicURL();
 		}
 	}
 
@@ -243,15 +281,19 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 	 * @throws AuthenticationFailedException
 	 */
 	private String getLoginPage(AuthenticationContext context) throws AuthenticationFailedException {
-		String loginPage = TOTPUtil.getLoginPageFromXMLFile(context, getName());
-		if (StringUtils.isEmpty(loginPage)) {
-			loginPage = ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
-					.replace(TOTPAuthenticatorConstants.LOGIN_PAGE, TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
-			if (log.isDebugEnabled()) {
-				log.debug("Default endpoint is used");
+
+		if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
+			return getDefaultTOTPPage(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
+		} else {
+			String loginPage = TOTPUtil.getLoginPageFromXMLFile(context, getName());
+			if (StringUtils.isEmpty(loginPage)) {
+				loginPage = getDefaultTOTPPage(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
+				if (log.isDebugEnabled()) {
+					log.debug("Default totp login page: " + loginPage + " is used.");
+				}
 			}
+			return loginPage;
 		}
-		return loginPage;
 	}
 
 	/**
@@ -262,16 +304,21 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 	 * @throws AuthenticationFailedException
 	 */
 	private String getErrorPage(AuthenticationContext context) throws AuthenticationFailedException {
-		String errorPage = TOTPUtil.getErrorPageFromXMLFile(context, getName());
-		if (StringUtils.isEmpty(errorPage)) {
-			errorPage = ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
-					.replace(TOTPAuthenticatorConstants.LOGIN_PAGE, TOTPAuthenticatorConstants.ERROR_PAGE);
-			if (log.isDebugEnabled()) {
-				log.debug("Default endpoint is used");
+
+		if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
+			return getDefaultTOTPPage(TOTPAuthenticatorConstants.ERROR_PAGE);
+		} else {
+			String errorPage = TOTPUtil.getErrorPageFromXMLFile(context, getName());
+			if (StringUtils.isEmpty(errorPage)) {
+				errorPage = getDefaultTOTPPage(TOTPAuthenticatorConstants.ERROR_PAGE);
+				if (log.isDebugEnabled()) {
+					log.debug("Default error page: " + errorPage + " is used.");
+				}
 			}
+			return errorPage;
 		}
-		return errorPage;
 	}
+
 
 	/**
 	 * This method is overridden to check validation of the given token.

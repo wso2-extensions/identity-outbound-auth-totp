@@ -25,8 +25,10 @@ import org.powermock.reflect.Whitebox;
 import org.testng.Assert;
 import org.testng.IObjectFactory;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.ObjectFactory;
 import org.testng.annotations.Test;
+import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.extension.identity.helper.IdentityHelperConstants;
 import org.wso2.carbon.extension.identity.helper.util.IdentityHelperUtil;
 import org.wso2.carbon.identity.application.authentication.framework.config.ConfigurationFacade;
@@ -163,6 +165,10 @@ public class TOTPUtilTest {
         authenticationContext.setTenantDomain("wso2.org");
         authenticationContext.setProperty(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE_URL,
                 TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
+
+        when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
+        when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(TOTPAuthenticatorConstants.LOGIN_PAGE);
+
         Assert.assertEquals(Whitebox.invokeMethod(totpUtil, "getEnableTOTPPage",
                 authenticationContext), TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
     }
@@ -189,6 +195,9 @@ public class TOTPUtilTest {
         parameters.put(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE_URL,
                 TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
         authenticatorConfig.setParameterMap(parameters);
+
+        when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
+        when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(TOTPAuthenticatorConstants.LOGIN_PAGE);
         when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
         Assert.assertEquals(Whitebox.invokeMethod(totpUtil, "getEnableTOTPPage",
@@ -370,6 +379,23 @@ public class TOTPUtilTest {
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
         Assert.assertEquals(TOTPUtil.getEncodingMethod(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN),
                 TOTPAuthenticatorConstants.BASE64);
+    }
+
+    @DataProvider(name = "multiOptionURIValueProvider")
+    public static Object[][] getMultiOptionURIValue() {
+
+        return new Object[][]{
+                {null, ""},
+                {"", "&multiOptionURI="},
+                {"https://localhost:9443/samlsso", "&multiOptionURI=https%3A%2F%2Flocalhost%3A9443%2Fsamlsso"}
+        };
+    }
+
+    @Test(description = "Test case for getMultiOptionURIQueryParam()", dataProvider = "multiOptionURIValueProvider")
+    public void getMultiOptionURIQueryParam(String requestParamValue, String expected) {
+
+        when(httpServletRequest.getParameter("multiOptionURI")).thenReturn(requestParamValue);
+        Assert.assertEquals(TOTPUtil.getMultiOptionURIQueryParam(httpServletRequest), expected);
     }
 
     @ObjectFactory

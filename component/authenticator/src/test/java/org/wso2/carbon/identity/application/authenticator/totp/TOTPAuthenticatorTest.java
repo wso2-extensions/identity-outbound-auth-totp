@@ -21,6 +21,7 @@ package org.wso2.carbon.identity.application.authenticator.totp;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
+import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.testng.PowerMockObjectFactory;
@@ -46,30 +47,40 @@ import org.wso2.carbon.identity.application.authentication.framework.exception.L
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
+import org.wso2.carbon.identity.core.ServiceURL;
+import org.wso2.carbon.identity.core.ServiceURLBuilder;
+import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.core.UserRealm;
 import org.wso2.carbon.user.core.UserStoreException;
 import org.wso2.carbon.user.core.UserStoreManager;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
-import static org.powermock.api.mockito.PowerMockito.*;
+import static org.powermock.api.mockito.PowerMockito.doNothing;
+import static org.powermock.api.mockito.PowerMockito.doReturn;
+import static org.powermock.api.mockito.PowerMockito.mock;
+import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
 @PrepareForTest({TOTPUtil.class, TOTPTokenGenerator.class, ConfigurationFacade.class, TOTPTokenGenerator.class,
         FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, CarbonContext.class,
-        FederatedAuthenticatorUtil.class, IdentityUtil.class})
+        FederatedAuthenticatorUtil.class, IdentityUtil.class, ServiceURLBuilder.class})
 @PowerMockIgnore({"javax.crypto.*" })
 public class TOTPAuthenticatorTest {
 
@@ -124,6 +135,12 @@ public class TOTPAuthenticatorTest {
     @Mock
     private FileBasedConfigurationBuilder fileBasedConfigurationBuilder;
 
+    @Mock
+    private ServiceURLBuilder serviceURLBuilder;
+
+    @Mock
+    private ServiceURL serviceURL;
+
     @BeforeMethod
     public void setUp() {
         totpAuthenticator = new TOTPAuthenticator();
@@ -136,6 +153,53 @@ public class TOTPAuthenticatorTest {
         mockStatic(IdentityHelperUtil.class);
         mockStatic(FederatedAuthenticatorUtil.class);
         mockStatic(IdentityUtil.class);
+    }
+
+    private void mockServiceURLBuilder() throws URLBuilderException {
+        ServiceURLBuilder builder = new ServiceURLBuilder() {
+
+            String path = "";
+
+            @Override
+            public ServiceURLBuilder addPath(String... strings) {
+
+                Arrays.stream(strings).forEach(x -> {
+                    path += "/" + x;
+                });
+                return this;
+            }
+
+            @Override
+            public ServiceURLBuilder addParameter(String s, String s1) {
+
+                return this;
+            }
+
+            @Override
+            public ServiceURLBuilder setFragment(String s) {
+
+                return this;
+            }
+
+            @Override
+            public ServiceURLBuilder addFragmentParameter(String s, String s1) {
+
+                return this;
+            }
+
+            @Override
+            public ServiceURL build() throws URLBuilderException {
+
+                ServiceURL serviceURL = mock(ServiceURL.class);
+                PowerMockito.when(serviceURL.getAbsolutePublicURL()).thenReturn("https://localhost:9443" + path);
+                PowerMockito.when(serviceURL.getRelativePublicURL()).thenReturn(path);
+                PowerMockito.when(serviceURL.getRelativeInternalURL()).thenReturn(path);
+                return serviceURL;
+            }
+        };
+
+        mockStatic(ServiceURLBuilder.class);
+        PowerMockito.when(ServiceURLBuilder.create()).thenReturn(builder);
     }
 
     @Test(description = "Test case for canHandle() method true case.")
@@ -190,8 +254,8 @@ public class TOTPAuthenticatorTest {
     @Test(description = "TOTPAuthenticator:getLoginPage() test for get the loginPage url from constant file.")
     public void testGetLoginPageFromConstantFile() throws Exception {
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn("authenticationendpoint/login.do");
-        when(TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).
-                thenReturn(null);
+        when(TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).thenReturn(null);
+        when(TOTPUtil.getDefaultTOTPPage(anyString())).thenCallRealMethod();
         Assert.assertEquals(Whitebox.invokeMethod(totpAuthenticator, "getLoginPage",
                 new AuthenticationContext()), TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
     }
@@ -208,8 +272,8 @@ public class TOTPAuthenticatorTest {
     @Test(description = "TOTPAuthenticator:getErrorPage() test for get the errorPage url from constant file.")
     public void testGetErrorPageFromConstantFile() throws Exception {
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn("authenticationendpoint/login.do");
-        when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
-                thenReturn(null);
+        when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).thenReturn(null);
+        when(TOTPUtil.getDefaultTOTPPage(anyString())).thenCallRealMethod();
         Assert.assertEquals(Whitebox.invokeMethod(totpAuthenticator, "getErrorPage",
                 new AuthenticationContext()), TOTPAuthenticatorConstants.ERROR_PAGE);
     }
@@ -324,7 +388,8 @@ public class TOTPAuthenticatorTest {
     }
 
     @Test(description = "Test case for initiateAuthenticationRequest() method with totp enabled user.")
-    public void testInitiateAuthenticationRequest() throws AuthenticationFailedException, UserStoreException {
+    public void testInitiateAuthenticationRequest()
+            throws AuthenticationFailedException, UserStoreException, URLBuilderException {
         String username = "admin";
         mockStatic(IdentityUtil.class);
         when(IdentityUtil.getPrimaryDomainName()).thenReturn(USER_STORE_DOMAIN);
@@ -333,6 +398,8 @@ public class TOTPAuthenticatorTest {
         authenticationContext.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
         authenticationContext.setProperty("username", username);
         authenticationContext.setProperty("authenticatedUser", authenticatedUser);
+        authenticationContext.setContextIdentifier(UUID.randomUUID().toString());
+
         Map<String, String> claims = new HashMap<>();
         claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "AnySecretKey");
         when(TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
@@ -340,6 +407,10 @@ public class TOTPAuthenticatorTest {
         when(userStoreManager.getUserClaimValues(username, new String[]
                 { TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL }, null)).thenReturn(claims);
         when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
+
+        when(configurationFacade.getAuthenticationEndpointURL()).thenReturn("authenticationendpoint/login.do");
+        mockServiceURLBuilder();
+
         when(TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
         when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
@@ -380,33 +451,51 @@ public class TOTPAuthenticatorTest {
 
     @Test(description = "Test case for initiateAuthenticationRequest() method when admin enforces TOTP and " +
             "TOTP is not enabled for the user.", priority=2)
-    public void testInitiateAuthenticationRequestAdminEnforces() throws AuthenticationFailedException, UserStoreException, IOException {
+    public void testInitiateAuthenticationRequestAdminEnforces()
+            throws AuthenticationFailedException, UserStoreException, IOException, URLBuilderException {
         String username = "admin";
+        String multiOptionURL = "https://localhost:9443/samlsso";
+
         mockStatic(IdentityUtil.class);
         when(IdentityUtil.getPrimaryDomainName()).thenReturn(USER_STORE_DOMAIN);
         AuthenticatedUser authenticatedUser = AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
         context.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
         context.setProperty("username", username);
         context.setProperty("authenticatedUser", authenticatedUser);
+        context.setContextIdentifier(UUID.randomUUID().toString());
+
         Map<String, String> claims = new HashMap<>();
         claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "AnySecretKey");
         when(TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
+        when(TOTPUtil.getMultiOptionURIQueryParam(any(HttpServletRequest.class))).thenCallRealMethod();
         when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
         when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
+        when(httpServletRequest.getParameter("multiOptionURI")).thenReturn(multiOptionURL);
         when(IdentityHelperUtil.checkSecondStepEnableByAdmin(context)).thenReturn(true);
         when(TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
         when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
-                thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
+                thenReturn(TOTPAuthenticatorConstants.ERROR_PAGE);
         when(context.getSequenceConfig()).thenReturn(sequenceConfig);
         when(sequenceConfig.getStepMap()).thenReturn(mockedMap);
         when(mockedMap.get(anyObject())).thenReturn(stepConfig);
         when(stepConfig.getAuthenticatedAutenticator()).thenReturn(authenticatorConfig);
         when(authenticatorConfig.getApplicationAuthenticator()).thenReturn(applicationAuthenticator);
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+
+        mockServiceURLBuilder();
+
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
         verify(httpServletResponse).sendRedirect(captor.capture());
-        Assert.assertTrue(captor.getValue().contains(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME));
+
+        // Assert everything related to the error scenario.
+        Assert.assertTrue(captor.getValue().contains("totpError.jsp"));
+        Assert.assertTrue(captor.getValue().contains("sessionDataKey=" + context.getContextIdentifier()));
+        Assert.assertTrue(captor.getValue().contains("authenticators=totp"));
+        Assert.assertTrue(captor.getValue().contains("type=totp_error"));
+        Assert.assertTrue(captor.getValue().contains("username=" + username));
+        Assert.assertTrue(captor.getValue().contains("multiOptionURI=" + URLEncoder.encode(multiOptionURL,
+                StandardCharsets.UTF_8.toString())));
     }
 
     @Test(description = "Test case for initiateAuthenticationRequest() method when admin enforces TOTP and " +

@@ -39,6 +39,7 @@ import org.wso2.carbon.identity.application.authentication.framework.config.mode
 import org.wso2.carbon.identity.application.authentication.framework.config.model.StepConfig;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
+import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
@@ -465,17 +466,12 @@ public class TOTPUtil {
             throws AuthenticationFailedException {
 
         if (isEnrolUserInAuthenticationFlowEnabled(context)) {
-            String multiOptionURI = "";
-            if (request != null) {
-                multiOptionURI = request.getParameter("multiOptionURI");
-                multiOptionURI = multiOptionURI != null ? "&multiOptionURI=" + Encode.forUriComponent(multiOptionURI)
-                        : "";
-            }
-            String enableTOTPReqPageUrl = getEnableTOTPPage(context) +
-                    ("?sessionDataKey=" + context.getContextIdentifier()) +
-                    "&authenticators=" +
-                    TOTPAuthenticatorConstants.AUTHENTICATOR_NAME +
-                    "&type=totp" + "&ske=" + skey + multiOptionURI;
+            String multiOptionURI = getMultiOptionURIQueryParam(request);
+            String queryParams = "sessionDataKey=" + context.getContextIdentifier() + "&authenticators=" +
+                    TOTPAuthenticatorConstants.AUTHENTICATOR_NAME + "&type=totp" + "&ske=" + skey + multiOptionURI;
+            String enableTOTPReqPageUrl =
+                    FrameworkUtils.appendQueryParamsStringToUrl(getEnableTOTPPage(context), queryParams);
+
             try {
                 response.sendRedirect(enableTOTPReqPageUrl);
             } catch (IOException e) {
@@ -485,6 +481,16 @@ public class TOTPUtil {
         } else {
             throw new AuthenticationFailedException("Error while getting value for EnrolUserInAuthenticationFlow");
         }
+    }
+
+    public static String getMultiOptionURIQueryParam(HttpServletRequest request) {
+
+        String multiOptionURI = "";
+        if (request != null) {
+            multiOptionURI = request.getParameter("multiOptionURI");
+            multiOptionURI = multiOptionURI != null ? "&multiOptionURI=" + Encode.forUriComponent(multiOptionURI) : "";
+        }
+        return multiOptionURI;
     }
 
     /**
@@ -573,17 +579,25 @@ public class TOTPUtil {
      */
     private static String getEnableTOTPPage(AuthenticationContext context) throws AuthenticationFailedException {
 
-        String enableTOTPPage = TOTPUtil
-                .getEnableTOTPPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
-        if (StringUtils.isEmpty(enableTOTPPage)) {
-            enableTOTPPage = ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
-                    .replace(TOTPAuthenticatorConstants.LOGIN_PAGE,
-                            TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
-            if (log.isDebugEnabled()) {
-                log.debug("Default authentication endpoint context is used");
+        if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
+            return getDefaultTOTPPage(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
+        } else {
+            String enableTOTPPage = getEnableTOTPPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
+            if (StringUtils.isEmpty(enableTOTPPage)) {
+                enableTOTPPage = getDefaultTOTPPage(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
+                if (log.isDebugEnabled()) {
+                    log.debug("Default TOTP enrollment page: " + enableTOTPPage + " is used.");
+                }
             }
+            return enableTOTPPage;
         }
-        return enableTOTPPage;
+    }
+
+    public static String getDefaultTOTPPage(String totpPageRelativePath) {
+
+        // ConfigurationFacade will return a tenant qualified URL if tenant qualified URLs are enabled.
+        return ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
+                .replace(TOTPAuthenticatorConstants.LOGIN_PAGE, totpPageRelativePath);
     }
 
     /**
