@@ -255,7 +255,7 @@ public class TOTPAuthenticatorTest {
     public void testGetLoginPageFromConstantFile() throws Exception {
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn("authenticationendpoint/login.do");
         when(TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).thenReturn(null);
-        when(TOTPUtil.getDefaultTOTPPage(anyString())).thenCallRealMethod();
+        when(TOTPUtil.getDefaultTOTPLoginPage()).thenCallRealMethod();
         Assert.assertEquals(Whitebox.invokeMethod(totpAuthenticator, "getLoginPage",
                 new AuthenticationContext()), TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
     }
@@ -273,7 +273,7 @@ public class TOTPAuthenticatorTest {
     public void testGetErrorPageFromConstantFile() throws Exception {
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn("authenticationendpoint/login.do");
         when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).thenReturn(null);
-        when(TOTPUtil.getDefaultTOTPPage(anyString())).thenCallRealMethod();
+        when(TOTPUtil.getDefaultTOTPErrorPage()).thenCallRealMethod();
         Assert.assertEquals(Whitebox.invokeMethod(totpAuthenticator, "getErrorPage",
                 new AuthenticationContext()), TOTPAuthenticatorConstants.ERROR_PAGE);
     }

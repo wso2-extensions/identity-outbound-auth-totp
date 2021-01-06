@@ -62,7 +62,8 @@ import java.util.concurrent.TimeUnit;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getDefaultTOTPPage;
+import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getDefaultTOTPErrorPage;
+import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getDefaultTOTPLoginPage;
 import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getMultiOptionURIQueryParam;
 
 /**
@@ -283,11 +284,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 	private String getLoginPage(AuthenticationContext context) throws AuthenticationFailedException {
 
 		if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
-			return getDefaultTOTPPage(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
+			return getDefaultTOTPLoginPage();
 		} else {
 			String loginPage = TOTPUtil.getLoginPageFromXMLFile(context, getName());
 			if (StringUtils.isEmpty(loginPage)) {
-				loginPage = getDefaultTOTPPage(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
+				loginPage = getDefaultTOTPLoginPage();
 				if (log.isDebugEnabled()) {
 					log.debug("Default totp login page: " + loginPage + " is used.");
 				}
@@ -306,11 +307,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 	private String getErrorPage(AuthenticationContext context) throws AuthenticationFailedException {
 
 		if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
-			return getDefaultTOTPPage(TOTPAuthenticatorConstants.ERROR_PAGE);
+			return getDefaultTOTPErrorPage();
 		} else {
 			String errorPage = TOTPUtil.getErrorPageFromXMLFile(context, getName());
 			if (StringUtils.isEmpty(errorPage)) {
-				errorPage = getDefaultTOTPPage(TOTPAuthenticatorConstants.ERROR_PAGE);
+				errorPage = getDefaultTOTPErrorPage();
 				if (log.isDebugEnabled()) {
 					log.debug("Default error page: " + errorPage + " is used.");
 				}

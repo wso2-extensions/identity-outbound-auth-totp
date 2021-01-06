@@ -580,11 +580,11 @@ public class TOTPUtil {
     private static String getEnableTOTPPage(AuthenticationContext context) throws AuthenticationFailedException {
 
         if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
-            return getDefaultTOTPPage(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
+            return getDefaultTOTPEnablePage();
         } else {
             String enableTOTPPage = getEnableTOTPPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
             if (StringUtils.isEmpty(enableTOTPPage)) {
-                enableTOTPPage = getDefaultTOTPPage(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
+                enableTOTPPage = getDefaultTOTPEnablePage();
                 if (log.isDebugEnabled()) {
                     log.debug("Default TOTP enrollment page: " + enableTOTPPage + " is used.");
                 }
@@ -593,11 +593,25 @@ public class TOTPUtil {
         }
     }
 
-    public static String getDefaultTOTPPage(String totpPageRelativePath) {
+    public static String getDefaultTOTPEnablePage() {
 
         // ConfigurationFacade will return a tenant qualified URL if tenant qualified URLs are enabled.
         return ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
-                .replace(TOTPAuthenticatorConstants.LOGIN_PAGE, totpPageRelativePath);
+                .replace(TOTPAuthenticatorConstants.LOGIN_PAGE, TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
+    }
+
+    public static String getDefaultTOTPLoginPage() {
+
+        // ConfigurationFacade will return a tenant qualified URL if tenant qualified URLs are enabled.
+        return ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
+                .replace(TOTPAuthenticatorConstants.LOGIN_PAGE, TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
+    }
+
+    public static String getDefaultTOTPErrorPage() {
+
+        // ConfigurationFacade will return a tenant qualified URL if tenant qualified URLs are enabled.
+        return ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
+                .replace(TOTPAuthenticatorConstants.LOGIN_PAGE, TOTPAuthenticatorConstants.ERROR_PAGE);
     }
 
     /**

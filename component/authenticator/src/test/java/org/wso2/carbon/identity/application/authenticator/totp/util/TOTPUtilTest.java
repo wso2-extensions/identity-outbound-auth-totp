@@ -392,11 +392,49 @@ public class TOTPUtilTest {
     }
 
     @Test(description = "Test case for getMultiOptionURIQueryParam()", dataProvider = "multiOptionURIValueProvider")
-    public void getMultiOptionURIQueryParam(String requestParamValue, String expected) {
+    public void testGetMultiOptionURIQueryParam(String requestParamValue, String expected) {
 
         when(httpServletRequest.getParameter("multiOptionURI")).thenReturn(requestParamValue);
         Assert.assertEquals(TOTPUtil.getMultiOptionURIQueryParam(httpServletRequest), expected);
     }
+
+    @Test(description = "Test case for getDefaultTOTPEnablePage()")
+    public void testGetDefaultTOTPEnablePage() {
+
+        String loginPageURL = "https://localhost:9443/authenticationendpoint/login.do";
+        String enableTOTPURL = "https://localhost:9443/totpauthenticationendpoint/enableTOTP.jsp";
+
+        when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
+        when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(loginPageURL);
+
+        Assert.assertEquals(TOTPUtil.getDefaultTOTPEnablePage(), enableTOTPURL);
+    }
+
+    @Test(description = "Test case for getDefaultTOTPLoginPage()")
+    public void testGetDefaultTOTPLoginPage() {
+
+        String loginPageURL = "https://localhost:9443/authenticationendpoint/login.do";
+        String expectedURL = "https://localhost:9443/totpauthenticationendpoint/totp.jsp";
+
+        when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
+        when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(loginPageURL);
+
+        Assert.assertEquals(TOTPUtil.getDefaultTOTPLoginPage(), expectedURL);
+    }
+
+    @Test(description = "Test case for getDefaultTOTPErrorPage()")
+    public void testGetDefaultTOTPErrorPage() {
+
+        String loginPageURL = "https://localhost:9443/authenticationendpoint/login.do";
+        String expectedURL = "https://localhost:9443/totpauthenticationendpoint/totpError.jsp";
+
+        when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
+        when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(loginPageURL);
+
+        Assert.assertEquals(TOTPUtil.getDefaultTOTPErrorPage(), expectedURL);
+    }
+
+
 
     @ObjectFactory
     public IObjectFactory getObjectFactory() {
