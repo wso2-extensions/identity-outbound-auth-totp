@@ -628,7 +628,8 @@ public class TOTPUtil {
         if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
             return getDefaultTOTPEnablePage();
         } else {
-            String enableTOTPPage = getEnableTOTPPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
+            String enableTOTPPage =
+                    getEnableTOTPPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
             if (StringUtils.isEmpty(enableTOTPPage)) {
                 enableTOTPPage = getDefaultTOTPEnablePage();
                 if (log.isDebugEnabled()) {
@@ -766,16 +767,16 @@ public class TOTPUtil {
      */
     public static boolean isLocalUser(AuthenticationContext context) {
 
-		Map<Integer, StepConfig> stepConfigMap = context.getSequenceConfig().getStepMap();
-		if (stepConfigMap == null) {
-			return false;
-		}
-		for (StepConfig stepConfig : stepConfigMap.values()) {
-			if (stepConfig.getAuthenticatedUser() != null && stepConfig.isSubjectAttributeStep() && StringUtils
-					.equals(TOTPAuthenticatorConstants.LOCAL_AUTHENTICATOR, stepConfig.getAuthenticatedIdP())) {
-				return true;
-			}
-		}
-		return false;
-	}
+        Map<Integer, StepConfig> stepConfigMap = context.getSequenceConfig().getStepMap();
+        if (stepConfigMap == null) {
+            return false;
+        }
+        for (StepConfig stepConfig : stepConfigMap.values()) {
+            if (stepConfig.getAuthenticatedUser() != null && stepConfig.isSubjectAttributeStep() && StringUtils
+                    .equals(TOTPAuthenticatorConstants.LOCAL_AUTHENTICATOR, stepConfig.getAuthenticatedIdP())) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
