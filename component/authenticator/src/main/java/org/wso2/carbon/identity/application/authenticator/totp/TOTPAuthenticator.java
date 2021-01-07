@@ -43,7 +43,6 @@ import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
-import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
@@ -62,9 +61,9 @@ import java.util.concurrent.TimeUnit;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getDefaultTOTPErrorPage;
-import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getDefaultTOTPLoginPage;
 import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getMultiOptionURIQueryParam;
+import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getTOTPErrorPage;
+import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getTOTPLoginPage;
 
 /**
  * Authenticator of TOTP.
@@ -250,7 +249,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
 		String queryString = "sessionDataKey=" + context.getContextIdentifier() + "&authenticators=" + getName()
 				+ "&type=totp" + retryParam + "&username=" + username + multiOptionURI;
-		String loginPage = FrameworkUtils.appendQueryParamsStringToUrl(getLoginPage(context), queryString);
+		String loginPage = FrameworkUtils.appendQueryParamsStringToUrl(getTOTPLoginPage(context), queryString);
 		return buildAbsoluteURL(loginPage);
 	}
 
@@ -260,7 +259,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
 		String queryString = "sessionDataKey=" + context.getContextIdentifier() + "&authenticators=" + getName()
 				+ "&type=totp_error" + retryParam + "&username=" + username + multiOptionURI;
-		String errorPage = FrameworkUtils.appendQueryParamsStringToUrl(getErrorPage(context), queryString);
+		String errorPage = FrameworkUtils.appendQueryParamsStringToUrl(getTOTPErrorPage(context), queryString);
 		return buildAbsoluteURL(errorPage);
 	}
 
@@ -273,53 +272,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			return ServiceURLBuilder.create().addPath(redirectUrl).build().getAbsolutePublicURL();
 		}
 	}
-
-	/**
-	 * Get the loginPage from authentication.xml file or use the login page from constant file.
-	 *
-	 * @param context the AuthenticationContext
-	 * @return the loginPage
-	 * @throws AuthenticationFailedException
-	 */
-	private String getLoginPage(AuthenticationContext context) throws AuthenticationFailedException {
-
-		if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
-			return getDefaultTOTPLoginPage();
-		} else {
-			String loginPage = TOTPUtil.getLoginPageFromXMLFile(context, getName());
-			if (StringUtils.isEmpty(loginPage)) {
-				loginPage = getDefaultTOTPLoginPage();
-				if (log.isDebugEnabled()) {
-					log.debug("Default totp login page: " + loginPage + " is used.");
-				}
-			}
-			return loginPage;
-		}
-	}
-
-	/**
-	 * Get the errorPage from authentication.xml file or use the error page from constant file.
-	 *
-	 * @param context the AuthenticationContext
-	 * @return the errorPage
-	 * @throws AuthenticationFailedException
-	 */
-	private String getErrorPage(AuthenticationContext context) throws AuthenticationFailedException {
-
-		if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
-			return getDefaultTOTPErrorPage();
-		} else {
-			String errorPage = TOTPUtil.getErrorPageFromXMLFile(context, getName());
-			if (StringUtils.isEmpty(errorPage)) {
-				errorPage = getDefaultTOTPErrorPage();
-				if (log.isDebugEnabled()) {
-					log.debug("Default error page: " + errorPage + " is used.");
-				}
-			}
-			return errorPage;
-		}
-	}
-
 
 	/**
 	 * This method is overridden to check validation of the given token.

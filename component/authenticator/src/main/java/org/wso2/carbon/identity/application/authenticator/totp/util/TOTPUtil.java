@@ -571,6 +571,52 @@ public class TOTPUtil {
     }
 
     /**
+     * Get the loginPage from authentication.xml file or use the login page from constant file.
+     *
+     * @param context the AuthenticationContext
+     * @return the loginPage
+     * @throws AuthenticationFailedException
+     */
+    public static String getTOTPLoginPage(AuthenticationContext context) throws AuthenticationFailedException {
+
+        if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
+            return getDefaultTOTPLoginPage();
+        } else {
+            String loginPage = getLoginPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
+            if (StringUtils.isEmpty(loginPage)) {
+                loginPage = getDefaultTOTPLoginPage();
+                if (log.isDebugEnabled()) {
+                    log.debug("Default totp login page: " + loginPage + " is used.");
+                }
+            }
+            return loginPage;
+        }
+    }
+
+    /**
+     * Get the errorPage from authentication.xml file or use the error page from constant file.
+     *
+     * @param context the AuthenticationContext
+     * @return the errorPage
+     * @throws AuthenticationFailedException
+     */
+    public static String getTOTPErrorPage(AuthenticationContext context) throws AuthenticationFailedException {
+
+        if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
+            return getDefaultTOTPErrorPage();
+        } else {
+            String errorPage = getErrorPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
+            if (StringUtils.isEmpty(errorPage)) {
+                errorPage = getDefaultTOTPErrorPage();
+                if (log.isDebugEnabled()) {
+                    log.debug("Default error page: " + errorPage + " is used.");
+                }
+            }
+            return errorPage;
+        }
+    }
+
+    /**
      * Get the enableTOTPPage from authentication.xml file or use the error page from constant file.
      *
      * @param context the AuthenticationContext

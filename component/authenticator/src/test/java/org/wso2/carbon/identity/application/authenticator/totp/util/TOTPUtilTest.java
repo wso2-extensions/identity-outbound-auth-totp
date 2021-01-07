@@ -28,7 +28,6 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.ObjectFactory;
 import org.testng.annotations.Test;
-import org.wso2.carbon.base.MultitenantConstants;
 import org.wso2.carbon.extension.identity.helper.IdentityHelperConstants;
 import org.wso2.carbon.extension.identity.helper.util.IdentityHelperUtil;
 import org.wso2.carbon.identity.application.authentication.framework.config.ConfigurationFacade;
@@ -40,15 +39,18 @@ import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticator
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.user.core.service.RealmService;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
-import static org.powermock.api.mockito.PowerMockito.*;
+import static org.powermock.api.mockito.PowerMockito.doNothing;
+import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
 @PrepareForTest({FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, ConfigurationFacade.class,
         IdentityTenantUtil.class})
@@ -433,8 +435,6 @@ public class TOTPUtilTest {
 
         Assert.assertEquals(TOTPUtil.getDefaultTOTPErrorPage(), expectedURL);
     }
-
-
 
     @ObjectFactory
     public IObjectFactory getObjectFactory() {
