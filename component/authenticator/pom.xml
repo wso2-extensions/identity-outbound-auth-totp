@@ -38,9 +38,37 @@
     </repositories>
     <dependencies>
         <dependency>
+            <groupId>org.wso2.carbon.identity.framework</groupId>
+            <artifactId>org.wso2.carbon.identity.core</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>jcl-over-slf4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>log4j-over-slf4j</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.framework</groupId>
+            <artifactId>org.wso2.carbon.identity.application.authentication.framework</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.wso2.carbon.extension.identity.authenticator.utils</groupId>
             <artifactId>org.wso2.carbon.extension.identity.helper</artifactId>
             <version>${identity.extension.utils}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>jcl-over-slf4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>log4j-over-slf4j</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon.identity.event.handler.accountlock</groupId>
@@ -52,20 +80,11 @@
             <version>${log4j.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.apache.rampart.wso2</groupId>
-            <artifactId>rampart-core</artifactId>
-            <version>${rampart.wso2.version}</version>
+            <groupId>org.wso2.orbit.org.owasp.encoder</groupId>
+            <artifactId>encoder</artifactId>
+            <version>${encoder.wso2.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.rampart.wso2</groupId>
-            <artifactId>rampart-policy</artifactId>
-            <version>${rampart.wso2.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.rampart.wso2</groupId>
-            <artifactId>rampart-trust</artifactId>
-            <version>${rampart.wso2.version}</version>
-        </dependency>
+
         <!--Test Dependencies-->
         <dependency>
             <groupId>org.testng</groupId>
@@ -90,11 +109,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.powermock</groupId>
             <artifactId>powermock-module-junit4</artifactId>
             <version>1.6.5</version>
@@ -103,14 +117,22 @@
         <dependency>
             <groupId>org.wso2.carbon.identity.framework</groupId>
             <artifactId>org.wso2.carbon.identity.event</artifactId>
-            <version>${carbon.identity.event.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>org.apache.felix.scr.ds-annotations</artifactId>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-scr-plugin</artifactId>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>8</source>
+                    <target>8</target>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.felix</groupId>
@@ -124,7 +146,8 @@
                         <Import-Package>
                             org.wso2.carbon.core.utils.*,
                             org.wso2.carbon.core.*,
-                            org.osgi.service.*,
+                            org.osgi.framework,
+                            org.osgi.service.component; version="${osgi.service.import.version.range}",
                             org.wso2.carbon.registry.core.*,
                             org.wso2.carbon.utils.*;resolution:=optional,
                             org.apache.commons.logging.*;version="${commons-logging.osgi.version.range}",
@@ -141,6 +164,7 @@
                             version="${carbon.identity.account.lock.handler.imp.pkg.version.range}",
                             org.wso2.carbon.identity.handler.event.account.lock.exception;
                             version="${carbon.identity.account.lock.handler.imp.pkg.version.range}",
+                            org.owasp.encoder; version="${encoder.wso2.import.version.range}",
                         </Import-Package>
                         <DynamicImport-Package>*</DynamicImport-Package>
                         <Export-Package>!org.wso2.carbon.identity.application.authenticator.totp.internal.*,

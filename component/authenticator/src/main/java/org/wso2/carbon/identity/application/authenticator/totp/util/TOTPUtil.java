@@ -39,6 +39,7 @@ import org.wso2.carbon.identity.application.authentication.framework.config.mode
 import org.wso2.carbon.identity.application.authentication.framework.config.model.StepConfig;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
+import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
@@ -465,17 +466,12 @@ public class TOTPUtil {
             throws AuthenticationFailedException {
 
         if (isEnrolUserInAuthenticationFlowEnabled(context)) {
-            String multiOptionURI = "";
-            if (request != null) {
-                multiOptionURI = request.getParameter("multiOptionURI");
-                multiOptionURI = multiOptionURI != null ? "&multiOptionURI=" + Encode.forUriComponent(multiOptionURI)
-                        : "";
-            }
-            String enableTOTPReqPageUrl = getEnableTOTPPage(context) +
-                    ("?sessionDataKey=" + context.getContextIdentifier()) +
-                    "&authenticators=" +
-                    TOTPAuthenticatorConstants.AUTHENTICATOR_NAME +
-                    "&type=totp" + "&ske=" + skey + multiOptionURI;
+            String multiOptionURI = getMultiOptionURIQueryParam(request);
+            String queryParams = "sessionDataKey=" + context.getContextIdentifier() + "&authenticators=" +
+                    TOTPAuthenticatorConstants.AUTHENTICATOR_NAME + "&type=totp" + "&ske=" + skey + multiOptionURI;
+            String enableTOTPReqPageUrl =
+                    FrameworkUtils.appendQueryParamsStringToUrl(getEnableTOTPPage(context), queryParams);
+
             try {
                 response.sendRedirect(enableTOTPReqPageUrl);
             } catch (IOException e) {
@@ -485,6 +481,16 @@ public class TOTPUtil {
         } else {
             throw new AuthenticationFailedException("Error while getting value for EnrolUserInAuthenticationFlow");
         }
+    }
+
+    public static String getMultiOptionURIQueryParam(HttpServletRequest request) {
+
+        String multiOptionURI = "";
+        if (request != null) {
+            multiOptionURI = request.getParameter("multiOptionURI");
+            multiOptionURI = multiOptionURI != null ? "&multiOptionURI=" + Encode.forUriComponent(multiOptionURI) : "";
+        }
+        return multiOptionURI;
     }
 
     /**
@@ -565,6 +571,52 @@ public class TOTPUtil {
     }
 
     /**
+     * Get the loginPage from authentication.xml file or use the login page from constant file.
+     *
+     * @param context the AuthenticationContext
+     * @return the loginPage
+     * @throws AuthenticationFailedException
+     */
+    public static String getTOTPLoginPage(AuthenticationContext context) throws AuthenticationFailedException {
+
+        if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
+            return getDefaultTOTPLoginPage();
+        } else {
+            String loginPage = getLoginPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
+            if (StringUtils.isEmpty(loginPage)) {
+                loginPage = getDefaultTOTPLoginPage();
+                if (log.isDebugEnabled()) {
+                    log.debug("Default totp login page: " + loginPage + " is used.");
+                }
+            }
+            return loginPage;
+        }
+    }
+
+    /**
+     * Get the errorPage from authentication.xml file or use the error page from constant file.
+     *
+     * @param context the AuthenticationContext
+     * @return the errorPage
+     * @throws AuthenticationFailedException
+     */
+    public static String getTOTPErrorPage(AuthenticationContext context) throws AuthenticationFailedException {
+
+        if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
+            return getDefaultTOTPErrorPage();
+        } else {
+            String errorPage = getErrorPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
+            if (StringUtils.isEmpty(errorPage)) {
+                errorPage = getDefaultTOTPErrorPage();
+                if (log.isDebugEnabled()) {
+                    log.debug("Default error page: " + errorPage + " is used.");
+                }
+            }
+            return errorPage;
+        }
+    }
+
+    /**
      * Get the enableTOTPPage from authentication.xml file or use the error page from constant file.
      *
      * @param context the AuthenticationContext
@@ -573,17 +625,40 @@ public class TOTPUtil {
      */
     private static String getEnableTOTPPage(AuthenticationContext context) throws AuthenticationFailedException {
 
-        String enableTOTPPage = TOTPUtil
-                .getEnableTOTPPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
-        if (StringUtils.isEmpty(enableTOTPPage)) {
-            enableTOTPPage = ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
-                    .replace(TOTPAuthenticatorConstants.LOGIN_PAGE,
-                            TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
-            if (log.isDebugEnabled()) {
-                log.debug("Default authentication endpoint context is used");
+        if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
+            return getDefaultTOTPEnablePage();
+        } else {
+            String enableTOTPPage =
+                    getEnableTOTPPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
+            if (StringUtils.isEmpty(enableTOTPPage)) {
+                enableTOTPPage = getDefaultTOTPEnablePage();
+                if (log.isDebugEnabled()) {
+                    log.debug("Default TOTP enrollment page: " + enableTOTPPage + " is used.");
+                }
             }
+            return enableTOTPPage;
         }
-        return enableTOTPPage;
+    }
+
+    public static String getDefaultTOTPEnablePage() {
+
+        // ConfigurationFacade will return a tenant qualified URL if tenant qualified URLs are enabled.
+        return ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
+                .replace(TOTPAuthenticatorConstants.LOGIN_PAGE, TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
+    }
+
+    public static String getDefaultTOTPLoginPage() {
+
+        // ConfigurationFacade will return a tenant qualified URL if tenant qualified URLs are enabled.
+        return ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
+                .replace(TOTPAuthenticatorConstants.LOGIN_PAGE, TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
+    }
+
+    public static String getDefaultTOTPErrorPage() {
+
+        // ConfigurationFacade will return a tenant qualified URL if tenant qualified URLs are enabled.
+        return ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
+                .replace(TOTPAuthenticatorConstants.LOGIN_PAGE, TOTPAuthenticatorConstants.ERROR_PAGE);
     }
 
     /**
@@ -692,16 +767,16 @@ public class TOTPUtil {
      */
     public static boolean isLocalUser(AuthenticationContext context) {
 
-		Map<Integer, StepConfig> stepConfigMap = context.getSequenceConfig().getStepMap();
-		if (stepConfigMap == null) {
-			return false;
-		}
-		for (StepConfig stepConfig : stepConfigMap.values()) {
-			if (stepConfig.getAuthenticatedUser() != null && stepConfig.isSubjectAttributeStep() && StringUtils
-					.equals(TOTPAuthenticatorConstants.LOCAL_AUTHENTICATOR, stepConfig.getAuthenticatedIdP())) {
-				return true;
-			}
-		}
-		return false;
-	}
+        Map<Integer, StepConfig> stepConfigMap = context.getSequenceConfig().getStepMap();
+        if (stepConfigMap == null) {
+            return false;
+        }
+        for (StepConfig stepConfig : stepConfigMap.values()) {
+            if (stepConfig.getAuthenticatedUser() != null && stepConfig.isSubjectAttributeStep() && StringUtils
+                    .equals(TOTPAuthenticatorConstants.LOCAL_AUTHENTICATOR, stepConfig.getAuthenticatedIdP())) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

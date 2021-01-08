@@ -120,15 +120,51 @@
                 <version>${carbon.identity.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.wso2.carbon.identity</groupId>
+                <groupId>org.wso2.carbon.identity.framework</groupId>
                 <artifactId>org.wso2.carbon.identity.mgt</artifactId>
-                <version>${carbon.identity.version}</version>
+                <version>${carbon.identity.framework.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.framework</groupId>
+                <artifactId>org.wso2.carbon.identity.core</artifactId>
+                <version>${carbon.identity.framework.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>jcl-over-slf4j</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>log4j-over-slf4j</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.framework</groupId>
+                <artifactId>org.wso2.carbon.identity.application.authentication.framework</artifactId>
+                <version>${carbon.identity.framework.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.framework</groupId>
+                <artifactId>org.wso2.carbon.identity.event</artifactId>
+                <version>${carbon.identity.framework.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.wso2.carbon.identity.event.handler.accountlock</groupId>
                 <artifactId>org.wso2.carbon.identity.handler.event.account.lock</artifactId>
                 <version>${carbon.identity.account.lock.handler.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.wso2.orbit.org.owasp.encoder</groupId>
+                <artifactId>encoder</artifactId>
+                <version>${encoder.wso2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>org.apache.felix.scr.ds-annotations</artifactId>
+                <version>${apache.felix.scr.ds.annotations.version}</version>
+            </dependency>
+
             <!--Test Dependencies-->
             <dependency>
                 <groupId>junit</groupId>
@@ -160,14 +196,9 @@
                 <version>${powermock.version}</version>
                 <scope>test</scope>
             </dependency>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <scope>test</scope>
-                <version>${slf4j.api.version}</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
+
     <properties>
         <carbon.kernel.version>4.4.3</carbon.kernel.version>
         <carbon.kernel.package.import.version.range>[4.4.0, 5.0.0)</carbon.kernel.package.import.version.range>
@@ -180,10 +211,13 @@
         <carbon.commons.version>4.4.8</carbon.commons.version>
         <carbon.commons.imp.pkg.version>[4.4.0, 5.0.0)</carbon.commons.imp.pkg.version>
         <!--Carbon identity version-->
+        <carbon.identity.framework.version>5.18.215</carbon.identity.framework.version>
+
         <carbon.identity.version>5.0.7</carbon.identity.version>
         <carbon.identity.package.export.version>${carbon.identity.version}</carbon.identity.package.export.version>
         <carbon.identity.package.export.project.version>${project.version}
         </carbon.identity.package.export.project.version>
+
         <carbon.identity.account.lock.handler.version>1.1.12</carbon.identity.account.lock.handler.version>
         <carbon.identity.account.lock.handler.imp.pkg.version.range>[1.1.12, 2.0.0)
         </carbon.identity.account.lock.handler.imp.pkg.version.range>
@@ -366,6 +400,7 @@
         <javax.activation.import.pkg.version>[0.0.0, 1.0.0)</javax.activation.import.pkg.version>
         <com.yubico.version>0.14.0</com.yubico.version>
         <encoder.wso2.version>1.2.0.wso2v1</encoder.wso2.version>
+        <encoder.wso2.import.version.range>[1.2.0, 2.0.0)</encoder.wso2.import.version.range>
         <javax.xml.parsers.import.pkg.version>[0.0.0, 1.0.0)</javax.xml.parsers.import.pkg.version>
         <ehcache.version>1.5.0.wso2v3</ehcache.version>
         <project.scm.id>my-scm-server</project.scm.id>
@@ -381,14 +416,19 @@
         <powermock.version>1.6.5</powermock.version>
         <slf4j.api.version>1.7.12</slf4j.api.version>
         <maven.surefire.plugin.version>2.18.1</maven.surefire.plugin.version>
+
+        <maven.scr.plugin.version>1.26.0</maven.scr.plugin.version>
+        <apache.felix.scr.ds.annotations.version>1.2.4</apache.felix.scr.ds.annotations.version>
+        <osgi.service.import.version.range>[1.2.0,2.0.0)</osgi.service.import.version.range>
     </properties>
+
     <build>
         <pluginManagement>
             <plugins>
                 <plugin>
                     <groupId>org.apache.felix</groupId>
                     <artifactId>maven-scr-plugin</artifactId>
-                    <version>1.7.2</version>
+                    <version>${maven.scr.plugin.version}</version>
                     <executions>
                         <execution>
                             <id>generate-scr-scrdescriptor</id>
@@ -401,7 +441,7 @@
                 <plugin>
                     <groupId>org.apache.felix</groupId>
                     <artifactId>maven-bundle-plugin</artifactId>
-                    <version>2.4.0</version>
+                    <version>3.2.0</version>
                     <extensions>true</extensions>
                     <configuration>
                         <obrRepository>NONE</obrRepository>
@@ -424,7 +464,6 @@
             </plugin>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>2.3.1</version>
                 <inherited>true</inherited>
                 <configuration>
                     <encoding>UTF-8</encoding>

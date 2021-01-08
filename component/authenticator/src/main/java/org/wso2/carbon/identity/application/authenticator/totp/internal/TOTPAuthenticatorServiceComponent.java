@@ -21,6 +21,11 @@ package org.wso2.carbon.identity.application.authenticator.totp.internal;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticator;
 import org.wso2.carbon.identity.event.services.IdentityEventService;
@@ -31,24 +36,10 @@ import org.wso2.carbon.utils.ConfigurationContextService;
 
 import java.util.Hashtable;
 
-/**
- * @scr.component name="identity.application.authenticator.totp.component" immediate="true"
- * @scr.reference name="EventMgtService"
- * interface="org.wso2.carbon.identity.event.services.IdentityEventService" cardinality="1..1"
- * policy="dynamic" bind="setIdentityEventService" unbind="unsetIdentityEventService"
- * @scr.reference name="config.context.service"
- * interface="org.wso2.carbon.utils.ConfigurationContextService"
- * cardinality="1..1" policy="dynamic" bind="setConfigurationContextService"
- * unbind="unsetConfigurationContextService"
- * @scr.reference name="user.realmservice.default" interface="org.wso2.carbon.user.core.service.RealmService"
- * cardinality="1..1" policy="dynamic" bind="setRealmService" unbind="unsetRealmService"
- * @scr.reference name="IdentityGovernanceService"
- * interface="org.wso2.carbon.identity.governance.IdentityGovernanceService"
- * cardinality="1..1" policy="dynamic" bind="setIdentityGovernanceService" unbind="unsetIdentityGovernanceService"
- * @scr.reference name="AccountLockService"
- * interface="org.wso2.carbon.identity.handler.event.account.lock.service.AccountLockService"
- * cardinality="1..1" policy="dynamic" bind="setAccountLockService" unbind="unsetAccountLockService"
- */
+@Component(
+		name = "identity.application.authenticator.totp.component",
+		immediate = true
+)
 public class TOTPAuthenticatorServiceComponent {
 
 	private static final Log log = LogFactory.getLog(TOTPAuthenticatorServiceComponent.class);
@@ -75,6 +66,7 @@ public class TOTPAuthenticatorServiceComponent {
 	 *
 	 * @param ctxt The Component Context
 	 */
+	@Deactivate
 	protected void deactivate(ComponentContext ctxt) {
 		if (log.isDebugEnabled()) {
 			log.debug("TOTPAuthenticator bundle is deactivated");
@@ -86,6 +78,13 @@ public class TOTPAuthenticatorServiceComponent {
 	 *
 	 * @param configurationContextService The Configuration Context which needs to set
 	 */
+	@Reference(
+			name = "ConfigurationContextService",
+			service = org.wso2.carbon.utils.ConfigurationContextService.class,
+			cardinality = ReferenceCardinality.MANDATORY,
+			policy = ReferencePolicy.DYNAMIC,
+			unbind = "unsetConfigurationContextService"
+	)
 	protected void setConfigurationContextService(
 			ConfigurationContextService configurationContextService) {
 		TOTPDataHolder.getInstance().setConfigurationContextService(configurationContextService);
@@ -106,6 +105,13 @@ public class TOTPAuthenticatorServiceComponent {
 	 *
 	 * @param realmService The Realm Service which needs to set
 	 */
+	@Reference(
+			name = "RealmService",
+			service = org.wso2.carbon.user.core.service.RealmService.class,
+			cardinality = ReferenceCardinality.MANDATORY,
+			policy = ReferencePolicy.DYNAMIC,
+			unbind = "unsetRealmService"
+	)
 	protected void setRealmService(RealmService realmService) {
 		TOTPDataHolder.getInstance().setRealmService(realmService);
 	}
@@ -124,11 +130,25 @@ public class TOTPAuthenticatorServiceComponent {
 		TOTPDataHolder.getInstance().setIdentityEventService(null);
 	}
 
+	@Reference(
+			name = "EventMgtService",
+			service = org.wso2.carbon.identity.event.services.IdentityEventService.class,
+			cardinality = ReferenceCardinality.MANDATORY,
+			policy = ReferencePolicy.DYNAMIC,
+			unbind = "unsetIdentityEventService"
+	)
 	protected void setIdentityEventService(IdentityEventService eventService) {
 
 		TOTPDataHolder.getInstance().setIdentityEventService(eventService);
 	}
 
+	@Reference(
+			name = "IdentityGovernanceService",
+			service = org.wso2.carbon.identity.governance.IdentityGovernanceService.class,
+			cardinality = ReferenceCardinality.MANDATORY,
+			policy = ReferencePolicy.DYNAMIC,
+			unbind = "unsetIdentityGovernanceService"
+	)
 	protected void setIdentityGovernanceService(IdentityGovernanceService idpManager) {
 
 		TOTPDataHolder.getInstance().setIdentityGovernanceService(idpManager);
@@ -139,6 +159,13 @@ public class TOTPAuthenticatorServiceComponent {
 		TOTPDataHolder.getInstance().setIdentityGovernanceService(null);
 	}
 
+	@Reference(
+			name = "AccountLockService",
+			service = org.wso2.carbon.identity.handler.event.account.lock.service.AccountLockService.class,
+			cardinality = ReferenceCardinality.MANDATORY,
+			policy = ReferencePolicy.DYNAMIC,
+			unbind = "unsetAccountLockService"
+	)
 	protected void setAccountLockService(AccountLockService accountLockService) {
 
 		TOTPDataHolder.getInstance().setAccountLockService(accountLockService);
