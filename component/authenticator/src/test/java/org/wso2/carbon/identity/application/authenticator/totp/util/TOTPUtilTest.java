@@ -51,6 +51,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 import static org.powermock.api.mockito.PowerMockito.doNothing;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE;
 
 @PrepareForTest({FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, ConfigurationFacade.class,
         IdentityTenantUtil.class})
@@ -439,7 +440,9 @@ public class TOTPUtilTest {
         when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(loginPageURL);
 
-        Assert.assertEquals(TOTPUtil.getDefaultTOTPEnablePage(), enableTOTPURL);
+        // ConfigurationFacade will return a tenant qualified URL if tenant qualified URLs are enabled.
+        Assert.assertEquals(ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
+                .replace(TOTPAuthenticatorConstants.LOGIN_PAGE, ENABLE_TOTP_REQUEST_PAGE), enableTOTPURL);
     }
 
     @Test(description = "Test case for getDefaultTOTPLoginPage()")
@@ -451,7 +454,10 @@ public class TOTPUtilTest {
         when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(loginPageURL);
 
-        Assert.assertEquals(TOTPUtil.getDefaultTOTPLoginPage(), expectedURL);
+        // ConfigurationFacade will return a tenant qualified URL if tenant qualified URLs are enabled.
+        Assert.assertEquals(ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
+                .replace(TOTPAuthenticatorConstants.LOGIN_PAGE,
+                        TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE), expectedURL);
     }
 
     @Test(description = "Test case for getDefaultTOTPErrorPage()")
@@ -463,7 +469,9 @@ public class TOTPUtilTest {
         when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(loginPageURL);
 
-        Assert.assertEquals(TOTPUtil.getDefaultTOTPErrorPage(), expectedURL);
+        // ConfigurationFacade will return a tenant qualified URL if tenant qualified URLs are enabled.
+        Assert.assertEquals(ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
+                .replace(TOTPAuthenticatorConstants.LOGIN_PAGE, TOTPAuthenticatorConstants.ERROR_PAGE), expectedURL);
     }
 
     @ObjectFactory

@@ -44,6 +44,8 @@ import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticator
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
 import org.wso2.carbon.identity.application.common.model.Property;
+import org.wso2.carbon.identity.core.ServiceURLBuilder;
+import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.governance.IdentityGovernanceException;
 import org.wso2.carbon.identity.handler.event.account.lock.exception.AccountLockServiceException;
@@ -65,6 +67,10 @@ import javax.servlet.http.HttpServletResponse;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ERROR_PAGE;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE;
 
 /**
  * TOTP Util class.
@@ -530,15 +536,21 @@ public class TOTPUtil {
         Object propertiesFromLocal = null;
         String loginPage = null;
         String tenantDomain = context.getTenantDomain();
-        if (!tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT)) {
+        if (!TOTPAuthenticatorConstants.SUPER_TENANT.equals(tenantDomain)) {
             propertiesFromLocal = context.getProperty(IdentityHelperConstants.GET_PROPERTY_FROM_REGISTRY);
         }
-        if ((propertiesFromLocal != null || tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT))
+        if ((propertiesFromLocal != null || TOTPAuthenticatorConstants.SUPER_TENANT.equals(tenantDomain))
                 && getTOTPParameters().containsKey(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ENDPOINT_URL)) {
             loginPage = getTOTPParameters().get(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ENDPOINT_URL);
         } else if ((context.getProperty(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ENDPOINT_URL)) != null) {
             loginPage = String
                     .valueOf(context.getProperty(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ENDPOINT_URL));
+        } else {
+            loginPage = ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
+                    .replace(TOTPAuthenticatorConstants.LOGIN_PAGE, TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
+            if (log.isDebugEnabled()) {
+                log.debug("Default totp login page: " + loginPage + " is used.");
+            }
         }
         return loginPage;
     }
@@ -557,15 +569,21 @@ public class TOTPUtil {
         Object propertiesFromLocal = null;
         String errorPage = null;
         String tenantDomain = context.getTenantDomain();
-        if (!tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT)) {
+        if (!TOTPAuthenticatorConstants.SUPER_TENANT.equals(tenantDomain)) {
             propertiesFromLocal = context.getProperty(IdentityHelperConstants.GET_PROPERTY_FROM_REGISTRY);
         }
-        if ((propertiesFromLocal != null || tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT))
+        if ((propertiesFromLocal != null || TOTPAuthenticatorConstants.SUPER_TENANT.equals(tenantDomain))
                 && getTOTPParameters().containsKey(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ERROR_PAGE_URL)) {
             errorPage = getTOTPParameters().get(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ERROR_PAGE_URL);
         } else if ((context.getProperty(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ERROR_PAGE_URL)) != null) {
             errorPage = String
                     .valueOf(context.getProperty(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ERROR_PAGE_URL));
+        } else {
+            errorPage = ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
+                    .replace(TOTPAuthenticatorConstants.LOGIN_PAGE, TOTPAuthenticatorConstants.ERROR_PAGE);
+            if (log.isDebugEnabled()) {
+                log.debug("Default error page: " + errorPage + " is used.");
+            }
         }
         return errorPage;
     }
@@ -580,16 +598,9 @@ public class TOTPUtil {
     public static String getTOTPLoginPage(AuthenticationContext context) throws AuthenticationFailedException {
 
         if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
-            return getDefaultTOTPLoginPage();
+            return getTenantQualifiedURL(TOTP_LOGIN_PAGE);
         } else {
-            String loginPage = getLoginPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
-            if (StringUtils.isEmpty(loginPage)) {
-                loginPage = getDefaultTOTPLoginPage();
-                if (log.isDebugEnabled()) {
-                    log.debug("Default totp login page: " + loginPage + " is used.");
-                }
-            }
-            return loginPage;
+            return getLoginPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
         }
     }
 
@@ -603,16 +614,9 @@ public class TOTPUtil {
     public static String getTOTPErrorPage(AuthenticationContext context) throws AuthenticationFailedException {
 
         if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
-            return getDefaultTOTPErrorPage();
+            return getTenantQualifiedURL(ERROR_PAGE);
         } else {
-            String errorPage = getErrorPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
-            if (StringUtils.isEmpty(errorPage)) {
-                errorPage = getDefaultTOTPErrorPage();
-                if (log.isDebugEnabled()) {
-                    log.debug("Default error page: " + errorPage + " is used.");
-                }
-            }
-            return errorPage;
+            return getErrorPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
         }
     }
 
@@ -626,39 +630,20 @@ public class TOTPUtil {
     private static String getEnableTOTPPage(AuthenticationContext context) throws AuthenticationFailedException {
 
         if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
-            return getDefaultTOTPEnablePage();
+            return getTenantQualifiedURL(ENABLE_TOTP_REQUEST_PAGE);
         } else {
-            String enableTOTPPage =
-                    getEnableTOTPPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
-            if (StringUtils.isEmpty(enableTOTPPage)) {
-                enableTOTPPage = getDefaultTOTPEnablePage();
-                if (log.isDebugEnabled()) {
-                    log.debug("Default TOTP enrollment page: " + enableTOTPPage + " is used.");
-                }
-            }
-            return enableTOTPPage;
+            return getEnableTOTPPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
         }
     }
 
-    public static String getDefaultTOTPEnablePage() {
+    private static String getTenantQualifiedURL(String context) throws AuthenticationFailedException {
 
-        // ConfigurationFacade will return a tenant qualified URL if tenant qualified URLs are enabled.
-        return ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
-                .replace(TOTPAuthenticatorConstants.LOGIN_PAGE, TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
-    }
-
-    public static String getDefaultTOTPLoginPage() {
-
-        // ConfigurationFacade will return a tenant qualified URL if tenant qualified URLs are enabled.
-        return ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
-                .replace(TOTPAuthenticatorConstants.LOGIN_PAGE, TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
-    }
-
-    public static String getDefaultTOTPErrorPage() {
-
-        // ConfigurationFacade will return a tenant qualified URL if tenant qualified URLs are enabled.
-        return ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
-                .replace(TOTPAuthenticatorConstants.LOGIN_PAGE, TOTPAuthenticatorConstants.ERROR_PAGE);
+        try {
+            return ServiceURLBuilder.create().addPath(context).build().getAbsolutePublicURL();
+        } catch (URLBuilderException e) {
+            throw new AuthenticationFailedException("Error while building tenant qualified URL with context: "
+                    + context, e);
+        }
     }
 
     /**
@@ -684,6 +669,12 @@ public class TOTPUtil {
         } else if ((context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE_URL)) != null) {
             enableTOTPPage = String
                     .valueOf(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE_URL));
+        } else {
+            enableTOTPPage = ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
+                    .replace(TOTPAuthenticatorConstants.LOGIN_PAGE, ENABLE_TOTP_REQUEST_PAGE);
+            if (log.isDebugEnabled()) {
+                log.debug("Default TOTP enrollment page: " + enableTOTPPage + " is used.");
+            }
         }
         return enableTOTPPage;
     }
