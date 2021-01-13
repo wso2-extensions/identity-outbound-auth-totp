@@ -268,8 +268,7 @@ public class TOTPAuthenticatorTest {
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn("authenticationendpoint/login.do");
 
         mockStatic(TOTPUtil.class);
-        when(TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).thenReturn(null);
-        when(TOTPUtil.getDefaultTOTPLoginPage()).thenCallRealMethod();
+        when(TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).thenCallRealMethod();
         when(TOTPUtil.getTOTPLoginPage(any(AuthenticationContext.class))).thenCallRealMethod();
         Assert.assertEquals(TOTPUtil.getTOTPLoginPage(new AuthenticationContext()),
                 TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
@@ -278,9 +277,10 @@ public class TOTPAuthenticatorTest {
     @Test(description = "TOTPAuthenticator:getErrorPage() test for get the errorPage url from constant file.")
     public void testGetErrorPageFromXMLFile() throws Exception {
 
+        when(configurationFacade.getAuthenticationEndpointURL()).thenReturn("authenticationendpoint/login.do");
+
         mockStatic(TOTPUtil.class);
-        when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
-                thenReturn(TOTPAuthenticatorConstants.ERROR_PAGE);
+        when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).thenCallRealMethod();
         when(TOTPUtil.getTOTPErrorPage(any(AuthenticationContext.class))).thenCallRealMethod();
         Assert.assertEquals(TOTPUtil.getTOTPErrorPage(new AuthenticationContext()),
                 TOTPAuthenticatorConstants.ERROR_PAGE);
@@ -292,8 +292,7 @@ public class TOTPAuthenticatorTest {
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn("authenticationendpoint/login.do");
 
         mockStatic(TOTPUtil.class);
-        when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).thenReturn(null);
-        when(TOTPUtil.getDefaultTOTPErrorPage()).thenCallRealMethod();
+        when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).thenCallRealMethod();
         when(TOTPUtil.getTOTPErrorPage(any(AuthenticationContext.class))).thenCallRealMethod();
 
         Assert.assertEquals(TOTPUtil.getTOTPErrorPage(new AuthenticationContext()),
