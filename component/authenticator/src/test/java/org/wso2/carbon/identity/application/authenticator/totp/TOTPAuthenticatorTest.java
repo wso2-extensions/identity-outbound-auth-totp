@@ -529,7 +529,7 @@ public class TOTPAuthenticatorTest {
         verify(httpServletResponse).sendRedirect(captor.capture());
 
         // Assert everything related to the error scenario.
-        Assert.assertTrue(captor.getValue().contains("totpError.jsp"));
+        Assert.assertTrue(captor.getValue().contains("totp_error.do"));
         Assert.assertTrue(captor.getValue().contains("sessionDataKey=" + context.getContextIdentifier()));
         Assert.assertTrue(captor.getValue().contains("authenticators=totp"));
         Assert.assertTrue(captor.getValue().contains("type=totp_error"));
