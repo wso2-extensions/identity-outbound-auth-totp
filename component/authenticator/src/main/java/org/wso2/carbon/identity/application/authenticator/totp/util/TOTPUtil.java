@@ -60,6 +60,8 @@ import org.xml.sax.SAXException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -68,6 +70,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import static org.apache.commons.lang.StringUtils.isNotBlank;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ERROR_PAGE;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE;
@@ -597,10 +600,11 @@ public class TOTPUtil {
      */
     public static String getTOTPLoginPage(AuthenticationContext context) throws AuthenticationFailedException {
 
+        String loginPageFromConfig = getLoginPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
         if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
-            return getTenantQualifiedURL(TOTP_LOGIN_PAGE);
+            return getTenantQualifiedURL(loginPageFromConfig, TOTP_LOGIN_PAGE);
         } else {
-            return getLoginPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
+            return loginPageFromConfig;
         }
     }
 
@@ -613,10 +617,11 @@ public class TOTPUtil {
      */
     public static String getTOTPErrorPage(AuthenticationContext context) throws AuthenticationFailedException {
 
+        String errorUrlFromConfig = getErrorPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
         if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
-            return getTenantQualifiedURL(ERROR_PAGE);
+            return getTenantQualifiedURL(errorUrlFromConfig, ERROR_PAGE);
         } else {
-            return getErrorPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
+            return errorUrlFromConfig;
         }
     }
 
@@ -627,22 +632,13 @@ public class TOTPUtil {
      * @return the enableTOTPPage
      * @throws AuthenticationFailedException
      */
-    private static String getEnableTOTPPage(AuthenticationContext context) throws AuthenticationFailedException {
+    public static String getEnableTOTPPage(AuthenticationContext context) throws AuthenticationFailedException {
 
+        String urlFromConfig = getEnableTOTPPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
         if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
-            return getTenantQualifiedURL(ENABLE_TOTP_REQUEST_PAGE);
+            return getTenantQualifiedURL(urlFromConfig, ENABLE_TOTP_REQUEST_PAGE);
         } else {
-            return getEnableTOTPPageFromXMLFile(context, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
-        }
-    }
-
-    private static String getTenantQualifiedURL(String context) throws AuthenticationFailedException {
-
-        try {
-            return ServiceURLBuilder.create().addPath(context).build().getAbsolutePublicURL();
-        } catch (URLBuilderException e) {
-            throw new AuthenticationFailedException("Error while building tenant qualified URL with context: "
-                    + context, e);
+            return urlFromConfig;
         }
     }
 
@@ -660,10 +656,10 @@ public class TOTPUtil {
         Object propertiesFromLocal = null;
         String enableTOTPPage = null;
         String tenantDomain = context.getTenantDomain();
-        if (!tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT)) {
+        if (!TOTPAuthenticatorConstants.SUPER_TENANT.equals(tenantDomain)) {
             propertiesFromLocal = context.getProperty(IdentityHelperConstants.GET_PROPERTY_FROM_REGISTRY);
         }
-        if ((propertiesFromLocal != null || tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT))
+        if ((propertiesFromLocal != null || TOTPAuthenticatorConstants.SUPER_TENANT.equals(tenantDomain))
                 && getTOTPParameters().containsKey(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE_URL)) {
             enableTOTPPage = getTOTPParameters().get(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE_URL);
         } else if ((context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE_URL)) != null) {
@@ -769,5 +765,40 @@ public class TOTPUtil {
             }
         }
         return false;
+    }
+
+    private static String getTenantQualifiedURL(String urlFromConfig,
+                                                String defaultContext) throws AuthenticationFailedException {
+
+        String context = null;
+        try {
+            if (isNotBlank(urlFromConfig)) {
+                if (isURLRelative(urlFromConfig)) {
+                    // Build tenant qualified URL using the context picked from config.
+                    context = urlFromConfig;
+                    return buildTenantQualifiedURL(context);
+                } else {
+                    // The URL picked from configs was an absolute one, we don't have a way to tenant qualify it.
+                    return urlFromConfig;
+                }
+            } else {
+                // No URL defined in configs. Build tenant qualified URL using the default context.
+                context = defaultContext;
+                return buildTenantQualifiedURL(context);
+            }
+        } catch (URLBuilderException | URISyntaxException e) {
+            throw new AuthenticationFailedException("Error while building tenant qualified URL for context: "
+                    + context, e);
+        }
+    }
+
+    private static String buildTenantQualifiedURL(String contextPath) throws URLBuilderException {
+
+        return ServiceURLBuilder.create().addPath(contextPath).build().getAbsolutePublicURL();
+    }
+
+    private static boolean isURLRelative(String contextFromConfig) throws URISyntaxException {
+
+        return !new URI(contextFromConfig).isAbsolute();
     }
 }

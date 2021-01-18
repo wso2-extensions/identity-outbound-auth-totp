@@ -18,7 +18,9 @@
  */
 package org.wso2.carbon.identity.application.authenticator.totp.util;
 
+import org.apache.commons.lang.StringUtils;
 import org.mockito.Mock;
+import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.testng.PowerMockObjectFactory;
 import org.powermock.reflect.Whitebox;
@@ -36,10 +38,15 @@ import org.wso2.carbon.identity.application.authentication.framework.config.mode
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
+import org.wso2.carbon.identity.core.ServiceURL;
+import org.wso2.carbon.identity.core.ServiceURLBuilder;
+import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.user.core.service.RealmService;
+import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -50,11 +57,13 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 import static org.powermock.api.mockito.PowerMockito.doNothing;
+import static org.powermock.api.mockito.PowerMockito.mock;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
+import static org.testng.Assert.assertEquals;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE;
 
 @PrepareForTest({FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, ConfigurationFacade.class,
-        IdentityTenantUtil.class})
+        IdentityTenantUtil.class, ServiceURLBuilder.class})
 public class TOTPUtilTest {
 
     private TOTPUtil totpUtil;
@@ -108,7 +117,7 @@ public class TOTPUtilTest {
         //test with non-empty parameters map.
         authenticatorConfig.setParameterMap(parameters);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
-        Assert.assertEquals(Whitebox.invokeMethod(totpUtil, "getTOTPParameters"), parameters);
+        assertEquals(Whitebox.invokeMethod(totpUtil, "getTOTPParameters"), parameters);
 
     }
 
@@ -119,7 +128,7 @@ public class TOTPUtilTest {
         authenticationContext.setTenantDomain("wso2.org");
         authenticationContext.setProperty(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ENDPOINT_URL,
                 "totpauthenticationendpoint/custom/totp.jsp");
-        Assert.assertEquals(
+        assertEquals(
                 TOTPUtil.getLoginPageFromXMLFile(authenticationContext, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME),
                 "totpauthenticationendpoint/custom/totp.jsp");
     }
@@ -139,7 +148,7 @@ public class TOTPUtilTest {
         authenticatorConfig.setParameterMap(parameters);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
 
-        Assert.assertEquals(
+        assertEquals(
                 TOTPUtil.getLoginPageFromXMLFile(authenticationContext, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME),
                 "totpauthenticationendpoint/custom/totp.jsp");
     }
@@ -151,7 +160,7 @@ public class TOTPUtilTest {
         authenticationContext.setTenantDomain("wso2.org");
         authenticationContext.setProperty(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ERROR_PAGE_URL,
                 "totpauthenticationendpoint/custom/error.jsp");
-        Assert.assertEquals(TOTPUtil.getErrorPageFromXMLFile(authenticationContext,
+        assertEquals(TOTPUtil.getErrorPageFromXMLFile(authenticationContext,
                 TOTPAuthenticatorConstants.AUTHENTICATOR_NAME), "totpauthenticationendpoint/custom/error.jsp");
     }
 
@@ -170,7 +179,7 @@ public class TOTPUtilTest {
         when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
 
-        Assert.assertEquals(TOTPUtil.getErrorPageFromXMLFile(authenticationContext,
+        assertEquals(TOTPUtil.getErrorPageFromXMLFile(authenticationContext,
                 TOTPAuthenticatorConstants.AUTHENTICATOR_NAME), "totpauthenticationendpoint/custom/error.jsp");
     }
 
@@ -185,7 +194,7 @@ public class TOTPUtilTest {
         when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(TOTPAuthenticatorConstants.LOGIN_PAGE);
 
-        Assert.assertEquals(Whitebox.invokeMethod(totpUtil, "getEnableTOTPPage",
+        assertEquals(Whitebox.invokeMethod(totpUtil, "getEnableTOTPPage",
                 authenticationContext), TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
     }
 
@@ -197,7 +206,7 @@ public class TOTPUtilTest {
         when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
         when(configurationFacade.getAuthenticationEndpointURL()).
                 thenReturn(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
-        Assert.assertEquals(Whitebox.invokeMethod(totpUtil, "getEnableTOTPPage",
+        assertEquals(Whitebox.invokeMethod(totpUtil, "getEnableTOTPPage",
                 authenticationContext), TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
     }
 
@@ -218,7 +227,7 @@ public class TOTPUtilTest {
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(TOTPAuthenticatorConstants.LOGIN_PAGE);
         when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
-        Assert.assertEquals(Whitebox.invokeMethod(totpUtil, "getEnableTOTPPage",
+        assertEquals(Whitebox.invokeMethod(totpUtil, "getEnableTOTPPage",
                 authenticationContext), TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
     }
 
@@ -228,7 +237,7 @@ public class TOTPUtilTest {
         AuthenticationContext authenticationContext = new AuthenticationContext();
         authenticationContext.setTenantDomain("wso2.org");
         authenticationContext.setProperty(TOTPAuthenticatorConstants.TIME_STEP_SIZE, 30);
-        Assert.assertEquals(TOTPUtil.getTimeStepSize(authenticationContext), 30);
+        assertEquals(TOTPUtil.getTimeStepSize(authenticationContext), 30);
     }
 
     @Test(description = "Test case for getTimeStepSize with super tenant use case")
@@ -241,7 +250,7 @@ public class TOTPUtilTest {
         Map<String, String> parameters = new HashMap<>();
         parameters.put(TOTPAuthenticatorConstants.TIME_STEP_SIZE, "60");
         when(IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
-        Assert.assertEquals(TOTPUtil.getTimeStepSize(authenticationContext), 60);
+        assertEquals(TOTPUtil.getTimeStepSize(authenticationContext), 60);
     }
 
     @Test(description = "Test case for getTimeStepSize from identityConfig")
@@ -255,7 +264,7 @@ public class TOTPUtilTest {
         Map<String, String> parameters = new HashMap<>();
         parameters.put(TOTPAuthenticatorConstants.TIME_STEP_SIZE, "60");
         when(IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
-        Assert.assertEquals(TOTPUtil.getTimeStepSize(authenticationContext), 60);
+        assertEquals(TOTPUtil.getTimeStepSize(authenticationContext), 60);
     }
 
     @Test(description = "Test case for getWindowSize with tenant use case")
@@ -265,7 +274,7 @@ public class TOTPUtilTest {
         authenticationContext.setTenantDomain("wso2.org");
         authenticationContext.setProperty(TOTPAuthenticatorConstants.WINDOW_SIZE,
                 3);
-        Assert.assertEquals(TOTPUtil.getWindowSize(authenticationContext), 3);
+        assertEquals(TOTPUtil.getWindowSize(authenticationContext), 3);
     }
 
     @Test(description = "Test case for getWindowSize with super tenant use case")
@@ -278,7 +287,7 @@ public class TOTPUtilTest {
         Map<String, String> parameters = new HashMap<>();
         parameters.put(TOTPAuthenticatorConstants.WINDOW_SIZE, "5");
         when(IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
-        Assert.assertEquals(TOTPUtil.getWindowSize(authenticationContext), 5);
+        assertEquals(TOTPUtil.getWindowSize(authenticationContext), 5);
     }
 
     @Test(description = "Test case for getWindowSize from identityConfig")
@@ -292,7 +301,7 @@ public class TOTPUtilTest {
         Map<String, String> parameters = new HashMap<>();
         parameters.put(TOTPAuthenticatorConstants.WINDOW_SIZE, "5");
         when(IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
-        Assert.assertEquals(TOTPUtil.getWindowSize(authenticationContext), 5);
+        assertEquals(TOTPUtil.getWindowSize(authenticationContext), 5);
     }
 
     @Test
@@ -370,7 +379,7 @@ public class TOTPUtilTest {
         when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
         authenticatorConfig.setParameterMap(parameters);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
-        Assert.assertEquals(TOTPUtil.getEncodingMethod(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN, context),
+        assertEquals(TOTPUtil.getEncodingMethod(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN, context),
                 TOTPAuthenticatorConstants.BASE64);
     }
 
@@ -380,7 +389,7 @@ public class TOTPUtilTest {
         AuthenticationContext authenticationContext = new AuthenticationContext();
         authenticationContext.setProperty(TOTPAuthenticatorConstants.ENCODING_METHOD,
                 TOTPAuthenticatorConstants.BASE32);
-        Assert.assertEquals(TOTPUtil.getEncodingMethod("wso2.org", authenticationContext),
+        assertEquals(TOTPUtil.getEncodingMethod("wso2.org", authenticationContext),
                 TOTPAuthenticatorConstants.BASE32);
     }
 
@@ -396,7 +405,7 @@ public class TOTPUtilTest {
                 TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
         authenticationContext.setProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG,
                 TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG);
-        Assert.assertEquals(TOTPUtil.getEncodingMethod("wso2.org", authenticationContext),
+        assertEquals(TOTPUtil.getEncodingMethod("wso2.org", authenticationContext),
                 TOTPAuthenticatorConstants.BASE32);
     }
 
@@ -410,7 +419,7 @@ public class TOTPUtilTest {
         when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
         authenticatorConfig.setParameterMap(parameters);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
-        Assert.assertEquals(TOTPUtil.getEncodingMethod(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN),
+        assertEquals(TOTPUtil.getEncodingMethod(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN),
                 TOTPAuthenticatorConstants.BASE64);
     }
 
@@ -428,50 +437,163 @@ public class TOTPUtilTest {
     public void testGetMultiOptionURIQueryParam(String requestParamValue, String expected) {
 
         when(httpServletRequest.getParameter("multiOptionURI")).thenReturn(requestParamValue);
-        Assert.assertEquals(TOTPUtil.getMultiOptionURIQueryParam(httpServletRequest), expected);
+        assertEquals(TOTPUtil.getMultiOptionURIQueryParam(httpServletRequest), expected);
     }
 
-    @Test(description = "Test case for getDefaultTOTPEnablePage()")
-    public void testGetDefaultTOTPEnablePage() {
+    @DataProvider(name = "enableTOTPPageTestDataProvider")
+    public static Object[][] getEnableTOTPPageTestData() {
 
-        String loginPageURL = "https://localhost:9443/authenticationendpoint/login.do";
-        String enableTOTPURL = "https://localhost:9443/totpauthenticationendpoint/enableTOTP.jsp";
-
-        when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
-        when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(loginPageURL);
-
-        // ConfigurationFacade will return a tenant qualified URL if tenant qualified URLs are enabled.
-        Assert.assertEquals(ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
-                .replace(TOTPAuthenticatorConstants.LOGIN_PAGE, ENABLE_TOTP_REQUEST_PAGE), enableTOTPURL);
+        return new Object[][]{
+                {"carbon.super",
+                        "https://localhost:9443/authenticationendpoint/login.do",
+                        "https://localhost:9443/totpauthenticationendpoint/enableTOTP.jsp"},
+                {"carbon.super",
+                        "authenticationendpoint/login.do",
+                        "https://localhost:9443/totpauthenticationendpoint/enableTOTP.jsp"},
+                {"wso2.com",
+                        "https://localhost:9443/authenticationendpoint/login.do",
+                        "https://localhost:9443/totpauthenticationendpoint/enableTOTP.jsp"},
+                {"wso2.com",
+                        "authenticationendpoint/login.do",
+                        "https://localhost:9443/t/wso2.com/totpauthenticationendpoint/enableTOTP.jsp"},
+        };
     }
 
-    @Test(description = "Test case for getDefaultTOTPLoginPage()")
-    public void testGetDefaultTOTPLoginPage() {
+    @Test(description = "Test case for getEnableTOTPPage()", dataProvider = "enableTOTPPageTestDataProvider")
+    public void testGetTOTPEnablePage(String tenantDomain, String urlFromConfig,
+                                             String expectedURL) throws Exception {
 
-        String loginPageURL = "https://localhost:9443/authenticationendpoint/login.do";
-        String expectedURL = "https://localhost:9443/totpauthenticationendpoint/totp.jsp";
+        mockStatic(IdentityTenantUtil.class);
+        when(IdentityTenantUtil.isTenantQualifiedUrlsEnabled()).thenReturn(true);
+        when(IdentityTenantUtil.getTenantDomainFromContext()).thenReturn(tenantDomain);
 
         when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
-        when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(loginPageURL);
+        when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(urlFromConfig);
+        mockServiceURLBuilder();
 
-        // ConfigurationFacade will return a tenant qualified URL if tenant qualified URLs are enabled.
-        Assert.assertEquals(ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
-                .replace(TOTPAuthenticatorConstants.LOGIN_PAGE,
-                        TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE), expectedURL);
+        assertEquals(TOTPUtil.getEnableTOTPPage(new AuthenticationContext()), expectedURL);
     }
 
-    @Test(description = "Test case for getDefaultTOTPErrorPage()")
-    public void testGetDefaultTOTPErrorPage() {
+    @DataProvider(name = "loginPageTestDataProvider")
+    public static Object[][] getLoginPageTestData() {
 
-        String loginPageURL = "https://localhost:9443/authenticationendpoint/login.do";
-        String expectedURL = "https://localhost:9443/totpauthenticationendpoint/totpError.jsp";
+        return new Object[][]{
+                {"carbon.super",
+                        "https://localhost:9443/authenticationendpoint/login.do",
+                        "https://localhost:9443/totpauthenticationendpoint/totp.jsp"},
+                {"carbon.super",
+                        "authenticationendpoint/login.do",
+                        "https://localhost:9443/totpauthenticationendpoint/totp.jsp"},
+                {"wso2.com",
+                        "https://localhost:9443/authenticationendpoint/login.do",
+                        "https://localhost:9443/totpauthenticationendpoint/totp.jsp"},
+                {"wso2.com",
+                        "authenticationendpoint/login.do",
+                        "https://localhost:9443/t/wso2.com/totpauthenticationendpoint/totp.jsp"},
+        };
+    }
+
+    @Test(description = "Test case for getTOTPLoginPage()", dataProvider = "loginPageTestDataProvider")
+    public void testGetTOTPLoginPage(String tenantDomain, String urlFromConfig,
+                                            String expectedURL) throws Exception {
+
+        mockStatic(IdentityTenantUtil.class);
+        when(IdentityTenantUtil.isTenantQualifiedUrlsEnabled()).thenReturn(true);
+        when(IdentityTenantUtil.getTenantDomainFromContext()).thenReturn(tenantDomain);
 
         when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
-        when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(loginPageURL);
+        when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(urlFromConfig);
+        mockServiceURLBuilder();
+
+        assertEquals(TOTPUtil.getTOTPLoginPage(new AuthenticationContext()), expectedURL);
+    }
+
+    @DataProvider(name = "errorPageTestDataProvider")
+    public static Object[][] getErrorPageTestData() {
+
+        return new Object[][]{
+                {"carbon.super",
+                        "https://localhost:9443/authenticationendpoint/login.do",
+                        "https://localhost:9443/totpauthenticationendpoint/totpError.jsp"},
+                {"carbon.super",
+                        "authenticationendpoint/login.do",
+                        "https://localhost:9443/totpauthenticationendpoint/totpError.jsp"},
+                {"wso2.com",
+                        "https://localhost:9443/authenticationendpoint/login.do",
+                        "https://localhost:9443/totpauthenticationendpoint/totpError.jsp"},
+                {"wso2.com",
+                        "authenticationendpoint/login.do",
+                        "https://localhost:9443/t/wso2.com/totpauthenticationendpoint/totpError.jsp"},
+        };
+    }
+
+    @Test(description = "Test case for getTOTPErrorPage()", dataProvider = "errorPageTestDataProvider")
+    public void testGetTOTPErrorPage(String tenantDomain, String urlFromConfig,
+                                            String expectedURL) throws Exception {
+
+        mockStatic(IdentityTenantUtil.class);
+        when(IdentityTenantUtil.isTenantQualifiedUrlsEnabled()).thenReturn(true);
+        when(IdentityTenantUtil.getTenantDomainFromContext()).thenReturn(tenantDomain);
+
+        when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
+        when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(urlFromConfig);
+        mockServiceURLBuilder();
 
         // ConfigurationFacade will return a tenant qualified URL if tenant qualified URLs are enabled.
-        Assert.assertEquals(ConfigurationFacade.getInstance().getAuthenticationEndpointURL()
-                .replace(TOTPAuthenticatorConstants.LOGIN_PAGE, TOTPAuthenticatorConstants.ERROR_PAGE), expectedURL);
+        assertEquals(TOTPUtil.getTOTPErrorPage(new AuthenticationContext()), expectedURL);
+    }
+
+    private void mockServiceURLBuilder() throws URLBuilderException {
+
+        ServiceURLBuilder builder = new ServiceURLBuilder() {
+
+            String path = "";
+
+            @Override
+            public ServiceURLBuilder addPath(String... strings) {
+
+                Arrays.stream(strings).forEach(x -> {
+                    path += "/" + x;
+                });
+                return this;
+            }
+
+            @Override
+            public ServiceURLBuilder addParameter(String s, String s1) {
+
+                return this;
+            }
+
+            @Override
+            public ServiceURLBuilder setFragment(String s) {
+
+                return this;
+            }
+
+            @Override
+            public ServiceURLBuilder addFragmentParameter(String s, String s1) {
+
+                return this;
+            }
+
+            @Override
+            public ServiceURL build() throws URLBuilderException {
+
+                ServiceURL serviceURL = mock(ServiceURL.class);
+
+                String tenantFromContext = IdentityTenantUtil.getTenantDomainFromContext();
+                if (!MultitenantConstants.SUPER_TENANT_DOMAIN_NAME.equals(tenantFromContext)) {
+                    path = "/t/" + tenantFromContext + path;
+                }
+                PowerMockito.when(serviceURL.getAbsolutePublicURL()).thenReturn("https://localhost:9443" + path);
+                PowerMockito.when(serviceURL.getRelativePublicURL()).thenReturn(path);
+                PowerMockito.when(serviceURL.getRelativeInternalURL()).thenReturn(path);
+                return serviceURL;
+            }
+        };
+
+        mockStatic(ServiceURLBuilder.class);
+        PowerMockito.when(ServiceURLBuilder.create()).thenReturn(builder);
     }
 
     @ObjectFactory
