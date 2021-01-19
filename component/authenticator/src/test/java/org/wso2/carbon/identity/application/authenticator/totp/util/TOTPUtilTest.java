@@ -18,7 +18,6 @@
  */
 package org.wso2.carbon.identity.application.authenticator.totp.util;
 
-import org.apache.commons.lang.StringUtils;
 import org.mockito.Mock;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
@@ -60,7 +59,6 @@ import static org.powermock.api.mockito.PowerMockito.doNothing;
 import static org.powermock.api.mockito.PowerMockito.mock;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.testng.Assert.assertEquals;
-import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE;
 
 @PrepareForTest({FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, ConfigurationFacade.class,
         IdentityTenantUtil.class, ServiceURLBuilder.class})
@@ -446,16 +444,16 @@ public class TOTPUtilTest {
         return new Object[][]{
                 {"carbon.super",
                         "https://localhost:9443/authenticationendpoint/login.do",
-                        "https://localhost:9443/totpauthenticationendpoint/enableTOTP.jsp"},
+                        "https://localhost:9443/authenticationendpoint/totp_enroll.do"},
                 {"carbon.super",
                         "authenticationendpoint/login.do",
-                        "https://localhost:9443/totpauthenticationendpoint/enableTOTP.jsp"},
+                        "https://localhost:9443/authenticationendpoint/totp_enroll.do"},
                 {"wso2.com",
                         "https://localhost:9443/authenticationendpoint/login.do",
-                        "https://localhost:9443/totpauthenticationendpoint/enableTOTP.jsp"},
+                        "https://localhost:9443/authenticationendpoint/totp_enroll.do"},
                 {"wso2.com",
                         "authenticationendpoint/login.do",
-                        "https://localhost:9443/t/wso2.com/totpauthenticationendpoint/enableTOTP.jsp"},
+                        "https://localhost:9443/t/wso2.com/authenticationendpoint/totp_enroll.do"},
         };
     }
 
@@ -480,16 +478,16 @@ public class TOTPUtilTest {
         return new Object[][]{
                 {"carbon.super",
                         "https://localhost:9443/authenticationendpoint/login.do",
-                        "https://localhost:9443/totpauthenticationendpoint/totp.jsp"},
+                        "https://localhost:9443/authenticationendpoint/totp.do"},
                 {"carbon.super",
                         "authenticationendpoint/login.do",
-                        "https://localhost:9443/totpauthenticationendpoint/totp.jsp"},
+                        "https://localhost:9443/authenticationendpoint/totp.do"},
                 {"wso2.com",
                         "https://localhost:9443/authenticationendpoint/login.do",
-                        "https://localhost:9443/totpauthenticationendpoint/totp.jsp"},
+                        "https://localhost:9443/authenticationendpoint/totp.do"},
                 {"wso2.com",
                         "authenticationendpoint/login.do",
-                        "https://localhost:9443/t/wso2.com/totpauthenticationendpoint/totp.jsp"},
+                        "https://localhost:9443/t/wso2.com/authenticationendpoint/totp.do"},
         };
     }
 
@@ -514,16 +512,16 @@ public class TOTPUtilTest {
         return new Object[][]{
                 {"carbon.super",
                         "https://localhost:9443/authenticationendpoint/login.do",
-                        "https://localhost:9443/totpauthenticationendpoint/totpError.jsp"},
+                        "https://localhost:9443/authenticationendpoint/totp_error.do"},
                 {"carbon.super",
                         "authenticationendpoint/login.do",
-                        "https://localhost:9443/totpauthenticationendpoint/totpError.jsp"},
+                        "https://localhost:9443/authenticationendpoint/totp_error.do"},
                 {"wso2.com",
                         "https://localhost:9443/authenticationendpoint/login.do",
-                        "https://localhost:9443/totpauthenticationendpoint/totpError.jsp"},
+                        "https://localhost:9443/authenticationendpoint/totp_error.do"},
                 {"wso2.com",
                         "authenticationendpoint/login.do",
-                        "https://localhost:9443/t/wso2.com/totpauthenticationendpoint/totpError.jsp"},
+                        "https://localhost:9443/t/wso2.com/authenticationendpoint/totp_error.do"},
         };
     }
 

@@ -53,9 +53,9 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String EMAIL_CLAIM_URL = "http://wso2.org/claims/emailaddress";
 	public static final String LOGIN_PAGE = "authenticationendpoint/login.do";
 
-	public static final String TOTP_LOGIN_PAGE = "totpauthenticationendpoint/totp.jsp";
-	public static final String ERROR_PAGE = "totpauthenticationendpoint/totpError.jsp";
-	public static final String ENABLE_TOTP_REQUEST_PAGE = "totpauthenticationendpoint/enableTOTP.jsp";
+	public static final String TOTP_LOGIN_PAGE = "authenticationendpoint/totp.do";
+	public static final String ERROR_PAGE = "authenticationendpoint/totp_error.do";
+	public static final String ENABLE_TOTP_REQUEST_PAGE = "authenticationendpoint/totp_enroll.do";
 
 	public static final String TOKEN = "token";
 	public static final String SEND_TOKEN = "sendToken";
