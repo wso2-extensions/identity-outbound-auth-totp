@@ -225,9 +225,11 @@ public class TOTPAuthenticatorTest {
     public void testGetContextIdentifier() {
 
         when(httpServletRequest.getRequestedSessionId()).thenReturn("234567890");
+        when(httpServletRequest.getParameter("sessionDataKey")).thenReturn("234567890");
         Assert.assertEquals(totpAuthenticator.getContextIdentifier(httpServletRequest), "234567890");
 
-        when(httpServletRequest.getRequestedSessionId()).thenReturn(null);
+        when(httpServletRequest.getRequestedSessionId()).thenReturn("234567890");
+        when(httpServletRequest.getParameter("sessionDataKey")).thenReturn(null);
         Assert.assertNull(totpAuthenticator.getContextIdentifier(httpServletRequest));
     }
 
@@ -305,9 +307,13 @@ public class TOTPAuthenticatorTest {
         String username = "admin";
         mockStatic(TOTPTokenGenerator.class);
         when(TOTPTokenGenerator.generateTOTPTokenLocal(username, new AuthenticationContext())).thenReturn("123456");
+
+        mockStatic(TOTPUtil.class);
+        when(TOTPUtil.isSendVerificationCodeByEmailEnabled()).thenReturn(true);
+
         AuthenticationContext authenticationContext = new AuthenticationContext();
         authenticationContext.setProperty("username", username);
-        Assert.assertTrue(Whitebox.invokeMethod(totpAuthenticator, "generateTOTPToken",
+        Assert.assertTrue(Whitebox.invokeMethod(totpAuthenticator, "generateOTPAndSendByEmail",
                 authenticationContext));
     }
 
@@ -326,12 +332,34 @@ public class TOTPAuthenticatorTest {
         AuthenticationContext authenticationContext = new AuthenticationContext();
         String username = "admin";
         authenticationContext.setProperty("username", username);
+
+        mockStatic(TOTPUtil.class);
+        when(TOTPUtil.isSendVerificationCodeByEmailEnabled()).thenReturn(true);
         doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
         when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn("true");
         when(TOTPTokenGenerator.generateTOTPTokenLocal(username, authenticationContext)).thenReturn("123456");
         AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse,
                 authenticationContext);
         Assert.assertEquals(status, AuthenticatorFlowStatus.INCOMPLETE);
+    }
+
+    @Test(description = "Test case for process() method with generate TOTP token with sending OTP by email disabled.")
+    public void testProcessWithSendOTPByEmailDisabled() throws AuthenticationFailedException, LogoutFailedException,
+            TOTPException {
+
+        AuthenticationContext authenticationContext = new AuthenticationContext();
+        String username = "admin";
+        authenticationContext.setProperty("username", username);
+
+        mockStatic(TOTPUtil.class);
+        when(TOTPUtil.isSendVerificationCodeByEmailEnabled()).thenReturn(false);
+
+        doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn("true");
+        when(TOTPTokenGenerator.generateTOTPTokenLocal(username, authenticationContext)).thenReturn("123456");
+        AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse,
+                authenticationContext);
+        Assert.assertEquals(status, AuthenticatorFlowStatus.FAIL_COMPLETED);
     }
 
     @Test(description = "Test case for process() method with send TOTP token failed.")
