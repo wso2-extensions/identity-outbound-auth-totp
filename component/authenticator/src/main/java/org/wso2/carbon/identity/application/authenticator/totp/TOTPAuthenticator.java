@@ -428,9 +428,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             String tenantDomain = context.getTenantDomain();
             String sessionDataKey = context.getContextIdentifier();
 
-            String msg = "Sending verification code by email is disabled by admin. At attempt was made to send " +
-                    "a verification code by email for user: %s for application: %s of %s tenant using sessionDataKey:" +
-                    " %s";
+            String msg = "Sending verification code by email is disabled by admin. At attempt was made to send a " +
+                    "verification code by email for user: %s for application: %s of %s tenant using sessionDataKey: %s";
             log.warn(String.format(msg, username, appName, tenantDomain, sessionDataKey));
             return false;
         }
