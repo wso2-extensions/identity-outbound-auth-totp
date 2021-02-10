@@ -66,14 +66,6 @@
             </releases>
         </repository>
     </repositories>
-    <scm>
-        <connection>scm:git:https://github.com/wso2-extensions/identity-outbound-auth-totp.git</connection>
-        <url>https://github.com/wso2-extensions/identity-outbound-auth-totp.git</url>
-        <developerConnection>
-            scm:git:https://github.com/wso2-extensions/identity-outbound-auth-totp.git
-        </developerConnection>
-        <tag>v2.0.15</tag>
-    </scm>
     <pluginRepositories>
         <pluginRepository>
             <id>wso2.releases</id>
@@ -361,7 +353,6 @@
         <encoder.wso2.version>1.2.0.wso2v1</encoder.wso2.version>
         <javax.xml.parsers.import.pkg.version>[0.0.0, 1.0.0)</javax.xml.parsers.import.pkg.version>
         <ehcache.version>1.5.0.wso2v3</ehcache.version>
-        <project.scm.id>my-scm-server</project.scm.id>
         <identity.extension.utils>1.0.8</identity.extension.utils>
         <identity.extension.utils.import.version.range>[1.0.8, 2.0.0)
         </identity.extension.utils.import.version.range>
@@ -401,18 +392,6 @@
             </plugins>
         </pluginManagement>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-release-plugin</artifactId>
-                <configuration>
-                    <preparationGoals>clean install</preparationGoals>
-                    <autoVersionSubmodules>true</autoVersionSubmodules>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-deploy-plugin</artifactId>
-            </plugin>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>2.3.1</version>
