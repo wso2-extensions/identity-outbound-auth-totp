@@ -18,6 +18,7 @@
  */
 package org.wso2.carbon.identity.application.authenticator.totp.internal;
 
+import org.wso2.carbon.identity.mgt.account.lock.AccountLockService;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.ConfigurationContextService;
 
@@ -30,6 +31,7 @@ public class TOTPDataHolder {
 	private static TOTPDataHolder instance = new TOTPDataHolder();
 	private RealmService realmService;
 	private ConfigurationContextService configurationContextService;
+	private AccountLockService accountLockService;
 
 	/**
 	 * Returns the DataHolder instance.
@@ -75,5 +77,25 @@ public class TOTPDataHolder {
 	public void setConfigurationContextService(
 			ConfigurationContextService configurationContextService) {
 		this.configurationContextService = configurationContextService;
+	}
+
+	/**
+	 * Get the AccountLock service.
+	 *
+	 * @return AccountLock service.
+	 */
+	public AccountLockService getAccountLockService() {
+
+		return accountLockService;
+	}
+
+	/**
+	 * Set the AccountLock service.
+	 *
+	 * @param accountLockService The AccountLock service.
+	 */
+	public void setAccountLockService(AccountLockService accountLockService) {
+
+		this.accountLockService = accountLockService;
 	}
 }

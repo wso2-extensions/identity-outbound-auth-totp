@@ -96,6 +96,11 @@
             <version>1.6.5</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.wso2.orbit.org.owasp.encoder</groupId>
+            <artifactId>encoder</artifactId>
+            <version>${encoder.wso2.version}</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

@@ -23,6 +23,7 @@ import org.apache.commons.logging.LogFactory;
 import org.osgi.service.component.ComponentContext;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticator;
+import org.wso2.carbon.identity.mgt.account.lock.AccountLockService;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.ConfigurationContextService;
 
@@ -36,6 +37,9 @@ import java.util.Hashtable;
  * unbind="unsetConfigurationContextService"
  * @scr.reference name="user.realmservice.default" interface="org.wso2.carbon.user.core.service.RealmService"
  * cardinality="1..1" policy="dynamic" bind="setRealmService" unbind="unsetRealmService"
+ * @scr.reference name="org.wso2.carbon.identity.mgt.account.lock.AccountLockService"
+ * interface="org.wso2.carbon.identity.mgt.account.lock.AccountLockService"
+ * cardinality="1..1" policy="dynamic" bind="setAccountLockService" unbind="unsetAccountLockService"
  */
 public class TOTPAuthenticatorServiceComponent {
 
@@ -105,5 +109,25 @@ public class TOTPAuthenticatorServiceComponent {
 	 */
 	protected void unsetRealmService(RealmService realmService) {
 		TOTPDataHolder.getInstance().setRealmService(null);
+	}
+
+	/**
+	 * This method is used to unset the Account Lock Service.
+	 *
+	 * @param accountLockService The Account Lock Service which needs to set.
+	 */
+	protected void setAccountLockService(AccountLockService accountLockService) {
+
+		TOTPDataHolder.getInstance().setAccountLockService(accountLockService);
+	}
+
+	/**
+	 * This method is used to unset the Account Lock Service.
+	 *
+	 * @param accountLockService The Account Lock Service which needs to set.
+	 */
+	protected void unsetAccountLockService(AccountLockService accountLockService) {
+
+		TOTPDataHolder.getInstance().setAccountLockService(null);
 	}
 }

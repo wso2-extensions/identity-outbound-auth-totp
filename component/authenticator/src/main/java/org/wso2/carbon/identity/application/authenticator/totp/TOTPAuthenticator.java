@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.application.authenticator.totp;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.owasp.encoder.Encode;
@@ -40,8 +41,14 @@ import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenti
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorCredentials;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPKeyRepresentation;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
+import org.wso2.carbon.identity.application.common.model.Property;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.mgt.IdentityMgtConfig;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
+import org.wso2.carbon.user.api.UserStoreManager;
+import org.wso2.carbon.user.core.UserCoreConstants;
+import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -275,44 +282,84 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 	 * @throws AuthenticationFailedException Authentication process failed for user
 	 */
 	@Override
-	protected void processAuthenticationResponse(HttpServletRequest request,
-	                                             HttpServletResponse response,
-	                                             AuthenticationContext context)
-			throws AuthenticationFailedException {
+	protected void processAuthenticationResponse(HttpServletRequest request, HttpServletResponse response,
+												 AuthenticationContext context) throws AuthenticationFailedException {
+
 		String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
 		String username = context.getProperty("username").toString();
+		validateAccountLockStatusForLocalUser(context, username);
+		if (StringUtils.isBlank(token)) {
+			handleTotpVerificationFail(context);
+			throw new AuthenticationFailedException("Empty TOTP in the request. Authentication Failed for user: " +
+					username);
+		}
+		checkTotpEnabled(context, username);
+		try {
+			int tokenValue = Integer.parseInt(token);
+			if (!isValidTokenLocalUser(tokenValue, username, context)) {
+				handleTotpVerificationFail(context);
+				throw new AuthenticationFailedException("Invalid Token. Authentication failed, user :  " + username);
+			}
+			if (StringUtils.isNotBlank(username)) {
+				AuthenticatedUser authenticatedUser = new AuthenticatedUser();
+				authenticatedUser.setAuthenticatedSubjectIdentifier(username);
+				authenticatedUser.setUserName(
+						UserCoreUtil.removeDomainFromName(MultitenantUtils.getTenantAwareUsername(username)));
+				authenticatedUser.setUserStoreDomain(UserCoreUtil.extractDomainFromName(username));
+				authenticatedUser.setTenantDomain(MultitenantUtils.getTenantDomain(username));
+				context.setSubject(authenticatedUser);
+			} else {
+				context.setSubject(AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username));
+			}
+		} catch (NumberFormatException e) {
+			handleTotpVerificationFail(context);
+			throw new AuthenticationFailedException("TOTP Authentication process failed for user " + username, e);
+		} catch (TOTPException e) {
+			throw new AuthenticationFailedException("TOTP Authentication process failed for user " + username, e);
+		}
+		// It reached here means the authentication was successful.
+		resetTotpFailedAttempts(context);
+	}
+
+	private void checkTotpEnabled(AuthenticationContext context, String username) throws AuthenticationFailedException {
+
 		if (context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP) != null && Boolean
-				.valueOf(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString())) {
-			//adds the claims to the profile if the user enrol and continued.
+				.parseBoolean(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString())) {
+			// Adds the claims to the profile if the user enrol and continued.
 			Map<String, String> claims = new HashMap<>();
-            if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
-                claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
-                        context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString());
-            }
-            if (context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL) != null) {
-                claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
-                        context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL).toString());
-            }
+			if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
+				claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
+						context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString());
+			}
+			if (context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL) != null) {
+				claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
+						context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL).toString());
+			}
 			try {
 				TOTPKeyGenerator.addTOTPClaimsAndRetrievingQRCodeURL(claims, username, context);
 			} catch (TOTPException e) {
 				throw new AuthenticationFailedException("Error while adding TOTP claims to the user : " + username, e);
 			}
 		}
-		if (token != null) {
-			try {
-				int tokenValue = Integer.parseInt(token);
-				if (!isValidTokenLocalUser(tokenValue, username, context)) {
-					throw new AuthenticationFailedException(
-							"Authentication failed, user :  " + username);
-				}
-				context.setSubject(AuthenticatedUser
-						                   .createLocalAuthenticatedUserFromSubjectIdentifier(
-								                   username));
-			} catch (TOTPException | NumberFormatException e) {
-				throw new AuthenticationFailedException(
-						"TOTP Authentication process failed for user " + username, e);
+	}
+
+	private void validateAccountLockStatusForLocalUser(AuthenticationContext context, String username)
+			throws AuthenticationFailedException {
+
+		boolean isLocalUser = TOTPUtil.isLocalUser(context);
+		AuthenticatedUser authenticatedUserObject =
+				(AuthenticatedUser) context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
+		String tenantDomain = MultitenantUtils.getTenantDomain(username);
+		String userStoreDomain = UserCoreUtil.extractDomainFromName(username);
+		if (isLocalUser &&
+				TOTPUtil.isAccountLocked(authenticatedUserObject.getUserName(), tenantDomain, userStoreDomain)) {
+			String errorMessage =
+					String.format("Authentication failed since authenticated user: %s, account is locked.",
+							getUserStoreAppendedName(username));
+			if (log.isDebugEnabled()) {
+				log.debug(errorMessage);
 			}
+			throw new AuthenticationFailedException(errorMessage);
 		}
 	}
 
@@ -467,6 +514,144 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 		} catch (AuthenticationFailedException e) {
 			throw new TOTPException(
 					"TOTPTokenVerifier cannot find the property value for encodingMethod");
+		}
+	}
+	/**
+	 * Execute account lock flow for TOTP verification failures.
+	 *
+	 * @param context Authentication context.
+	 * @throws AuthenticationFailedException Exception on authentication failure.
+	 */
+	private void handleTotpVerificationFail(AuthenticationContext context) throws AuthenticationFailedException {
+
+		AuthenticatedUser authenticatedUser =
+				(AuthenticatedUser) context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
+		/*
+		Account locking is not done for federated flows.
+		Check whether account locking enabled for TOTP to keep backward compatibility.
+		No need to continue if the account is already locked.
+		 */
+		if (!TOTPUtil.isLocalUser(context) || !TOTPUtil.isAccountLockingEnabledForTotp() ||
+				TOTPUtil.isAccountLocked(authenticatedUser.getUserName(), authenticatedUser.getTenantDomain(),
+						authenticatedUser.getUserStoreDomain())) {
+			return;
+		}
+		int maxAttempts = 0;
+		long unlockTimePropertyValue = 0;
+
+		if (!IdentityMgtConfig.getInstance().isAuthPolicyAccountLockOnFailure()) {
+			return;
+		}
+		maxAttempts = IdentityMgtConfig.getInstance().getAuthPolicyMaxLoginAttempts();
+		unlockTimePropertyValue = IdentityMgtConfig.getInstance().getAuthPolicyLockingTime();
+		String username = context.getProperty("username").toString();
+		Map<String, String> claimValues = getUserClaimValues(authenticatedUser, username);
+		if (claimValues == null) {
+			claimValues = new HashMap<>();
+		}
+		int currentAttempts = 0;
+		if (NumberUtils.isNumber(claimValues.get(TOTPAuthenticatorConstants.FAILED_TOTP_ATTEMPTS_CLAIM))) {
+			currentAttempts = Integer.parseInt(claimValues.get(TOTPAuthenticatorConstants.FAILED_TOTP_ATTEMPTS_CLAIM));
+		}
+
+		Map<String, String> updatedClaims = new HashMap<>();
+		if ((currentAttempts + 1) >= maxAttempts) {
+			// Calculate unlock-time by adding current-time and unlock-time-interval in milli seconds.
+			long unlockTime = System.currentTimeMillis() + unlockTimePropertyValue * 60 * 1000;
+			updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_LOCKED_CLAIM, Boolean.TRUE.toString());
+			updatedClaims.put(TOTPAuthenticatorConstants.FAILED_TOTP_ATTEMPTS_CLAIM, "0");
+			updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_UNLOCK_TIME_CLAIM, String.valueOf(unlockTime));
+			IdentityUtil.threadLocalProperties.get().put(TOTPAuthenticatorConstants.ADMIN_INITIATED, false);
+			setUserClaimValues(authenticatedUser, username, updatedClaims);
+			String errorMessage = String.format("User account: %s is locked.", authenticatedUser.getUserName());
+			throw new AuthenticationFailedException(errorMessage);
+		} else {
+			updatedClaims
+					.put(TOTPAuthenticatorConstants.FAILED_TOTP_ATTEMPTS_CLAIM, String.valueOf(currentAttempts + 1));
+			setUserClaimValues(authenticatedUser, username, updatedClaims);
+		}
+	}
+
+	private void resetTotpFailedAttempts(AuthenticationContext context) throws AuthenticationFailedException {
+
+		/*
+		Check whether account locking enabled for TOTP to keep backward compatibility.
+		Account locking is not done for federated flows.
+		 */
+		if (!TOTPUtil.isLocalUser(context) || !TOTPUtil.isAccountLockingEnabledForTotp()) {
+			return;
+		}
+		AuthenticatedUser authenticatedUser =
+				(AuthenticatedUser) context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
+
+		// Return if account lock handler is not enabled.
+		if (IdentityMgtConfig.getInstance().isAuthPolicyAccountLockOnFailure()) {
+			return;
+		}
+
+		String username = context.getProperty("username").toString();
+		String usernameWithDomain = IdentityUtil.addDomainToName(authenticatedUser.getUserName(),
+				authenticatedUser.getUserStoreDomain());
+		try {
+			UserRealm userRealm = TOTPUtil.getUserRealm(username);
+			UserStoreManager userStoreManager = userRealm.getUserStoreManager();
+
+			// Avoid updating the claims if they are already zero.
+			String[] claimsToCheck = {TOTPAuthenticatorConstants.FAILED_TOTP_ATTEMPTS_CLAIM};
+			Map<String, String> userClaims = userStoreManager.getUserClaimValues(usernameWithDomain, claimsToCheck,
+					UserCoreConstants.DEFAULT_PROFILE);
+			String failedTotpAttempts = userClaims.get(TOTPAuthenticatorConstants.FAILED_TOTP_ATTEMPTS_CLAIM);
+
+			if (NumberUtils.isNumber(failedTotpAttempts) && Integer.parseInt(failedTotpAttempts) > 0) {
+				Map<String, String> updatedClaims = new HashMap<>();
+				updatedClaims.put(TOTPAuthenticatorConstants.FAILED_TOTP_ATTEMPTS_CLAIM, "0");
+				userStoreManager
+						.setUserClaimValues(usernameWithDomain, updatedClaims, UserCoreConstants.DEFAULT_PROFILE);
+			}
+		} catch (UserStoreException e) {
+			if (log.isDebugEnabled()) {
+				log.debug("Error while resetting failed TOTP attempts", e);
+			}
+			String errorMessage = "Failed to reset failed attempts count for user : " + authenticatedUser.getUserName();
+			throw new AuthenticationFailedException(errorMessage, e);
+		}
+	}
+
+	private Map<String, String> getUserClaimValues(AuthenticatedUser authenticatedUser, String username)
+			throws AuthenticationFailedException {
+
+		Map<String, String> claimValues;
+		try {
+			UserRealm userRealm = TOTPUtil.getUserRealm(username);
+			UserStoreManager userStoreManager = userRealm.getUserStoreManager();
+			claimValues = userStoreManager.getUserClaimValues(IdentityUtil.addDomainToName(
+					authenticatedUser.getUserName(), authenticatedUser.getUserStoreDomain()), new String[]{
+							TOTPAuthenticatorConstants.FAILED_TOTP_ATTEMPTS_CLAIM},
+					UserCoreConstants.DEFAULT_PROFILE);
+		} catch (UserStoreException e) {
+			if (log.isDebugEnabled()) {
+				log.debug("Error while reading user claims of user: " + authenticatedUser.getUserName(), e);
+			}
+			String errorMessage = "Failed to read user claims for user : " + authenticatedUser.getUserName();
+			throw new AuthenticationFailedException(errorMessage, e);
+		}
+		return claimValues;
+	}
+
+	private void setUserClaimValues(AuthenticatedUser authenticatedUser, String username,
+									Map<String, String> updatedClaims) throws AuthenticationFailedException {
+
+		try {
+			UserRealm userRealm = TOTPUtil.getUserRealm(username);
+			UserStoreManager userStoreManager = userRealm.getUserStoreManager();
+			userStoreManager.setUserClaimValues(IdentityUtil.addDomainToName(authenticatedUser.getUserName(),
+					authenticatedUser.getUserStoreDomain()), updatedClaims, UserCoreConstants.DEFAULT_PROFILE);
+		} catch (UserStoreException e) {
+			if (log.isDebugEnabled()) {
+				log.debug("Error while updating user claims of user: " + authenticatedUser.getUserName(), e);
+			}
+			String errorMessage = "Failed to update user claims for user : " + authenticatedUser.getUserName();
+			throw new AuthenticationFailedException(errorMessage, e);
 		}
 	}
 }
