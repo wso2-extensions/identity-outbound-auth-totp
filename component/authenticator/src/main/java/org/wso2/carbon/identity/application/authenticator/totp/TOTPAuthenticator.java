@@ -41,7 +41,6 @@ import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenti
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorCredentials;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPKeyRepresentation;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
-import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.mgt.IdentityMgtConfig;
 import org.wso2.carbon.user.api.UserRealm;
@@ -289,16 +288,16 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 		String username = context.getProperty("username").toString();
 		validateAccountLockStatusForLocalUser(context, username);
 		if (StringUtils.isBlank(token)) {
-			handleTotpVerificationFail(context);
-			throw new AuthenticationFailedException("Empty TOTP in the request. Authentication Failed for user: " +
+			handleTotpVerificationFailure(context);
+			throw new AuthenticationFailedException("Empty TOTP in the request. Authentication failed for user: " +
 					username);
 		}
-		checkTotpEnabled(context, username);
+		addTOTPClaims(context, username);
 		try {
 			int tokenValue = Integer.parseInt(token);
 			if (!isValidTokenLocalUser(tokenValue, username, context)) {
-				handleTotpVerificationFail(context);
-				throw new AuthenticationFailedException("Invalid Token. Authentication failed, user :  " + username);
+				handleTotpVerificationFailure(context);
+				throw new AuthenticationFailedException("Invalid Token. Authentication failed for user :  " + username);
 			}
 			if (StringUtils.isNotBlank(username)) {
 				AuthenticatedUser authenticatedUser = new AuthenticatedUser();
@@ -312,16 +311,16 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 				context.setSubject(AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username));
 			}
 		} catch (NumberFormatException e) {
-			handleTotpVerificationFail(context);
-			throw new AuthenticationFailedException("TOTP Authentication process failed for user " + username, e);
+			handleTotpVerificationFailure(context);
+			throw new AuthenticationFailedException("TOTP Authentication process failed for user: " + username, e);
 		} catch (TOTPException e) {
-			throw new AuthenticationFailedException("TOTP Authentication process failed for user " + username, e);
+			throw new AuthenticationFailedException("TOTP Authentication process failed for user: " + username, e);
 		}
 		// It reached here means the authentication was successful.
 		resetTotpFailedAttempts(context);
 	}
 
-	private void checkTotpEnabled(AuthenticationContext context, String username) throws AuthenticationFailedException {
+	private void addTOTPClaims(AuthenticationContext context, String username) throws AuthenticationFailedException {
 
 		if (context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP) != null && Boolean
 				.parseBoolean(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString())) {
@@ -516,13 +515,14 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 					"TOTPTokenVerifier cannot find the property value for encodingMethod");
 		}
 	}
+
 	/**
 	 * Execute account lock flow for TOTP verification failures.
 	 *
 	 * @param context Authentication context.
 	 * @throws AuthenticationFailedException Exception on authentication failure.
 	 */
-	private void handleTotpVerificationFail(AuthenticationContext context) throws AuthenticationFailedException {
+	private void handleTotpVerificationFailure(AuthenticationContext context) throws AuthenticationFailedException {
 
 		AuthenticatedUser authenticatedUser =
 				(AuthenticatedUser) context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
