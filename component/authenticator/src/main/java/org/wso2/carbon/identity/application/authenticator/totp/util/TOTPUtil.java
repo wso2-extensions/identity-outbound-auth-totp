@@ -130,23 +130,13 @@ public class TOTPUtil {
     /**
      * Returns back the display name which will be used for the TOTP QR code URL.
      *
-     * @param tenantDomain  Tenant domain
-     * @param context       Context
      * @param tenantAwareUsername   Tenant aware username
      * @return  Username
      */
-    public static String getTOTPDisplayUsername(String tenantDomain, AuthenticationContext context,
-                                                String tenantAwareUsername) {
+    public static String getTOTPDisplayUsername(String tenantAwareUsername) {
 
-        String hideUserStoreConfig;
-        if (context != null && context.getProperty(TOTP_HIDE_USERSTORE_FROM_USERNAME) != null) {
-            hideUserStoreConfig = (String) context.getProperty(TOTP_HIDE_USERSTORE_FROM_USERNAME);
-        } else if (SUPER_TENANT_DOMAIN.equals(tenantDomain)) {
-            hideUserStoreConfig = getTOTPParameters().get(TOTP_HIDE_USERSTORE_FROM_USERNAME);
-        } else {
-            hideUserStoreConfig = getConfigFromRegistry(tenantDomain, TOTP_HIDE_USERSTORE_FROM_USERNAME);
-        }
-        if (StringUtils.isNotEmpty(hideUserStoreConfig) && Boolean.parseBoolean(hideUserStoreConfig)) {
+        String hideUserStoreConfig = getTOTPParameters().get(TOTP_HIDE_USERSTORE_FROM_USERNAME);
+        if (Boolean.parseBoolean(hideUserStoreConfig)) {
             return UserCoreUtil.removeDomainFromName(tenantAwareUsername);
         }
         return tenantAwareUsername;
@@ -179,24 +169,6 @@ public class TOTPUtil {
             PrivilegedCarbonContext.endTenantFlow();
         }
         return issuer;
-    }
-
-    private static String getConfigFromRegistry(String tenantDomain, String configKey) {
-
-        int tenantID = IdentityTenantUtil.getTenantId(tenantDomain);
-        try {
-            NodeList authConfigList = getAuthenticationConfigNodeList(tenantDomain, tenantID);
-            return getAttributeFromRegistry(authConfigList, configKey);
-        } catch (Exception e) {
-            //Default to tenant domain name on registry exception.
-            if (log.isDebugEnabled()) {
-                log.debug("Error while reading the value for " + configKey + " from the tenant registry." +
-                        " Falling back to the server config.");
-            }
-            return getTOTPParameters().get(configKey);
-        } finally {
-            PrivilegedCarbonContext.endTenantFlow();
-        }
     }
 
     private static String getAttributeFromRegistry(NodeList authConfigList, String attributeTag) {
