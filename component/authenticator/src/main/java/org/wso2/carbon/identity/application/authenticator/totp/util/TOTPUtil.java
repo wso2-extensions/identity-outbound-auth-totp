@@ -138,7 +138,7 @@ public class TOTPUtil {
     public static String getTOTPDisplayUsername(String tenantDomain, AuthenticationContext context,
                                                 String tenantAwareUsername) {
 
-        String hideUserStoreConfig = null;
+        String hideUserStoreConfig;
         if (context != null && context.getProperty(TOTP_HIDE_USERSTORE_FROM_USERNAME) != null) {
             hideUserStoreConfig = (String) context.getProperty(TOTP_HIDE_USERSTORE_FROM_USERNAME);
         } else if (SUPER_TENANT_DOMAIN.equals(tenantDomain)) {
