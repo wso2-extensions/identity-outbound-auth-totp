@@ -92,8 +92,9 @@ public class TOTPKeyGenerator {
                 }
 
                 String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
+                String displayUsername = TOTPUtil.getTOTPDisplayUsername(tenantDomain, context, tenantAwareUsername);
                 String qrCodeURL =
-                        "otpauth://totp/" + issuer + ":" + tenantAwareUsername + "?secret=" + secretKey + "&issuer=" +
+                        "otpauth://totp/" + issuer + ":" + displayUsername + "?secret=" + secretKey + "&issuer=" +
                                 issuer + "&period=" + timeStep;
                 encodedQRCodeURL = Base64.encodeBase64String(qrCodeURL.getBytes());
                 claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, encodedQRCodeURL);
