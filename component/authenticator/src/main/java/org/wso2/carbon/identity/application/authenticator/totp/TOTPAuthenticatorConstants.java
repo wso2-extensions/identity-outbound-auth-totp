@@ -73,6 +73,7 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String TOTP_AUTHENTICATION_ENDPOINT_URL = "TOTPAuthenticationEndpointURL";
 	public static final String TOTP_ISSUER = "Issuer";
 	public static final String TOTP_COMMON_ISSUER = "UseCommonIssuer";
+	public static final String TOTP_HIDE_USERSTORE_FROM_USERNAME = "HideUserStoreFromDisplayInQRUrl";
 	public static final String TOTP_AUTHENTICATION_ERROR_PAGE_URL = "TOTPAuthenticationEndpointErrorPage";
 	public static final String ENABLE_TOTP_REQUEST_PAGE_URL = "TOTPAuthenticationEndpointEnableTOTPPage";
 	public static final String USE_EVENT_HANDLER_BASED_EMAIL_SENDER = "useEventHandlerBasedEmailSender";

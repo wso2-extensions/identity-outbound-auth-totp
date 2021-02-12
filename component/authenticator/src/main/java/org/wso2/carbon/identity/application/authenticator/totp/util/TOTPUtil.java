@@ -55,6 +55,7 @@ import org.wso2.carbon.registry.core.exceptions.RegistryException;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.service.RealmService;
+import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 import org.xml.sax.SAXException;
 
@@ -73,6 +74,8 @@ import javax.xml.parsers.ParserConfigurationException;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ERROR_PAGE;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOTP_HIDE_USERSTORE_FROM_USERNAME;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE;
 
 /**
@@ -122,6 +125,21 @@ public class TOTPUtil {
             issuer = tenantDomain;
         }
         return issuer;
+    }
+
+    /**
+     * Returns back the display name which will be used for the TOTP QR code URL.
+     *
+     * @param tenantAwareUsername   Tenant aware username
+     * @return  Username
+     */
+    public static String getTOTPDisplayUsername(String tenantAwareUsername) {
+
+        String hideUserStoreConfig = getTOTPParameters().get(TOTP_HIDE_USERSTORE_FROM_USERNAME);
+        if (Boolean.parseBoolean(hideUserStoreConfig)) {
+            return UserCoreUtil.removeDomainFromName(tenantAwareUsername);
+        }
+        return tenantAwareUsername;
     }
 
     /**
