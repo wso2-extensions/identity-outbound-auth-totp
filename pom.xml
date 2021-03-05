@@ -226,7 +226,7 @@
         <carbon.commons.version>4.4.8</carbon.commons.version>
         <carbon.commons.imp.pkg.version>[4.4.0, 5.0.0)</carbon.commons.imp.pkg.version>
         <!--Carbon identity version-->
-        <carbon.identity.framework.version>5.18.215</carbon.identity.framework.version>
+        <carbon.identity.framework.version>5.19.41</carbon.identity.framework.version>
 
         <carbon.identity.version>5.0.7</carbon.identity.version>
         <carbon.identity.package.export.version>${carbon.identity.version}</carbon.identity.package.export.version>

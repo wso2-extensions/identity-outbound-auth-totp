@@ -43,6 +43,7 @@ import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
+import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
@@ -154,7 +155,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
         String username = null;
         AuthenticatedUser authenticatedUser;
-        String tenantDomain = context.getTenantDomain();
+        String tenantDomain = getTenantDomainFromContext(context);
         context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
                 TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
         if (!tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
@@ -311,7 +312,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 authenticatedUser.setUserName(UserCoreUtil.removeDomainFromName(
                         MultitenantUtils.getTenantAwareUsername(username)));
                 authenticatedUser.setUserStoreDomain(UserCoreUtil.extractDomainFromName(username));
-                authenticatedUser.setTenantDomain(MultitenantUtils.getTenantDomain(username));
+                authenticatedUser.setTenantDomain(getTenantDomainFromUserName(username));
                 context.setSubject(authenticatedUser);
             } else {
                 context.setSubject(AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username));
@@ -354,7 +355,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         boolean isLocalUser = TOTPUtil.isLocalUser(context);
         AuthenticatedUser authenticatedUserObject =
                 (AuthenticatedUser) context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
-        String tenantDomain = MultitenantUtils.getTenantDomain(username);
+        String tenantDomain = getTenantDomainFromUserName(username);
         String userStoreDomain = UserCoreUtil.extractDomainFromName(username);
         if (isLocalUser &&
                 TOTPUtil.isAccountLocked(authenticatedUserObject.getUserName(), tenantDomain, userStoreDomain)) {
@@ -425,7 +426,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
         if (!TOTPUtil.isSendVerificationCodeByEmailEnabled()) {
             String appName = context.getServiceProviderName();
-            String tenantDomain = context.getTenantDomain();
+            String tenantDomain = getTenantDomainFromContext(context);
             String sessionDataKey = context.getContextIdentifier();
 
             String msg = "Sending verification code by email is disabled by admin. An attempt was made to send a " +
@@ -507,7 +508,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             throws TOTPException {
 
         TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;
-        String tenantDomain = MultitenantUtils.getTenantDomain(username);
+        String tenantDomain = getTenantDomainFromUserName(username);
         String tenantAwareUsername = null;
         try {
             if (TOTPAuthenticatorConstants.BASE64
@@ -565,7 +566,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 		No need to continue if the account is already locked.
 		 */
         if (!TOTPUtil.isLocalUser(context) || !TOTPUtil.isAccountLockingEnabledForTotp() ||
-                TOTPUtil.isAccountLocked(authenticatedUser.getUserName(), authenticatedUser.getTenantDomain(),
+                TOTPUtil.isAccountLocked(authenticatedUser.getUserName(),
+                        getTenantDomainFromAuthenticatedUser(authenticatedUser),
                         authenticatedUser.getUserStoreDomain())) {
             return;
         }
@@ -573,7 +575,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         long unlockTimePropertyValue = 0;
         double unlockTimeRatio = 1;
 
-        Property[] connectorConfigs = TOTPUtil.getAccountLockConnectorConfigs(authenticatedUser.getTenantDomain());
+        Property[] connectorConfigs =
+                TOTPUtil.getAccountLockConnectorConfigs(getTenantDomainFromAuthenticatedUser(authenticatedUser));
         for (Property connectorConfig : connectorConfigs) {
             switch (connectorConfig.getName()) {
                 case TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_ON_FAILURE:
@@ -649,7 +652,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         }
         AuthenticatedUser authenticatedUser =
                 (AuthenticatedUser) context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
-        Property[] connectorConfigs = TOTPUtil.getAccountLockConnectorConfigs(authenticatedUser.getTenantDomain());
+        Property[] connectorConfigs =
+                TOTPUtil.getAccountLockConnectorConfigs(getTenantDomainFromAuthenticatedUser(authenticatedUser));
 
         // Return if account lock handler is not enabled.
         for (Property connectorConfig : connectorConfigs) {
@@ -730,5 +734,29 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             String errorMessage = "Failed to update user claims for user : " + authenticatedUser.getUserName();
             throw new AuthenticationFailedException(errorMessage, e);
         }
+    }
+
+    private String getTenantDomainFromAuthenticatedUser(AuthenticatedUser authenticatedUser) {
+
+        if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
+            return IdentityTenantUtil.getTenantDomainFromContext();
+        }
+        return authenticatedUser.getTenantDomain();
+    }
+
+    private String getTenantDomainFromUserName(String username) {
+
+        if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
+            return IdentityTenantUtil.getTenantDomainFromContext();
+        }
+        return MultitenantUtils.getTenantDomain(username);
+    }
+
+    private String getTenantDomainFromContext(AuthenticationContext context) {
+
+        if (IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
+            return IdentityTenantUtil.getTenantDomainFromContext();
+        }
+        return context.getTenantDomain();
     }
 }
