@@ -73,6 +73,8 @@ public class TOTPTokenGenerator {
 	private static final String TOTP_TOKEN = "totp-token";
 	private static final Log log = LogFactory.getLog(TOTPTokenGenerator.class);
 	private static final int TOKEN_HASH_DIVISOR = 1000000;
+	// Max number of attempts to calculate a token with minimum chars.
+	private static final int MAX_TOKEN_CALCULATE_ATTEMPTS = 5;
 
 	/**
 	 * Get Time steps from unix epoch time.
@@ -187,10 +189,10 @@ public class TOTPTokenGenerator {
 			return token;
 		}
 		/*
-		Calculate a new token with minimum chars. If we cannot generate an acceptable char within 5 attempts, we need
-		to send the last generated code. This is highly unlikely scenario.
+		Calculate a new token with minimum chars. If we cannot generate an acceptable char within 5 attempts
+		(MAX_TOKEN_CALCULATE_ATTEMPTS), we need to send the last generated code. This is highly unlikely scenario.
 		 */
-		for (int count = 0; count < 5; count++) {
+		for (int count = 0; count < MAX_TOKEN_CALCULATE_ATTEMPTS; count++) {
 			token = getCode(secret, getTimeIndex(context));
 			if (isTokenHasMinimumChars(token)) {
 				return token;
