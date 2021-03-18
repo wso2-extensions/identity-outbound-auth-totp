@@ -203,8 +203,10 @@ public class TOTPTokenGenerator {
 			}
 		}
 		if (log.isDebugEnabled()) {
-			log.debug(String.format("Unable to generate a token with max character length for user: %s in tenant: %s" +
-					". Therefore, sending the generated token"));
+			log.debug(
+					String.format("Unable to generate a token with max character length for user: %s in tenant: %s. " +
+									"Therefore, sending the generated token in attempt: %s", username, tenantDomain,
+					MAX_TOKEN_CALCULATE_ATTEMPTS));
 		}
 		return token;
 	}
