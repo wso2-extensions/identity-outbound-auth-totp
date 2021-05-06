@@ -104,6 +104,18 @@ public class TOTPKeyGenerator {
         return claims;
     }
 
+    /**
+     * Generate TOTP related claims.
+     *
+     * @param username Username.
+     * @param tenantDomain Tenant domain.
+     * @param storedSecretKey Stored secret key.
+     * @param refresh Boolean type of refreshing the secret token
+     * @param timeStep Time stamp.
+     * @param context Authentication context.
+     * @return TOTP related claims.
+     * @throws TOTPException If an error occurred while generating claims.
+     */
     public static Map<String, String> getGeneratedClaims(String username, String tenantDomain, String storedSecretKey,
                                                          boolean refresh, long timeStep, AuthenticationContext context)
             throws TOTPException {
