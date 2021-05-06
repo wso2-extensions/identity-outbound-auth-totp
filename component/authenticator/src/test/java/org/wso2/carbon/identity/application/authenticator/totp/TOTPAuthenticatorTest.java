@@ -443,6 +443,7 @@ public class TOTPAuthenticatorTest {
     public void testInitiateAuthenticationRequestWithNullUser() throws AuthenticationFailedException {
 
         context.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+        when(TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
     }
 
@@ -477,7 +478,7 @@ public class TOTPAuthenticatorTest {
         when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
         when(TOTPUtil.getTOTPLoginPage(any(AuthenticationContext.class))).thenCallRealMethod();
-
+        when(TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, authenticationContext);
     }
 
@@ -508,6 +509,7 @@ public class TOTPAuthenticatorTest {
         when(mockedMap.get(anyObject())).thenReturn(stepConfig);
         when(stepConfig.getAuthenticatedAutenticator()).thenReturn(authenticatorConfig);
         when(authenticatorConfig.getApplicationAuthenticator()).thenReturn(applicationAuthenticator);
+        when(TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, mockedContext);
         Assert.assertEquals(mockedContext.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION),
                 TOTPAuthenticatorConstants.FEDERETOR);
@@ -552,7 +554,7 @@ public class TOTPAuthenticatorTest {
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
 
         mockServiceURLBuilder();
-
+        when(TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
         verify(httpServletResponse).sendRedirect(captor.capture());
 
@@ -588,6 +590,7 @@ public class TOTPAuthenticatorTest {
         when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
         when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context)).thenReturn(true);
+        when(TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
     }
 
