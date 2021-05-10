@@ -34,7 +34,7 @@ public interface TOTPSecretKeyDAO {
     void setTOTPSecretKeyOfFederatedUser(String userId, String secretKey) throws TOTPException;
 
     /**
-     * Get the secret key y the federated user id.
+     * Get the secret key for the federated user id.
      *
      * @param userId Federated user id.
      * @return TOTP secret key of the federated user.

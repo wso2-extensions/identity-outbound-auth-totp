@@ -23,8 +23,8 @@ package org.wso2.carbon.identity.application.authenticator.totp.util;
 public class SQLQueries {
 
     public static final String SQL_INSERT_TOTP_SECRET_KEY =
-            "INSERT INTO IDN_FEDERATED_USER_TOTP_SECRET_KEY(USER_ID, SECRET_KEY) VALUES (?,?)";
+            "INSERT INTO IDN_FED_USER_TOTP_SECRET_KEY(USER_ID, SECRET_KEY) VALUES (?,?)";
 
     public static final String SQL_SELECT_SECRET_KEY_OF_USER_ID =
-            "SELECT SECRET_KEY FROM IDN_FEDERATED_USER_TOTP_SECRET_KEY WHERE USER_ID = ?";
+            "SELECT SECRET_KEY FROM IDN_FED_USER_TOTP_SECRET_KEY WHERE USER_ID = ?";
 }

@@ -616,7 +616,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
      * @param tenantDomain Tenant domain.
      * @param context      Authentication context
      * @return true if token is valid otherwise false
-     * @throws TOTPException UserRealm for user or tenant domain is null
+     * @throws TOTPException If an error occurred while validating token.
      */
     private boolean isValidTokenFederatedUser(int token, String tenantDomain,
                                               AuthenticationContext context) throws TOTPException {

@@ -107,12 +107,12 @@ public class TOTPKeyGenerator {
     /**
      * Generate TOTP related claims.
      *
-     * @param username Username.
-     * @param tenantDomain Tenant domain.
+     * @param username        Username.
+     * @param tenantDomain    Tenant domain.
      * @param storedSecretKey Stored secret key.
-     * @param refresh Boolean type of refreshing the secret token
-     * @param timeStep Time stamp.
-     * @param context Authentication context.
+     * @param refresh         Boolean type of refreshing the secret token
+     * @param timeStep        Time stamp.
+     * @param context         Authentication context.
      * @return TOTP related claims.
      * @throws TOTPException If an error occurred while generating claims.
      */
