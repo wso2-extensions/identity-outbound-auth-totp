@@ -63,7 +63,7 @@ public class TOTPKeyGenerator {
             UserRealm userRealm = TOTPUtil.getUserRealm(username);
             String tenantDomain = MultitenantUtils.getTenantDomain(username);
             tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
-            timeStep = getTimeStamp(context, username);
+            timeStep = getTimeStamp(context, tenantDomain);
             if (userRealm != null) {
                 Map<String, String> userClaimValues = userRealm.getUserStoreManager().
                         getUserClaimValues(tenantAwareUsername, new String[]{
@@ -98,7 +98,7 @@ public class TOTPKeyGenerator {
                                                                AuthenticationContext context)
             throws TOTPException {
 
-        long timeStep = getTimeStamp(context, username);
+        long timeStep = getTimeStamp(context, tenantDomain);
         Map<String, String> claims =
                 getGeneratedClaims(username, tenantDomain, storedSecretKey, refresh, timeStep, context);
         return claims;
@@ -116,29 +116,22 @@ public class TOTPKeyGenerator {
      * @return TOTP related claims.
      * @throws TOTPException If an error occurred while generating claims.
      */
-    public static Map<String, String> getGeneratedClaims(String username, String tenantDomain, String storedSecretKey,
+    private static Map<String, String> getGeneratedClaims(String username, String tenantDomain, String storedSecretKey,
                                                          boolean refresh, long timeStep, AuthenticationContext context)
             throws TOTPException {
 
         String secretKey;
         String encodedQRCodeURL;
-        String decryptedSecretKey = null;
-        String generatedSecretKey = null;
         Map<String, String> claims = new HashMap<>();
         String tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
         try {
             if (StringUtils.isEmpty(storedSecretKey) || refresh) {
                 TOTPAuthenticatorKey key = generateKey(tenantDomain, context);
-                generatedSecretKey = key.getKey();
+                secretKey = key.getKey();
                 claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
-                        TOTPUtil.encrypt(generatedSecretKey));
+                        TOTPUtil.encrypt(secretKey));
             } else {
-                decryptedSecretKey = TOTPUtil.decrypt(storedSecretKey);
-            }
-            if (StringUtils.isNotEmpty(generatedSecretKey)) {
-                secretKey = generatedSecretKey;
-            } else {
-                secretKey = decryptedSecretKey;
+                secretKey = TOTPUtil.decrypt(storedSecretKey);
             }
 
             String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
@@ -157,10 +150,9 @@ public class TOTPKeyGenerator {
         return claims;
     }
 
-    public static long getTimeStamp(AuthenticationContext context, String username) throws TOTPException {
+    private static long getTimeStamp(AuthenticationContext context, String tenantDomain) throws TOTPException {
 
         long timeStep;
-        String tenantDomain = MultitenantUtils.getTenantDomain(username);
         try {
             if (context == null) {
                 timeStep = TOTPUtil.getTimeStepSize(tenantDomain);

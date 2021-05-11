@@ -21,6 +21,7 @@ package org.wso2.carbon.identity.application.authenticator.totp;
 import org.apache.axis2.context.ConfigurationContext;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.CarbonContext;
@@ -28,9 +29,11 @@ import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
+import org.wso2.carbon.identity.application.authenticator.totp.dao.DAOFactory;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
+import org.wso2.carbon.identity.application.common.model.ClaimMapping;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.event.IdentityEventConstants;
 import org.wso2.carbon.identity.event.IdentityEventException;
@@ -97,6 +100,7 @@ public class TOTPTokenGenerator {
 	 */
 	public static String generateTOTPTokenLocal(String username, AuthenticationContext context)
 			throws TOTPException {
+
 		long token = 0;
 		String tenantAwareUsername = null;
 		if (username != null) {
@@ -109,8 +113,12 @@ public class TOTPTokenGenerator {
 							userRealm.getUserStoreManager().getUserClaimValues
 									(tenantAwareUsername, new String[] {
 											TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL }, null);
-					String secretKey = TOTPUtil.decrypt(
-							userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
+					String storedSecretKey = userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
+					if (StringUtils.isEmpty(storedSecretKey) &&
+							(context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null)) {
+						storedSecretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
+					}
+					String secretKey = TOTPUtil.decrypt(storedSecretKey);
 					String firstName = userRealm
 							.getUserStoreManager().getUserClaimValue
 									(tenantAwareUsername,
@@ -120,47 +128,19 @@ public class TOTPTokenGenerator {
 							                        (tenantAwareUsername,
 							                         TOTPAuthenticatorConstants.EMAIL_CLAIM_URL,
 							                         null);
-					byte[] secretKeyByteArray;
-					String encoding = TOTPUtil.getEncodingMethod(tenantDomain, context);
-					if (TOTPAuthenticatorConstants.BASE32.equals(encoding)) {
-						Base32 codec32 = new Base32();
-						secretKeyByteArray = codec32.decode(secretKey);
-					} else {
-						Base64 codec64 = new Base64();
-						secretKeyByteArray = codec64.decode(secretKey);
-					}
-					token = generateToken(username, tenantDomain, secretKeyByteArray, context);
-					// Check whether the authenticator is configured to use the event handler implementation.
-					if (TOTPUtil.isEventHandlerBasedEmailSenderEnabled()) {
-						if (log.isDebugEnabled()) {
-							log.debug("TOTP authenticator configured to use the event handler implementation.");
-						}
-						AuthenticatedUser authenticatedUser = (AuthenticatedUser) context
-								.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
-						triggerEvent(authenticatedUser.getUserName(), authenticatedUser.getTenantDomain(),
-								authenticatedUser.getUserStoreDomain(), TOTPAuthenticatorConstants.EVENT_NAME,
-								Long.toString(token));
-					} else{
-						sendNotification(tenantAwareUsername, firstName, Long.toString(token), email);
-					}
-					if (log.isDebugEnabled()) {
-						log.debug(
-								"Token is sent to via email to the user : " + tenantAwareUsername);
-					}
+					AuthenticatedUser authenticatedUser = (AuthenticatedUser) context
+							.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
+					token = sendEmailWithToken(username, authenticatedUser, tenantAwareUsername, firstName, secretKey,
+							email, tenantDomain, context);
 				} else {
 					throw new TOTPException(
 							"Cannot find the user realm for the given tenant domain : " +
-							CarbonContext.getThreadLocalCarbonContext().getTenantDomain());
+									CarbonContext.getThreadLocalCarbonContext().getTenantDomain());
 				}
 			} catch (UserStoreException e) {
 				throw new TOTPException(
 						"TOTPTokenGenerator failed while trying to access userRealm of the user : " +
-						tenantAwareUsername, e);
-			} catch (NoSuchAlgorithmException e) {
-				throw new TOTPException(
-						"TOTPTokenGenerator can't find the configured hashing algorithm", e);
-			} catch (InvalidKeyException e) {
-				throw new TOTPException("Secret key is not valid", e);
+								tenantAwareUsername, e);
 			} catch (CryptoException e) {
 				throw new TOTPException("Error while decrypting the key", e);
 			} catch (AuthenticationFailedException e) {
@@ -169,6 +149,110 @@ public class TOTPTokenGenerator {
 			}
 		}
 		return Long.toString(token);
+	}
+
+	/**
+	 * Generate TOTP token for a federated user.
+	 *
+	 * @param username Username of the user.
+	 * @param context  Authentication context.
+	 * @throws TOTPException When could not find user realm for the given tenant domain, invalid.
+	 *                       secret key, decrypting invalid key and could not find the configured hashing algorithm.
+	 */
+	public static void generateTOTPTokenFederatedUser(String username, AuthenticatedUser authenticatedUser,
+													  AuthenticationContext context)
+			throws TOTPException {
+
+		if (context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID) == null) {
+			throw new TOTPException("Error wile getting the federated user id for the user: ");
+		}
+		String userId = context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID).toString();
+
+		String tenantAwareUsername = authenticatedUser.getUserName();
+		String storedSecretKey;
+		if (username != null) {
+			try {
+				storedSecretKey = DAOFactory.getInstance().getTOTPSecretKeyDAO().
+						getTOTPSecretKeyOfFederatedUser(userId);
+				if (StringUtils.isEmpty(storedSecretKey) &&
+						(context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null)) {
+					storedSecretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
+				}
+				String secretKey = TOTPUtil.decrypt(storedSecretKey);
+				Map<ClaimMapping, String> userAttributes = authenticatedUser.getUserAttributes();
+				String email = getEmailForFederatedUser(userAttributes);
+				String tenantDomain = authenticatedUser.getTenantDomain();
+
+				sendEmailWithToken(username, authenticatedUser, tenantAwareUsername, username, secretKey,
+						email, tenantDomain, context);
+			} catch (CryptoException e) {
+				throw new TOTPException("Error while decrypting the key", e);
+			}
+		}
+	}
+
+	private static long sendEmailWithToken(String username, AuthenticatedUser authenticatedUser,
+										   String tenantAwareUsername, String firstName, String secretKey,
+										   String email, String tenantDomain, AuthenticationContext context)
+			throws TOTPException {
+
+		long token;
+		byte[] secretKeyByteArray;
+		try {
+			String encoding = TOTPUtil.getEncodingMethod(tenantDomain, context);
+			if (TOTPAuthenticatorConstants.BASE32.equals(encoding)) {
+				Base32 codec32 = new Base32();
+				secretKeyByteArray = codec32.decode(secretKey);
+			} else {
+				Base64 codec64 = new Base64();
+				secretKeyByteArray = codec64.decode(secretKey);
+			}
+			token = generateToken(username, tenantDomain, secretKeyByteArray, context);
+			// Check whether the authenticator is configured to use the event handler implementation.
+			if (TOTPUtil.isEventHandlerBasedEmailSenderEnabled()) {
+				if (log.isDebugEnabled()) {
+					log.debug("TOTP authenticator configured to use the event handler implementation.");
+				}
+				triggerEvent(authenticatedUser.getUserName(), authenticatedUser.getTenantDomain(), email,
+						authenticatedUser.getUserStoreDomain(), TOTPAuthenticatorConstants.EVENT_NAME,
+						Long.toString(token));
+			} else{
+				sendNotification(tenantAwareUsername, firstName, tenantDomain, Long.toString(token), email);
+			}
+			if (log.isDebugEnabled()) {
+				log.debug(
+						"Token is sent to via email to the user : " + tenantAwareUsername);
+			}
+		} catch (NoSuchAlgorithmException e) {
+			throw new TOTPException(
+					"TOTPTokenGenerator can't find the configured hashing algorithm", e);
+		} catch (InvalidKeyException e) {
+			throw new TOTPException("Secret key is not valid", e);
+		} catch (AuthenticationFailedException e) {
+			throw new TOTPException(
+					"TOTPTokenVerifier cannot find the property value for encodingMethod");
+		}
+		return token;
+	}
+
+	/**
+	 * Extract the email value from federated user attributes.
+	 *
+	 * @param userAttributes Map with federated user attributes.
+	 * @return Email attribute.
+	 */
+	private static String getEmailForFederatedUser(Map<ClaimMapping, String> userAttributes) {
+
+		String email = null;
+		for (Map.Entry<ClaimMapping, String> entry : userAttributes.entrySet()) {
+			String key = String.valueOf(entry.getKey().getLocalClaim().getClaimUri());
+			String value = entry.getValue();
+			if ((TOTPAuthenticatorConstants.FEDERATED_EMAIL_ATTRIBUTE_KEY).equals(key)) {
+				email = String.valueOf(value);
+				break;
+			}
+		}
+		return email;
 	}
 
 	/**
@@ -268,8 +352,8 @@ public class TOTPTokenGenerator {
 	 * @param email               Email address of the user
 	 * @throws TOTPException MAILTO transport sender is not defined
 	 */
-	private static void sendNotification(String tenantAwareUsername, String firstName, String token,
-	                                     String email) throws TOTPException {
+	private static void sendNotification(String tenantAwareUsername, String firstName, String tenantDomain,
+										 String token, String email) throws TOTPException {
 		ConfigurationContext configurationContext =
 				TOTPDataHolder.getInstance().getConfigurationContextService()
 				              .getServerConfigContext();
@@ -280,7 +364,6 @@ public class TOTPTokenGenerator {
 			Notification emailNotification;
 			NotificationData emailNotificationData = new NotificationData();
 			ConfigBuilder configBuilder = ConfigBuilder.getInstance();
-			String tenantDomain = MultitenantUtils.getTenantDomain(tenantAwareUsername);
 			NotificationSendingModule module = new DefaultEmailSendingModule();
 			int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
 			String emailTemplate = null;
@@ -327,13 +410,15 @@ public class TOTPTokenGenerator {
 	 *
 	 * @param userName : Identity user name
 	 * @param tenantDomain : Tenant domain of the user.
+	 * @param sendToAddress  The email address to send the otp.
 	 * @param userStoreDomainName : User store domain name of the user.
 	 * @param notificationEvent : The name of the event.
 	 * @param otpCode : The OTP code returned for the authentication request.
 	 * @throws AuthenticationFailedException : In occasions of failing sending the email to the user.
 	 */
-	private static void triggerEvent(String userName, String tenantDomain, String userStoreDomainName,
-			String notificationEvent, String otpCode) throws AuthenticationFailedException {
+	private static void triggerEvent(String userName, String tenantDomain, String sendToAddress,
+									 String userStoreDomainName, String notificationEvent, String otpCode)
+			throws AuthenticationFailedException {
 
 		String eventName = IdentityEventConstants.Event.TRIGGER_NOTIFICATION;
 		HashMap<String, Object> properties = new HashMap<>();
@@ -342,6 +427,7 @@ public class TOTPTokenGenerator {
 		properties.put(IdentityEventConstants.EventProperty.TENANT_DOMAIN, tenantDomain);
 		properties.put(TOKEN, otpCode);
 		properties.put(TOTPAuthenticatorConstants.TEMPLATE_TYPE, notificationEvent);
+		properties.put(TOTPAuthenticatorConstants.ATTRIBUTE_EMAIL_SENT_TO, sendToAddress);
 		Event identityMgtEvent = new Event(eventName, properties);
 		try {
 			TOTPDataHolder.getInstance().getIdentityEventService().handleEvent(identityMgtEvent);

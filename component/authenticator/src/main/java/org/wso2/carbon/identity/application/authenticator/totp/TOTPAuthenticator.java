@@ -173,7 +173,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         }
         String retryParam = "";
         try {
-            if (!TOTPUtil.isLocalUser(context)) {
+            if (TOTPUtil.isLocalUser(context)) {
+                FederatedAuthenticatorUtil.setUsernameFromFirstStep(context);
+                username = String.valueOf(context.getProperty("username"));
+                authenticatedUser = (AuthenticatedUser) context.getProperty("authenticatedUser");
+            } else {
                 isFederatedUser = true;
                 Map<Integer, StepConfig> stepConfigMap = context.getSequenceConfig().getStepMap();
                 for (StepConfig stepConfig : stepConfigMap.values()) {
@@ -186,10 +190,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         break;
                     }
                 }
-            } else {
-                FederatedAuthenticatorUtil.setUsernameFromFirstStep(context);
-                username = String.valueOf(context.getProperty("username"));
-                authenticatedUser = (AuthenticatedUser) context.getProperty("authenticatedUser");
             }
             // find the authenticated user.
             if (authenticatedUser == null) {
@@ -199,12 +199,12 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             if (context.isRetrying()) {
                 retryParam = "&authFailure=true&authFailureMsg=login.fail.message";
             }
-            boolean isTOTPEnabledFederatedUser = false;
-            boolean isTOTPEnabledLocalUser = false;
+            boolean isSecretKeyExistForFederatedUser = false;
+            boolean isSecretKeyExistForLocalUser = false;
             if (isFederatedUser) {
-                isTOTPEnabledFederatedUser = totpSecretKeyDAO.getTOTPSecretKeyOfFederatedUser(userId) != null;
+                isSecretKeyExistForFederatedUser = totpSecretKeyDAO.getTOTPSecretKeyOfFederatedUser(userId) != null;
             } else {
-                isTOTPEnabledLocalUser = isTOTPEnabledForLocalUser(username);
+                isSecretKeyExistForLocalUser = isTOTPEnabledForLocalUser(username);
             }
             if (log.isDebugEnabled()) {
                 log.debug("TOTP is enabled by user: " + username);
@@ -218,7 +218,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             // authentication option from TOTP pages.
             String multiOptionURI = getMultiOptionURIQueryParam(request);
 
-            if ((isTOTPEnabledLocalUser || isTOTPEnabledFederatedUser)
+            if ((isSecretKeyExistForLocalUser || isSecretKeyExistForFederatedUser)
                     && request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
                 //if TOTP is enabled for the user.
                 String totpLoginPageUrl = buildTOTPLoginPageURL(context, username, retryParam, multiOptionURI);
@@ -352,8 +352,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 storeSecretKeyForFedUsers(context);
                 if (!isValidTokenFederatedUser(tokenValue, tenantDomain, context)) {
                     handleTotpVerificationFail(context);
-                    throw new AuthenticationFailedException("Invalid Token. Authentication failed for local user: "
-                            + username + " in the tenant domain: " + tenantDomain);
+                    throw new AuthenticationFailedException("Invalid Token. Authentication failed for federated user: "
+                            + username);
                 }
             }
             if (StringUtils.isNotBlank(username)) {
@@ -493,7 +493,22 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
      */
     private boolean generateOTPAndSendByEmail(AuthenticationContext context) {
 
-        String username = getUsernameFromContext(context);
+        String username = null;
+        AuthenticatedUser authenticatedUser = null;
+        boolean isLocalUser = TOTPUtil.isLocalUser(context);
+        if (isLocalUser) {
+            username = getUsernameFromContext(context);
+        } else {
+            Map<Integer, StepConfig> stepConfigMap = context.getSequenceConfig().getStepMap();
+            for (StepConfig stepConfig : stepConfigMap.values()) {
+                authenticatedUser = stepConfig.getAuthenticatedUser();
+                if (authenticatedUser != null && isFederatedUser(authenticatedUser) &&
+                        stepConfig.isSubjectAttributeStep()) {
+                    username = authenticatedUser.getUserName();
+                    break;
+                }
+            }
+        }
 
         if (!TOTPUtil.isSendVerificationCodeByEmailEnabled()) {
             String appName = context.getServiceProviderName();
@@ -511,7 +526,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             return false;
         } else {
             try {
-                TOTPTokenGenerator.generateTOTPTokenLocal(username, context);
+                if (isLocalUser) {
+                    TOTPTokenGenerator.generateTOTPTokenLocal(username, context);
+                } else {
+                    TOTPTokenGenerator.generateTOTPTokenFederatedUser(username, authenticatedUser, context);
+                }
                 if (log.isDebugEnabled()) {
                     log.debug("TOTP Token is generated");
                 }
