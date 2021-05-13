@@ -179,16 +179,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 authenticatedUser = (AuthenticatedUser) context.getProperty("authenticatedUser");
             } else {
                 isFederatedUser = true;
-                Map<Integer, StepConfig> stepConfigMap = context.getSequenceConfig().getStepMap();
-                for (StepConfig stepConfig : stepConfigMap.values()) {
-                    authenticatedUser = stepConfig.getAuthenticatedUser();
-                    if (authenticatedUser != null && isFederatedUser(authenticatedUser) &&
-                            stepConfig.isSubjectAttributeStep()) {
-                        username = authenticatedUser.getUserName();
-                        userId = getFederatedUserId(authenticatedUser, context, stepConfig, tenantDomain);
-                        context.setProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID, userId);
-                        break;
-                    }
+                authenticatedUser = TOTPUtil.getAuthenticatedUser(context);
+                if (authenticatedUser != null) {
+                    username = authenticatedUser.getUserName();
+                    userId = getFederatedUserId(authenticatedUser, context, tenantDomain);
+                    context.setProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID, userId);
                 }
             }
             // find the authenticated user.
@@ -330,7 +325,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             throws AuthenticationFailedException {
 
         String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
-        AuthenticatedUser authenticatedUser = getAuthenticatedUser(context);
+        AuthenticatedUser authenticatedUser = TOTPUtil.getAuthenticatedUser(context);
+        if (authenticatedUser == null) {
+            throw new AuthenticationFailedException(
+                    "Process authentication request failed!. Cannot proceed further without identifying the user");
+        }
         String username = authenticatedUser.toFullQualifiedUsername();
         String tenantDomain = authenticatedUser.getTenantDomain();
         validateAccountLockStatusForLocalUser(context, authenticatedUser);
@@ -397,26 +396,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 throw new AuthenticationFailedException("Error while adding TOTP claims to the user : " + username, e);
             }
         }
-    }
-
-    /**
-     * Returns AuthenticatedUser object from context.
-     *
-     * @param context AuthenticationContext.
-     * @return AuthenticatedUser
-     */
-    private AuthenticatedUser getAuthenticatedUser(AuthenticationContext context) {
-
-        AuthenticatedUser authenticatedUser = null;
-        Map<Integer, StepConfig> stepConfigMap = context.getSequenceConfig().getStepMap();
-        for (StepConfig stepConfig : stepConfigMap.values()) {
-            AuthenticatedUser authenticatedUserInStepConfig = stepConfig.getAuthenticatedUser();
-            if (stepConfig.isSubjectAttributeStep() && authenticatedUserInStepConfig != null) {
-                authenticatedUser = new AuthenticatedUser(stepConfig.getAuthenticatedUser());
-                break;
-            }
-        }
-        return authenticatedUser;
     }
 
     private void validateAccountLockStatusForLocalUser(AuthenticationContext context, AuthenticatedUser authenticatedUser)
@@ -500,14 +479,14 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         if (isLocalUser) {
             username = getUsernameFromContext(context);
         } else {
-            Map<Integer, StepConfig> stepConfigMap = context.getSequenceConfig().getStepMap();
-            for (StepConfig stepConfig : stepConfigMap.values()) {
-                authenticatedUser = stepConfig.getAuthenticatedUser();
-                if (authenticatedUser != null && isFederatedUser(authenticatedUser) &&
-                        stepConfig.isSubjectAttributeStep()) {
-                    username = authenticatedUser.getUserName();
-                    break;
-                }
+            authenticatedUser = TOTPUtil.getAuthenticatedUser(context);
+            if (authenticatedUser == null) {
+                log.error("Error when generating the totp token due to authenticated federated user " +
+                        "is not found in the context.");
+                return false;
+            }
+            if (isFederatedUser(authenticatedUser)) {
+                username = authenticatedUser.getUserName();
             }
         }
 
@@ -645,19 +624,9 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             throw new TOTPException("Error wile getting the federated user id for the user: " );
         }
         String userId = context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID).toString();
-        try {
-            String secretKey;
-            TOTPAuthenticatorCredentials totpAuthenticator = getTotpAuthenticator(context, tenantDomain);
-            if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
-                secretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
-            } else {
-                TOTPSecretKeyDAO totpSecretKeyDAO = DAOFactory.getInstance().getTOTPSecretKeyDAO();
-                secretKey = TOTPUtil.decrypt(totpSecretKeyDAO.getTOTPSecretKeyOfFederatedUser(userId));
-            }
-            return totpAuthenticator.authorize(secretKey, token);
-        } catch (CryptoException e) {
-            throw new TOTPException("Error while decrypting the key", e);
-        }
+        String secretKey = TOTPUtil.getSecretKey(context, userId);
+        TOTPAuthenticatorCredentials totpAuthenticator = getTotpAuthenticator(context, tenantDomain);
+        return totpAuthenticator.authorize(secretKey, token);
     }
 
     /**
@@ -867,12 +836,12 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     }
 
     private String getFederatedUserId(AuthenticatedUser authenticatedUser, AuthenticationContext context,
-                                      StepConfig stepConfig, String tenantDomain) throws TOTPException {
+                                      String tenantDomain) throws TOTPException {
 
         String userId;
         String username = authenticatedUser.getUserName();
         String userStoreDomain = authenticatedUser.getUserStoreDomain();
-        String idpName = stepConfig.getAuthenticatedIdP();
+        String idpName = authenticatedUser.getFederatedIdPName();
         int tenantId = getTenantID(tenantDomain);
         int appTenantId = IdentityTenantUtil.getTenantId(context.getTenantDomain());
 
@@ -900,6 +869,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
     private void storeSecretKeyForFedUsers(AuthenticationContext context) throws TOTPException {
 
+        TOTPSecretKeyDAO totpSecretKeyDAO = DAOFactory.getInstance().getTOTPSecretKeyDAO();
         if (context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP) == null || !Boolean
                 .parseBoolean(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString())) {
             return;
@@ -908,9 +878,13 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID) == null) {
             return;
         }
+        String userId = context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID).toString();
+        if (totpSecretKeyDAO.getTOTPSecretKeyOfFederatedUser(userId) != null) {
+            return;
+        }
         String secretKey =
                 context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
-        String userId = context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID).toString();
-        DAOFactory.getInstance().getTOTPSecretKeyDAO().setTOTPSecretKeyOfFederatedUser(userId, secretKey);
+
+        totpSecretKeyDAO.setTOTPSecretKeyOfFederatedUser(userId, secretKey);
     }
 }

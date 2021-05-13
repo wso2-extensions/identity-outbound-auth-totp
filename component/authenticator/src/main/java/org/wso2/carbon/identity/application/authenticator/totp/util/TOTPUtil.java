@@ -39,8 +39,10 @@ import org.wso2.carbon.identity.application.authentication.framework.config.mode
 import org.wso2.carbon.identity.application.authentication.framework.config.model.StepConfig;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
+import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
+import org.wso2.carbon.identity.application.authenticator.totp.dao.DAOFactory;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
 import org.wso2.carbon.identity.application.common.model.Property;
@@ -783,6 +785,50 @@ public class TOTPUtil {
             }
         }
         return false;
+    }
+
+    /**
+     * Get decrypted stored secret key for federated users.
+     *
+     * @param context Authentication context.
+     * @param userId Federated unique user id.
+     * @return Decrypted stored secret key
+     * @throws TOTPException if an error occurred while decrypting the stored secret key.
+     */
+    public static String getSecretKey(AuthenticationContext context, String userId) throws TOTPException {
+
+        try{
+            String storedSecretKey;
+            if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
+                storedSecretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
+            } else {
+                storedSecretKey = DAOFactory.getInstance().getTOTPSecretKeyDAO().
+                        getTOTPSecretKeyOfFederatedUser(userId);
+            }
+            return decrypt(storedSecretKey);
+        } catch (CryptoException e) {
+            throw new TOTPException("Error while decrypting the key", e);
+        }
+    }
+
+    /**
+     * Returns AuthenticatedUser object from context.
+     *
+     * @param context AuthenticationContext.
+     * @return AuthenticatedUser
+     */
+    public static AuthenticatedUser getAuthenticatedUser(AuthenticationContext context) {
+
+        AuthenticatedUser authenticatedUser = null;
+        Map<Integer, StepConfig> stepConfigMap = context.getSequenceConfig().getStepMap();
+        for (StepConfig stepConfig : stepConfigMap.values()) {
+            AuthenticatedUser authenticatedUserInStepConfig = stepConfig.getAuthenticatedUser();
+            if (stepConfig.isSubjectAttributeStep() && authenticatedUserInStepConfig != null) {
+                authenticatedUser = new AuthenticatedUser(stepConfig.getAuthenticatedUser());
+                break;
+            }
+        }
+        return authenticatedUser;
     }
 
     /**

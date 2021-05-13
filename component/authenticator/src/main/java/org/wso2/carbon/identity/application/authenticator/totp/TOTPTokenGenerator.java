@@ -111,7 +111,8 @@ public class TOTPTokenGenerator {
 				if (userRealm != null) {
 					String storedSecretKey;
 					if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
-						storedSecretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
+						storedSecretKey =
+								context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
 					} else {
 						Map<String, String> userClaimValues =
 								userRealm.getUserStoreManager().getUserClaimValues
@@ -171,25 +172,14 @@ public class TOTPTokenGenerator {
 		String userId = context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID).toString();
 
 		String tenantAwareUsername = authenticatedUser.getUserName();
-		String storedSecretKey;
 		if (username != null) {
-			try {
-				if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
-					storedSecretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
-				} else {
-					storedSecretKey = DAOFactory.getInstance().getTOTPSecretKeyDAO().
-							getTOTPSecretKeyOfFederatedUser(userId);
-				}
-				String secretKey = TOTPUtil.decrypt(storedSecretKey);
-				Map<ClaimMapping, String> userAttributes = authenticatedUser.getUserAttributes();
-				String email = getEmailForFederatedUser(userAttributes);
-				String tenantDomain = authenticatedUser.getTenantDomain();
+			String secretKey = TOTPUtil.getSecretKey(context, userId);
+			Map<ClaimMapping, String> userAttributes = authenticatedUser.getUserAttributes();
+			String email = getEmailForFederatedUser(userAttributes);
+			String tenantDomain = authenticatedUser.getTenantDomain();
 
-				sendEmailWithToken(username, authenticatedUser, tenantAwareUsername, username, secretKey,
-						email, tenantDomain, context);
-			} catch (CryptoException e) {
-				throw new TOTPException("Error while decrypting the key", e);
-			}
+			sendEmailWithToken(username, authenticatedUser, tenantAwareUsername, username, secretKey,
+					email, tenantDomain, context);
 		}
 	}
 

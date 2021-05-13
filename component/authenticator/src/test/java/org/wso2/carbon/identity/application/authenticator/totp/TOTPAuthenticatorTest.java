@@ -507,17 +507,7 @@ public class TOTPAuthenticatorTest {
         authenticatedUser.setUserName("testuser@gmail.com");
         authenticatedUser.setFederatedUser(true);
         mockedContext.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-        when(mockedContext.getSequenceConfig()).thenReturn(sequenceConfig);
-
-        StepConfig stepConfig = new StepConfig();
-        stepConfig.setAuthenticatedUser(authenticatedUser);
-        stepConfig.setSubjectAttributeStep(true);
-        stepConfig.setAuthenticatedIdP("Facebook");
-
-        Map<Integer, StepConfig> stepConfigMap = new HashMap<>();
-        stepConfigMap.put(1, stepConfig);
-
-        when(sequenceConfig.getStepMap()).thenReturn(stepConfigMap);
+        when(TOTPUtil.getAuthenticatedUser(mockedContext)).thenReturn(authenticatedUser);
         when(IdentityTenantUtil.getTenantId(anyString())).thenReturn(-1234);
         when(UserSessionStore.getInstance()).thenReturn(userSessionStore);
         when(userSessionStore.getIdPId(anyString(), anyInt())).thenReturn(2);
@@ -666,15 +656,7 @@ public class TOTPAuthenticatorTest {
         mockedContext.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
         when(mockedContext.getSequenceConfig()).thenReturn(sequenceConfig);
 
-        StepConfig stepConfig = new StepConfig();
-        stepConfig.setAuthenticatedUser(authenticatedUser);
-        stepConfig.setSubjectAttributeStep(true);
-        stepConfig.setAuthenticatedIdP("Facebook");
-
-        Map<Integer, StepConfig> stepConfigMap = new HashMap<>();
-        stepConfigMap.put(1, stepConfig);
-
-        when(sequenceConfig.getStepMap()).thenReturn(stepConfigMap);
+        when(TOTPUtil.getAuthenticatedUser(mockedContext)).thenReturn(authenticatedUser);
         when(IdentityTenantUtil.getTenantId(anyString())).thenReturn(-1234);
         when(UserSessionStore.getInstance()).thenReturn(userSessionStore);
         when(userSessionStore.getIdPId(anyString(), anyInt())).thenReturn(2);
