@@ -109,15 +109,17 @@ public class TOTPTokenGenerator {
 				UserRealm userRealm = TOTPUtil.getUserRealm(username);
 				tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
 				if (userRealm != null) {
-					Map<String, String> userClaimValues =
-							userRealm.getUserStoreManager().getUserClaimValues
-									(tenantAwareUsername, new String[] {
-											TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL }, null);
-					String storedSecretKey = userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
-					if (StringUtils.isEmpty(storedSecretKey) &&
-							(context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null)) {
+					String storedSecretKey;
+					if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
 						storedSecretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
+					} else {
+						Map<String, String> userClaimValues =
+								userRealm.getUserStoreManager().getUserClaimValues
+										(tenantAwareUsername, new String[]{
+												TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL}, null);
+						storedSecretKey = userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
 					}
+
 					String secretKey = TOTPUtil.decrypt(storedSecretKey);
 					String firstName = userRealm
 							.getUserStoreManager().getUserClaimValue
@@ -172,11 +174,11 @@ public class TOTPTokenGenerator {
 		String storedSecretKey;
 		if (username != null) {
 			try {
-				storedSecretKey = DAOFactory.getInstance().getTOTPSecretKeyDAO().
-						getTOTPSecretKeyOfFederatedUser(userId);
-				if (StringUtils.isEmpty(storedSecretKey) &&
-						(context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null)) {
+				if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
 					storedSecretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
+				} else {
+					storedSecretKey = DAOFactory.getInstance().getTOTPSecretKeyDAO().
+							getTOTPSecretKeyOfFederatedUser(userId);
 				}
 				String secretKey = TOTPUtil.decrypt(storedSecretKey);
 				Map<ClaimMapping, String> userAttributes = authenticatedUser.getUserAttributes();

@@ -422,14 +422,15 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     private void validateAccountLockStatusForLocalUser(AuthenticationContext context, AuthenticatedUser authenticatedUser)
             throws AuthenticationFailedException {
 
-        boolean isLocalUser = TOTPUtil.isLocalUser(context);
+        if (!TOTPUtil.isLocalUser(context)) {
+            return;
+        }
         AuthenticatedUser authenticatedUserObject =
                 (AuthenticatedUser) context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
         String username = authenticatedUser.getUserName();
         String tenantDomain = authenticatedUser.getTenantDomain();
         String userStoreDomain = authenticatedUser.getUserStoreDomain();
-        if (isLocalUser &&
-                TOTPUtil.isAccountLocked(authenticatedUserObject.getUserName(), tenantDomain, userStoreDomain)) {
+        if (TOTPUtil.isAccountLocked(authenticatedUserObject.getUserName(), tenantDomain, userStoreDomain)) {
             String errorMessage =
                     String.format("Authentication failed since authenticated user: %s, account is locked.",
                             getUserStoreAppendedName(username));
@@ -645,9 +646,14 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         }
         String userId = context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID).toString();
         try {
+            String secretKey;
             TOTPAuthenticatorCredentials totpAuthenticator = getTotpAuthenticator(context, tenantDomain);
-            TOTPSecretKeyDAO totpSecretKeyDAO = DAOFactory.getInstance().getTOTPSecretKeyDAO();
-            String secretKey = TOTPUtil.decrypt(totpSecretKeyDAO.getTOTPSecretKeyOfFederatedUser(userId));
+            if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
+                secretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
+            } else {
+                TOTPSecretKeyDAO totpSecretKeyDAO = DAOFactory.getInstance().getTOTPSecretKeyDAO();
+                secretKey = TOTPUtil.decrypt(totpSecretKeyDAO.getTOTPSecretKeyOfFederatedUser(userId));
+            }
             return totpAuthenticator.authorize(secretKey, token);
         } catch (CryptoException e) {
             throw new TOTPException("Error while decrypting the key", e);
