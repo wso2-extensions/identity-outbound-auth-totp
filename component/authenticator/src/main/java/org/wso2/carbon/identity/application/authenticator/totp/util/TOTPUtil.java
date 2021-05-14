@@ -821,11 +821,13 @@ public class TOTPUtil {
 
         AuthenticatedUser authenticatedUser = null;
         Map<Integer, StepConfig> stepConfigMap = context.getSequenceConfig().getStepMap();
-        for (StepConfig stepConfig : stepConfigMap.values()) {
-            AuthenticatedUser authenticatedUserInStepConfig = stepConfig.getAuthenticatedUser();
-            if (stepConfig.isSubjectAttributeStep() && authenticatedUserInStepConfig != null) {
-                authenticatedUser = new AuthenticatedUser(stepConfig.getAuthenticatedUser());
-                break;
+        if (stepConfigMap != null) {
+            for (StepConfig stepConfig : stepConfigMap.values()) {
+                AuthenticatedUser authenticatedUserInStepConfig = stepConfig.getAuthenticatedUser();
+                if (stepConfig.isSubjectAttributeStep() && authenticatedUserInStepConfig != null) {
+                    authenticatedUser = new AuthenticatedUser(stepConfig.getAuthenticatedUser());
+                    break;
+                }
             }
         }
         return authenticatedUser;

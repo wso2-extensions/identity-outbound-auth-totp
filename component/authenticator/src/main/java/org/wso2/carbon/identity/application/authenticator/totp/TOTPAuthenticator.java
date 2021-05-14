@@ -182,7 +182,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 authenticatedUser = TOTPUtil.getAuthenticatedUser(context);
                 if (authenticatedUser != null) {
                     username = authenticatedUser.getUserName();
-                    userId = getFederatedUserId(authenticatedUser, context, tenantDomain);
+                    userId = getFederatedUserId(authenticatedUser, context);
                     context.setProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID, userId);
                 }
             }
@@ -349,7 +349,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 }
             } else {
                 storeSecretKeyForFedUsers(context);
-                if (!isValidTokenFederatedUser(tokenValue, tenantDomain, context)) {
+                if (!isValidTokenFederatedUser(tokenValue, username, tenantDomain, context)) {
                     handleTotpVerificationFail(context);
                     throw new AuthenticationFailedException("Invalid Token. Authentication failed for federated user: "
                             + username);
@@ -402,6 +402,10 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             throws AuthenticationFailedException {
 
         if (!TOTPUtil.isLocalUser(context)) {
+            if (log.isDebugEnabled()) {
+                log.debug("Account lock status is not validating for the federated user: "
+                        + authenticatedUser.getUserName());
+            }
             return;
         }
         AuthenticatedUser authenticatedUserObject =
@@ -485,9 +489,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         "is not found in the context.");
                 return false;
             }
-            if (isFederatedUser(authenticatedUser)) {
-                username = authenticatedUser.getUserName();
-            }
+            username = authenticatedUser.getUserName();
         }
 
         if (!TOTPUtil.isSendVerificationCodeByEmailEnabled()) {
@@ -612,16 +614,17 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
      * Verify whether a given token is valid for the federated user.
      *
      * @param token        TOTP Token which needs to be validated
+     * @param username     Username of the user
      * @param tenantDomain Tenant domain.
      * @param context      Authentication context
      * @return true if token is valid otherwise false
      * @throws TOTPException If an error occurred while validating token.
      */
-    private boolean isValidTokenFederatedUser(int token, String tenantDomain,
+    private boolean isValidTokenFederatedUser(int token, String username, String tenantDomain,
                                               AuthenticationContext context) throws TOTPException {
 
         if (context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID) == null) {
-            throw new TOTPException("Error wile getting the federated user id for the user: ");
+            throw new TOTPException("Error wile getting the federated user id for the user: " + username);
         }
         String userId = context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID).toString();
         String secretKey = TOTPUtil.getSecretKey(context, userId);
@@ -736,11 +739,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         return totpAuthenticator;
     }
 
-    private boolean isFederatedUser(AuthenticatedUser authenticatedUser) {
-
-        return authenticatedUser.isFederatedUser();
-    }
-
     private void resetTotpFailedAttempts(AuthenticationContext context) throws AuthenticationFailedException {
 
 		/*
@@ -835,21 +833,21 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         }
     }
 
-    private String getFederatedUserId(AuthenticatedUser authenticatedUser, AuthenticationContext context,
-                                      String tenantDomain) throws TOTPException {
+    private String getFederatedUserId(AuthenticatedUser authenticatedUser, AuthenticationContext context)
+            throws TOTPException {
 
         String userId;
         String username = authenticatedUser.getUserName();
         String userStoreDomain = authenticatedUser.getUserStoreDomain();
         String idpName = authenticatedUser.getFederatedIdPName();
-        int tenantId = getTenantID(tenantDomain);
-        int appTenantId = IdentityTenantUtil.getTenantId(context.getTenantDomain());
+        String tenantDomain = context.getTenantDomain();
+        int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
 
         try {
-            int idpId = UserSessionStore.getInstance().getIdPId(idpName, appTenantId);
+            int idpId = UserSessionStore.getInstance().getIdPId(idpName, tenantId);
             userId = UserSessionStore.getInstance().
                     getUserId(username, tenantId, userStoreDomain, idpId);
-            if (userId == null) {
+            if (StringUtils.isBlank(userId)) {
                 userId = UUID.randomUUID().toString();
                 UserSessionStore.getInstance().storeUserData(userId, username, tenantId,
                         userStoreDomain, idpId);
@@ -861,30 +859,28 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         return userId;
     }
 
-    private int getTenantID(String tenantDomain) {
-
-        return (tenantDomain == null) ? MultitenantConstants.INVALID_TENANT_ID : IdentityTenantUtil
-                .getTenantId(tenantDomain);
-    }
-
     private void storeSecretKeyForFedUsers(AuthenticationContext context) throws TOTPException {
 
-        TOTPSecretKeyDAO totpSecretKeyDAO = DAOFactory.getInstance().getTOTPSecretKeyDAO();
-        if (context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP) == null || !Boolean
-                .parseBoolean(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString())) {
-            return;
-        }
-        if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) == null ||
+
+        if (context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP) == null ||
+                !Boolean.parseBoolean(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString()) ||
+                context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) == null ||
                 context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID) == null) {
+            if (log.isDebugEnabled()) {
+                log.debug("TOTP secret key has been already stored.");
+            }
             return;
         }
         String userId = context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID).toString();
+        TOTPSecretKeyDAO totpSecretKeyDAO = DAOFactory.getInstance().getTOTPSecretKeyDAO();
         if (totpSecretKeyDAO.getTOTPSecretKeyOfFederatedUser(userId) != null) {
+            if (log.isDebugEnabled()) {
+                log.debug("TOTP secret key has been already stored for the user: " + userId);
+            }
             return;
         }
         String secretKey =
                 context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
-
         totpSecretKeyDAO.setTOTPSecretKeyOfFederatedUser(userId, secretKey);
     }
 }

@@ -86,6 +86,7 @@ public class TOTPTokenGenerator {
      * @return Time index
      */
     private static long getTimeIndex(AuthenticationContext context) throws TOTPException {
+
         return System.currentTimeMillis() / 1000 / TOTPUtil.getTimeStepSize(context);
     }
 
@@ -167,12 +168,13 @@ public class TOTPTokenGenerator {
             throws TOTPException {
 
         if (context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID) == null) {
-            throw new TOTPException("Error wile getting the federated user id for the user: ");
+            throw new TOTPException("Error wile getting the federated user id for the user: " +
+                    authenticatedUser.getUserName());
         }
         String userId = context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID).toString();
 
         String tenantAwareUsername = authenticatedUser.getUserName();
-        if (username != null) {
+        if (StringUtils.isNotBlank(username)) {
             String secretKey = TOTPUtil.getSecretKey(context, userId);
             Map<ClaimMapping, String> userAttributes = authenticatedUser.getUserAttributes();
             String email = getEmailForFederatedUser(userAttributes);
@@ -212,8 +214,7 @@ public class TOTPTokenGenerator {
                 sendNotification(tenantAwareUsername, firstName, tenantDomain, Long.toString(token), email);
             }
             if (log.isDebugEnabled()) {
-                log.debug(
-                        "Token is sent to via email to the user : " + tenantAwareUsername);
+                log.debug("Token is sent to via email to the user : " + tenantAwareUsername);
             }
         } catch (NoSuchAlgorithmException e) {
             throw new TOTPException(
@@ -221,8 +222,7 @@ public class TOTPTokenGenerator {
         } catch (InvalidKeyException e) {
             throw new TOTPException("Secret key is not valid", e);
         } catch (AuthenticationFailedException e) {
-            throw new TOTPException(
-                    "TOTPTokenVerifier cannot find the property value for encodingMethod");
+            throw new TOTPException("TOTPTokenVerifier cannot find the property value for encodingMethod", e);
         }
         return token;
     }
@@ -236,12 +236,14 @@ public class TOTPTokenGenerator {
     private static String getEmailForFederatedUser(Map<ClaimMapping, String> userAttributes) {
 
         String email = null;
-        for (Map.Entry<ClaimMapping, String> entry : userAttributes.entrySet()) {
-            String key = String.valueOf(entry.getKey().getLocalClaim().getClaimUri());
-            String value = entry.getValue();
-            if ((TOTPAuthenticatorConstants.FEDERATED_EMAIL_ATTRIBUTE_KEY).equals(key)) {
-                email = String.valueOf(value);
-                break;
+        if (userAttributes != null) {
+            for (Map.Entry<ClaimMapping, String> entry : userAttributes.entrySet()) {
+                String key = String.valueOf(entry.getKey().getLocalClaim().getClaimUri());
+                String value = entry.getValue();
+                if ((TOTPAuthenticatorConstants.FEDERATED_EMAIL_ATTRIBUTE_KEY).equals(key)) {
+                    email = String.valueOf(value);
+                    break;
+                }
             }
         }
         return email;
