@@ -621,7 +621,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                                               AuthenticationContext context) throws TOTPException {
 
         if (context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID) == null) {
-            throw new TOTPException("Error wile getting the federated user id for the user: " );
+            throw new TOTPException("Error wile getting the federated user id for the user: ");
         }
         String userId = context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID).toString();
         String secretKey = TOTPUtil.getSecretKey(context, userId);
@@ -852,7 +852,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             if (userId == null) {
                 userId = UUID.randomUUID().toString();
                 UserSessionStore.getInstance().storeUserData(userId, username, tenantId,
-                            userStoreDomain, idpId);
+                        userStoreDomain, idpId);
             }
         } catch (UserSessionException e) {
             throw new TOTPException("Error while storing session data for user: " + username + " of " +

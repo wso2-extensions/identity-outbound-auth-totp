@@ -121,7 +121,7 @@ public class TOTPTokenGenerator {
 						storedSecretKey = userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
 					}
 
-					String secretKey = TOTPUtil.decrypt(storedSecretKey);
+                    String secretKey = TOTPUtil.decrypt(storedSecretKey);
 					String firstName = userRealm
 							.getUserStoreManager().getUserClaimValue
 									(tenantAwareUsername,
@@ -131,57 +131,57 @@ public class TOTPTokenGenerator {
 							                        (tenantAwareUsername,
 							                         TOTPAuthenticatorConstants.EMAIL_CLAIM_URL,
 							                         null);
-					AuthenticatedUser authenticatedUser = (AuthenticatedUser) context
-							.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
-					token = sendEmailWithToken(username, authenticatedUser, tenantAwareUsername, firstName, secretKey,
-							email, tenantDomain, context);
-				} else {
-					throw new TOTPException(
-							"Cannot find the user realm for the given tenant domain : " +
-									CarbonContext.getThreadLocalCarbonContext().getTenantDomain());
-				}
-			} catch (UserStoreException e) {
-				throw new TOTPException(
-						"TOTPTokenGenerator failed while trying to access userRealm of the user : " +
-								tenantAwareUsername, e);
-			} catch (CryptoException e) {
-				throw new TOTPException("Error while decrypting the key", e);
-			} catch (AuthenticationFailedException e) {
-				throw new TOTPException(
-						"TOTPTokenVerifier cannot find the property value for encodingMethod");
-			}
-		}
-		return Long.toString(token);
-	}
+                    AuthenticatedUser authenticatedUser = (AuthenticatedUser) context
+                            .getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
+                    token = sendEmailWithToken(username, authenticatedUser, tenantAwareUsername, firstName, secretKey,
+                            email, tenantDomain, context);
+                } else {
+                    throw new TOTPException(
+                            "Cannot find the user realm for the given tenant domain : " +
+                                    CarbonContext.getThreadLocalCarbonContext().getTenantDomain());
+                }
+            } catch (UserStoreException e) {
+                throw new TOTPException(
+                        "TOTPTokenGenerator failed while trying to access userRealm of the user : " +
+                                tenantAwareUsername, e);
+            } catch (CryptoException e) {
+                throw new TOTPException("Error while decrypting the key", e);
+            } catch (AuthenticationFailedException e) {
+                throw new TOTPException(
+                        "TOTPTokenVerifier cannot find the property value for encodingMethod");
+            }
+        }
+        return Long.toString(token);
+    }
 
-	/**
-	 * Generate TOTP token for a federated user.
-	 *
-	 * @param username Username of the user.
-	 * @param context  Authentication context.
-	 * @throws TOTPException When could not find user realm for the given tenant domain, invalid.
-	 *                       secret key, decrypting invalid key and could not find the configured hashing algorithm.
-	 */
-	public static void generateTOTPTokenFederatedUser(String username, AuthenticatedUser authenticatedUser,
-													  AuthenticationContext context)
-			throws TOTPException {
+    /**
+     * Generate TOTP token for a federated user.
+     *
+     * @param username Username of the user.
+     * @param context  Authentication context.
+     * @throws TOTPException When could not find user realm for the given tenant domain, invalid.
+     *                       secret key, decrypting invalid key and could not find the configured hashing algorithm.
+     */
+    public static void generateTOTPTokenFederatedUser(String username, AuthenticatedUser authenticatedUser,
+                                                      AuthenticationContext context)
+            throws TOTPException {
 
-		if (context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID) == null) {
-			throw new TOTPException("Error wile getting the federated user id for the user: ");
-		}
-		String userId = context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID).toString();
+        if (context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID) == null) {
+            throw new TOTPException("Error wile getting the federated user id for the user: ");
+        }
+        String userId = context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID).toString();
 
-		String tenantAwareUsername = authenticatedUser.getUserName();
-		if (username != null) {
-			String secretKey = TOTPUtil.getSecretKey(context, userId);
-			Map<ClaimMapping, String> userAttributes = authenticatedUser.getUserAttributes();
-			String email = getEmailForFederatedUser(userAttributes);
-			String tenantDomain = authenticatedUser.getTenantDomain();
+        String tenantAwareUsername = authenticatedUser.getUserName();
+        if (username != null) {
+            String secretKey = TOTPUtil.getSecretKey(context, userId);
+            Map<ClaimMapping, String> userAttributes = authenticatedUser.getUserAttributes();
+            String email = getEmailForFederatedUser(userAttributes);
+            String tenantDomain = authenticatedUser.getTenantDomain();
 
-			sendEmailWithToken(username, authenticatedUser, tenantAwareUsername, username, secretKey,
-					email, tenantDomain, context);
-		}
-	}
+            sendEmailWithToken(username, authenticatedUser, tenantAwareUsername, username, secretKey,
+                    email, tenantDomain, context);
+        }
+    }
 
 	private static long sendEmailWithToken(String username, AuthenticatedUser authenticatedUser,
 										   String tenantAwareUsername, String firstName, String secretKey,
@@ -208,7 +208,7 @@ public class TOTPTokenGenerator {
 				triggerEvent(authenticatedUser.getUserName(), authenticatedUser.getTenantDomain(), email,
 						authenticatedUser.getUserStoreDomain(), TOTPAuthenticatorConstants.EVENT_NAME,
 						Long.toString(token));
-			} else{
+			} else {
 				sendNotification(tenantAwareUsername, firstName, tenantDomain, Long.toString(token), email);
 			}
 			if (log.isDebugEnabled()) {
@@ -227,24 +227,24 @@ public class TOTPTokenGenerator {
 		return token;
 	}
 
-	/**
-	 * Extract the email value from federated user attributes.
-	 *
-	 * @param userAttributes Map with federated user attributes.
-	 * @return Email attribute.
-	 */
-	private static String getEmailForFederatedUser(Map<ClaimMapping, String> userAttributes) {
+    /**
+     * Extract the email value from federated user attributes.
+     *
+     * @param userAttributes Map with federated user attributes.
+     * @return Email attribute.
+     */
+    private static String getEmailForFederatedUser(Map<ClaimMapping, String> userAttributes) {
 
-		String email = null;
-		for (Map.Entry<ClaimMapping, String> entry : userAttributes.entrySet()) {
-			String key = String.valueOf(entry.getKey().getLocalClaim().getClaimUri());
-			String value = entry.getValue();
-			if ((TOTPAuthenticatorConstants.FEDERATED_EMAIL_ATTRIBUTE_KEY).equals(key)) {
-				email = String.valueOf(value);
-				break;
-			}
-		}
-		return email;
+        String email = null;
+        for (Map.Entry<ClaimMapping, String> entry : userAttributes.entrySet()) {
+            String key = String.valueOf(entry.getKey().getLocalClaim().getClaimUri());
+            String value = entry.getValue();
+            if ((TOTPAuthenticatorConstants.FEDERATED_EMAIL_ATTRIBUTE_KEY).equals(key)) {
+                email = String.valueOf(value);
+                break;
+            }
+        }
+        return email;
 	}
 
 	/**
@@ -344,8 +344,8 @@ public class TOTPTokenGenerator {
 	 * @param email               Email address of the user
 	 * @throws TOTPException MAILTO transport sender is not defined
 	 */
-	private static void sendNotification(String tenantAwareUsername, String firstName, String tenantDomain,
-										 String token, String email) throws TOTPException {
+    private static void sendNotification(String tenantAwareUsername, String firstName, String tenantDomain,
+                                         String token, String email) throws TOTPException {
 		ConfigurationContext configurationContext =
 				TOTPDataHolder.getInstance().getConfigurationContextService()
 				              .getServerConfigContext();
@@ -402,15 +402,15 @@ public class TOTPTokenGenerator {
 	 *
 	 * @param userName : Identity user name
 	 * @param tenantDomain : Tenant domain of the user.
-	 * @param sendToAddress  The email address to send the otp.
+     * @param sendToAddress  The email address to send the otp.
 	 * @param userStoreDomainName : User store domain name of the user.
 	 * @param notificationEvent : The name of the event.
 	 * @param otpCode : The OTP code returned for the authentication request.
 	 * @throws AuthenticationFailedException : In occasions of failing sending the email to the user.
 	 */
-	private static void triggerEvent(String userName, String tenantDomain, String sendToAddress,
-									 String userStoreDomainName, String notificationEvent, String otpCode)
-			throws AuthenticationFailedException {
+    private static void triggerEvent(String userName, String tenantDomain, String sendToAddress,
+                                     String userStoreDomainName, String notificationEvent, String otpCode)
+            throws AuthenticationFailedException {
 
 		String eventName = IdentityEventConstants.Event.TRIGGER_NOTIFICATION;
 		HashMap<String, Object> properties = new HashMap<>();

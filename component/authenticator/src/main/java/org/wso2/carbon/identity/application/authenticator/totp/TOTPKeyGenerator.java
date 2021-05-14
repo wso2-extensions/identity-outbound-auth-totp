@@ -117,7 +117,7 @@ public class TOTPKeyGenerator {
      * @throws TOTPException If an error occurred while generating claims.
      */
     private static Map<String, String> getGeneratedClaims(String username, String tenantDomain, String storedSecretKey,
-                                                         boolean refresh, long timeStep, AuthenticationContext context)
+                                                          boolean refresh, long timeStep, AuthenticationContext context)
             throws TOTPException {
 
         String secretKey;
