@@ -72,9 +72,6 @@ public class TOTPTokenGenerator {
 	private static final String FIRST_NAME = "firstname";
 	private static final String TOTP_TOKEN = "totp-token";
 	private static final Log log = LogFactory.getLog(TOTPTokenGenerator.class);
-	private static final int TOKEN_HASH_DIVISOR = 1000000;
-	// Max number of attempts to calculate a token with minimum chars.
-	private static final int MAX_TOKEN_CALCULATE_ATTEMPTS = 5;
 
 	/**
 	 * Get Time steps from unix epoch time.
@@ -128,7 +125,7 @@ public class TOTPTokenGenerator {
 						Base64 codec64 = new Base64();
 						secretKeyByteArray = codec64.decode(secretKey);
 					}
-					token = generateToken(secretKeyByteArray, context);
+					token = getCode(secretKeyByteArray, getTimeIndex(context));
 					// Check whether the authenticator is configured to use the event handler implementation.
 					if (TOTPUtil.isEventHandlerBasedEmailSenderEnabled()) {
 						if (log.isDebugEnabled()) {
@@ -138,9 +135,9 @@ public class TOTPTokenGenerator {
 								.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
 						triggerEvent(authenticatedUser.getUserName(), authenticatedUser.getTenantDomain(),
 								authenticatedUser.getUserStoreDomain(), TOTPAuthenticatorConstants.EVENT_NAME,
-								Long.toString(token));
+								String.format("%06d", token));
 					} else{
-						sendNotification(tenantAwareUsername, firstName, Long.toString(token), email);
+						sendNotification(tenantAwareUsername, firstName, String.format("%06d", token), email);
 					}
 					if (log.isDebugEnabled()) {
 						log.debug(
@@ -168,52 +165,6 @@ public class TOTPTokenGenerator {
 			}
 		}
 		return Long.toString(token);
-	}
-
-	/**
-	 * Generate 6 digit TOTP token for a given secret key and time index.
-	 *
-	 * @param secret  Secret key in binary format.
-	 * @param context Authentication context.
-	 * @return Six digit TOTP token value as a long.
-	 * @throws NoSuchAlgorithmException If the specific algorithm was not found.
-	 * @throws InvalidKeyException      If an invalid signKey provided.
-	 * @throws TOTPException            If an error occurred while getting the time index.
-	 */
-	private static long generateToken(byte[] secret, AuthenticationContext context)
-			throws NoSuchAlgorithmException, InvalidKeyException, TOTPException {
-
-		long token = getCode(secret, getTimeIndex(context));
-		// We need to check whether the token at least have the minimum number of digits.
-		if (isTokenHasMinimumChars(token)) {
-			return token;
-		}
-		/*
-		Calculate a new token with minimum chars. If we cannot generate an acceptable char within 5 attempts
-		(MAX_TOKEN_CALCULATE_ATTEMPTS), we need to send the last generated code. This is highly unlikely scenario.
-		 */
-		for (int count = 0; count < MAX_TOKEN_CALCULATE_ATTEMPTS; count++) {
-			token = getCode(secret, getTimeIndex(context));
-			if (isTokenHasMinimumChars(token)) {
-				return token;
-			}
-		}
-		return token;
-	}
-
-	/**
-	 * Check whether the token has the minimum number of chars in it.
-	 *
-	 * @param token Generated token.
-	 * @return True if the token has the minimum number of chars.
-	 */
-	private static boolean isTokenHasMinimumChars(long token) {
-
-		/*
-		If we can get a number which is larger than 0, when the token is multiplied by 10 and divided by
-		TOKEN_HASH_DIVISOR, that means the token has the minimum number of chars.
-		 */
-		return token * 10 / TOKEN_HASH_DIVISOR > 0;
 	}
 
 	/**
@@ -246,7 +197,7 @@ public class TOTPTokenGenerator {
 			truncatedHash <<= 8;
 			truncatedHash |= hash[offset + i] & 0xff;
 		}
-		truncatedHash %= TOKEN_HASH_DIVISOR;
+		truncatedHash %= 1000000;
 		return truncatedHash;
 	}
 
