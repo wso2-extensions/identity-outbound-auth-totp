@@ -135,9 +135,9 @@ public class TOTPTokenGenerator {
 								.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
 						triggerEvent(authenticatedUser.getUserName(), authenticatedUser.getTenantDomain(),
 								authenticatedUser.getUserStoreDomain(), TOTPAuthenticatorConstants.EVENT_NAME,
-								Long.toString(token));
+								String.format("%06d", token));
 					} else{
-						sendNotification(tenantAwareUsername, firstName, Long.toString(token), email);
+						sendNotification(tenantAwareUsername, firstName, String.format("%06d", token), email);
 					}
 					if (log.isDebugEnabled()) {
 						log.debug(
