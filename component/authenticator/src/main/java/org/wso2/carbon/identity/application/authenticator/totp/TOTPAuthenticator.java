@@ -580,34 +580,9 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             throws TOTPException {
 
         String tenantDomain = MultitenantUtils.getTenantDomain(username);
-        String tenantAwareUsername = null;
-        try {
-            TOTPAuthenticatorCredentials totpAuthenticator = getTotpAuthenticator(context, tenantDomain);
-            tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
-            UserRealm userRealm = TOTPUtil.getUserRealm(username);
-            if (userRealm != null) {
-                Map<String, String> userClaimValues = userRealm
-                        .getUserStoreManager().getUserClaimValues
-                                (tenantAwareUsername, new String[]
-                                        {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL}, null);
-                String secretKey = TOTPUtil.decrypt(
-                        userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
-                return totpAuthenticator.authorize(secretKey, token);
-            } else {
-                throw new TOTPException(
-                        "Cannot find the user realm for the given tenant domain : " +
-                                CarbonContext.getThreadLocalCarbonContext().getTenantDomain());
-            }
-        } catch (UserStoreException e) {
-            throw new TOTPException(
-                    "TOTPTokenVerifier failed while trying to access userRealm of the user : " +
-                            tenantAwareUsername, e);
-        } catch (CryptoException e) {
-            throw new TOTPException("Error while decrypting the key", e);
-        } catch (AuthenticationFailedException e) {
-            throw new TOTPException(
-                    "TOTPTokenVerifier cannot find the property value for encodingMethod");
-        }
+        TOTPAuthenticatorCredentials totpAuthenticator = getTotpAuthenticator(context, tenantDomain);
+        String secretKey = TOTPUtil.getSecretKeyOfLocalUser(context, username);
+        return totpAuthenticator.authorize(secretKey, token);
     }
 
     /**

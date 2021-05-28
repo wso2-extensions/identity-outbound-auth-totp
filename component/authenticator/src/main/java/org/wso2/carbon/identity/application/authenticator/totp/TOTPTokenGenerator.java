@@ -29,7 +29,6 @@ import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
-import org.wso2.carbon.identity.application.authenticator.totp.dao.DAOFactory;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
@@ -208,8 +207,7 @@ public class TOTPTokenGenerator {
                     log.debug("TOTP authenticator configured to use the event handler implementation.");
                 }
                 triggerEvent(authenticatedUser.getUserName(), authenticatedUser.getTenantDomain(), email,
-                        authenticatedUser.getUserStoreDomain(), TOTPAuthenticatorConstants.EVENT_NAME,
-                        Long.toString(token));
+                            authenticatedUser.getUserStoreDomain(), context);
             } else {
                 sendNotification(tenantAwareUsername, firstName, tenantDomain, Long.toString(token), email);
             }
@@ -406,28 +404,49 @@ public class TOTPTokenGenerator {
      * @param tenantDomain        : Tenant domain of the user.
      * @param sendToAddress       The email address to send the otp.
      * @param userStoreDomainName : User store domain name of the user.
-     * @param notificationEvent   : The name of the event.
-     * @param otpCode             : The OTP code returned for the authentication request.
+     * @param context             Authentication context
      * @throws AuthenticationFailedException : In occasions of failing sending the email to the user.
+     * @throws TOTPException                 If an error occurred while decrypt the storedSecretKey
+     * of the federated user.
      */
     private static void triggerEvent(String userName, String tenantDomain, String sendToAddress,
-                                     String userStoreDomainName, String notificationEvent, String otpCode)
-            throws AuthenticationFailedException {
+                                     String userStoreDomainName, AuthenticationContext context)
+            throws AuthenticationFailedException, TOTPException {
 
-        String eventName = IdentityEventConstants.Event.TRIGGER_NOTIFICATION;
-        HashMap<String, Object> properties = new HashMap<>();
-        properties.put(IdentityEventConstants.EventProperty.USER_NAME, userName);
-        properties.put(IdentityEventConstants.EventProperty.USER_STORE_DOMAIN, userStoreDomainName);
-        properties.put(IdentityEventConstants.EventProperty.TENANT_DOMAIN, tenantDomain);
-        properties.put(TOKEN, otpCode);
-        properties.put(TOTPAuthenticatorConstants.TEMPLATE_TYPE, notificationEvent);
-        properties.put(TOTPAuthenticatorConstants.ATTRIBUTE_EMAIL_SENT_TO, sendToAddress);
-        Event identityMgtEvent = new Event(eventName, properties);
+        String secretKey;
         try {
+            String eventName = IdentityEventConstants.Event.TRIGGER_NOTIFICATION;
+            HashMap<String, Object> properties = new HashMap<>();
+            properties.put(IdentityEventConstants.EventProperty.USER_NAME, userName);
+            properties.put(IdentityEventConstants.EventProperty.USER_STORE_DOMAIN, userStoreDomainName);
+            properties.put(IdentityEventConstants.EventProperty.TENANT_DOMAIN, tenantDomain);
+            properties.put(TOTPAuthenticatorConstants.ATTRIBUTE_EMAIL_SENT_TO, sendToAddress);
+
+            if (TOTPUtil.isLocalUser(context)) {
+                secretKey = TOTPUtil.getSecretKeyOfLocalUser(context, userName);
+            } else {
+                if (context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID) == null) {
+                    throw new TOTPException("Error wile getting the federated user id for the user: " + userName);
+                }
+                String userId = context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USER_ID).toString();
+                secretKey = TOTPUtil.getSecretKey(context, userId);
+            }
+            String storeSecretKey = TOTPUtil.encrypt(secretKey);
+            Map<String, String> claims = TOTPKeyGenerator.getGeneratedClaims(userName, tenantDomain, storeSecretKey,
+                    false, context, true);
+
+            properties.put(TOTPAuthenticatorConstants.SESSION_DATA_KEY, context.getContextIdentifier());
+            properties.put(TOTPAuthenticatorConstants.QR_CODE_URL,
+                    claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL));
+            properties.put(TOTPAuthenticatorConstants.TEMPLATE_TYPE, TOTPAuthenticatorConstants.EVENT_NAME);
+            Event identityMgtEvent = new Event(eventName, properties);
             TOTPDataHolder.getInstance().getIdentityEventService().handleEvent(identityMgtEvent);
         } catch (IdentityEventException e) {
             String errorMsg = "Error occurred while calling triggerNotification. " + e.getMessage();
             throw new AuthenticationFailedException(errorMsg, e.getCause());
+        } catch (CryptoException e) {
+            throw new TOTPException("TOTPKeyGenerator failed while encrypting the secret key " +
+                    "of the user: " + userName, e);
         }
     }
 }

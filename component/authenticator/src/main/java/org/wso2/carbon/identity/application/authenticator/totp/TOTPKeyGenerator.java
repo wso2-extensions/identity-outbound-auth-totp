@@ -33,6 +33,7 @@ import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -58,19 +59,17 @@ public class TOTPKeyGenerator {
         String storedSecretKey;
         String tenantAwareUsername = null;
         Map<String, String> claims = new HashMap<>();
-        long timeStep;
         try {
             UserRealm userRealm = TOTPUtil.getUserRealm(username);
             String tenantDomain = MultitenantUtils.getTenantDomain(username);
             tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
-            timeStep = getTimeStamp(context, tenantDomain);
             if (userRealm != null) {
                 Map<String, String> userClaimValues = userRealm.getUserStoreManager().
                         getUserClaimValues(tenantAwareUsername, new String[]{
                                 TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL}, null);
                 storedSecretKey =
                         userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
-                claims = getGeneratedClaims(username, tenantDomain, storedSecretKey, refresh, timeStep, context);
+                claims = getGeneratedClaims(username, tenantDomain, storedSecretKey, refresh, context, false);
             }
         } catch (UserStoreException e) {
             throw new TOTPException(
@@ -98,31 +97,33 @@ public class TOTPKeyGenerator {
                                                                AuthenticationContext context)
             throws TOTPException {
 
-        long timeStep = getTimeStamp(context, tenantDomain);
         Map<String, String> claims =
-                getGeneratedClaims(username, tenantDomain, storedSecretKey, refresh, timeStep, context);
+                getGeneratedClaims(username, tenantDomain, storedSecretKey, refresh, context, false);
         return claims;
     }
 
     /**
      * Generate TOTP related claims.
      *
-     * @param username        Username.
-     * @param tenantDomain    Tenant domain.
-     * @param storedSecretKey Stored secret key.
-     * @param refresh         Boolean type of refreshing the secret token
-     * @param timeStep        Time stamp.
-     * @param context         Authentication context.
+     * @param username           Username.
+     * @param tenantDomain       Tenant domain.
+     * @param storedSecretKey    Stored secret key.
+     * @param refresh            Boolean type of refreshing the secret token
+     * @param context            Authentication context.
+     * @param isTOTPReEnrollment Boolean value to identify whether claims are generated for the TOTP enrollment or not.
      * @return TOTP related claims.
      * @throws TOTPException If an error occurred while generating claims.
      */
-    private static Map<String, String> getGeneratedClaims(String username, String tenantDomain, String storedSecretKey,
-                                                          boolean refresh, long timeStep, AuthenticationContext context)
+    public static Map<String, String> getGeneratedClaims(String username, String tenantDomain, String storedSecretKey,
+                                                         boolean refresh, AuthenticationContext context,
+                                                         boolean isTOTPReEnrollment)
             throws TOTPException {
 
         String secretKey;
         String encodedQRCodeURL;
         Map<String, String> claims = new HashMap<>();
+        long timeStep = getTimeStamp(context, tenantDomain);
+        long reEnrollmentValidPeriod = getReEnrollmentValidTimePeriod(context, tenantDomain);
         String tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
         try {
             if (StringUtils.isEmpty(storedSecretKey) || refresh) {
@@ -139,6 +140,11 @@ public class TOTPKeyGenerator {
             String qrCodeURL =
                     "otpauth://totp/" + issuer + ":" + displayUsername + "?secret=" + secretKey + "&issuer=" +
                             issuer + "&period=" + timeStep;
+            if (isTOTPReEnrollment) {
+                long reEnrollmentValidMaxTimeStamp= new Date().getTime() + reEnrollmentValidPeriod * 1000;
+                String maxTimeStamp = String.valueOf(reEnrollmentValidMaxTimeStamp);
+                qrCodeURL = String.format("%s&expirytimestamp=%s", qrCodeURL, maxTimeStamp);
+            }
             encodedQRCodeURL = Base64.encodeBase64String(qrCodeURL.getBytes());
             claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, encodedQRCodeURL);
         } catch (CryptoException e) {
@@ -148,6 +154,23 @@ public class TOTPKeyGenerator {
                     "TOTPKeyGenerator cannot find the property value for encoding method", e);
         }
         return claims;
+    }
+
+    private static long getReEnrollmentValidTimePeriod(AuthenticationContext context, String tenantDomain)
+            throws TOTPException {
+
+        long timeStep;
+        try {
+            if (context == null) {
+                timeStep = TOTPUtil.getReEnrollmentValidTimePeriod(tenantDomain);
+            } else {
+                timeStep = TOTPUtil.getReEnrollmentValidTimePeriod(context);
+            }
+        } catch (AuthenticationFailedException e) {
+            throw new TOTPException(
+                    "TOTPKeyGenerator cannot get stored TOTP re-enrollment valid time period", e);
+        }
+        return timeStep;
     }
 
     private static long getTimeStamp(AuthenticationContext context, String tenantDomain) throws TOTPException {

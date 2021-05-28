@@ -27,6 +27,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.context.RegistryType;
 import org.wso2.carbon.core.util.CryptoException;
@@ -76,7 +77,6 @@ import javax.xml.parsers.ParserConfigurationException;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ERROR_PAGE;
-import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOTP_HIDE_USERSTORE_FROM_USERNAME;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE;
 
@@ -333,6 +333,32 @@ public class TOTPUtil {
     }
 
     /**
+     * Get TOTP re-enrollment url valid time period.
+     *
+     * @param tenantDomain Tenant domain name.
+     * @return Time step size.
+     * @throws AuthenticationFailedException On Error while getting TOTP re-enrollment url valid time period from registry.
+     */
+    public static long getReEnrollmentValidTimePeriod(String tenantDomain) throws AuthenticationFailedException {
+
+        return getTimePropertyValue(tenantDomain, TOTPAuthenticatorConstants.RE_ENROLLMENT_VALID_PERIOD);
+    }
+
+    /**
+     * Get TOTP re-enrollment url valid time period.
+     *
+     * @param context Authentication context.
+     * @return TOTP re-enrollment url valid time period.
+     */
+    public static long getReEnrollmentValidTimePeriod(AuthenticationContext context) {
+
+        if (log.isDebugEnabled()) {
+            log.debug("Read the TOTP re-enrollment url valid time period from application authentication xml file");
+        }
+        return getTimePropertyValue(context, TOTPAuthenticatorConstants.RE_ENROLLMENT_VALID_PERIOD);
+    }
+
+    /**
      * Get stored time step size.
      *
      * @param tenantDomain Tenant domain name.
@@ -341,22 +367,7 @@ public class TOTPUtil {
      */
     public static long getTimeStepSize(String tenantDomain) throws AuthenticationFailedException {
 
-        long timeStepSize;
-        if (TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN.equals(tenantDomain)) {
-            timeStepSize = Long.parseLong(getTOTPParameters().get(TOTPAuthenticatorConstants.TIME_STEP_SIZE));
-        } else {
-            try {
-                timeStepSize = getTimeStepSizeFromRegistry(tenantDomain, null);
-                if (timeStepSize == -1) {
-                    timeStepSize = Long.parseLong(
-                            IdentityHelperUtil.getAuthenticatorParameters(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)
-                                    .get(TOTPAuthenticatorConstants.TIME_STEP_SIZE));
-                }
-            } catch (TOTPException e) {
-                throw new AuthenticationFailedException("Cannot find the property value for timeStepSize", e);
-            }
-        }
-        return timeStepSize;
+        return getTimePropertyValue(tenantDomain, TOTPAuthenticatorConstants.TIME_STEP_SIZE);
     }
 
     /**
@@ -369,17 +380,47 @@ public class TOTPUtil {
         if (log.isDebugEnabled()) {
             log.debug("Read the user Time Step Size value from application authentication xml file");
         }
+        return getTimePropertyValue(context, TOTPAuthenticatorConstants.TIME_STEP_SIZE);
+    }
+
+    private static long getTimePropertyValue(AuthenticationContext context, String timeProperty) {
+
         String tenantDomain = context.getTenantDomain();
         Object getPropertiesFromIdentityConfig = context
                 .getProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG);
         if ((getPropertiesFromIdentityConfig != null || tenantDomain
                 .equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN))) {
             return Long.parseLong(IdentityHelperUtil.getAuthenticatorParameters(
-                    context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION).toString())
-                    .get(TOTPAuthenticatorConstants.TIME_STEP_SIZE));
+                    context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION).toString()).get(timeProperty));
         } else {
-            return Long.parseLong(context.getProperty(TOTPAuthenticatorConstants.TIME_STEP_SIZE).toString());
+            return Long.parseLong(context.getProperty(timeProperty).toString());
         }
+    }
+
+    private static long getTimePropertyValue(String tenantDomain, String timeProperty)
+            throws AuthenticationFailedException {
+
+        long timeStepSize;
+        if (TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN.equals(tenantDomain)) {
+            timeStepSize = Long.parseLong(getTOTPParameters().get(timeProperty));
+        } else {
+            try {
+                if (StringUtils.equals(TOTPAuthenticatorConstants.TIME_STEP_SIZE,
+                        TOTPAuthenticatorConstants.TIME_STEP_SIZE)) {
+                    timeStepSize = getTimeStepSizeFromRegistry(tenantDomain, null);
+                } else {
+                    timeStepSize = getReEnrollmentValidTimePeriodFromRegistry(tenantDomain, null);
+                }
+                if (timeStepSize == -1) {
+                    timeStepSize = Long.parseLong(
+                            IdentityHelperUtil.getAuthenticatorParameters(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)
+                                    .get(timeProperty));
+                }
+            } catch (TOTPException e) {
+                throw new AuthenticationFailedException("Cannot find the property value for " + timeProperty, e);
+            }
+        }
+        return timeStepSize;
     }
 
     /**
@@ -392,12 +433,31 @@ public class TOTPUtil {
     public static long getTimeStepSizeFromRegistry(String tenantDomain, AuthenticationContext context)
             throws TOTPException {
 
-        Long timeStepSize = null;
+        return getPropertyFromRegistry(tenantDomain, context, TOTPAuthenticatorConstants.TIME_STEP_SIZE);
+    }
+
+    /**
+     * Get totp re-enrollment url valid period.
+     *
+     * @param tenantDomain Tenant domain name.
+     * @return TOTP re-enrollment url valid period.
+     * @throws TOTPException On Error while getting value for totp re-enrollment url valid period.
+     */
+    public static long getReEnrollmentValidTimePeriodFromRegistry(String tenantDomain, AuthenticationContext context)
+            throws TOTPException {
+
+        return getPropertyFromRegistry(tenantDomain, context,
+                TOTPAuthenticatorConstants.RE_ENROLLMENT_VALID_PERIOD);
+    }
+
+    private static long getPropertyFromRegistry(String tenantDomain, AuthenticationContext context,
+                                                String attribute) throws TOTPException {
+
+        long timeStepSize = -1;
         int tenantID = IdentityTenantUtil.getTenantId(tenantDomain);
         try {
             NodeList authConfigList = getAuthenticationConfigNodeList(tenantDomain, tenantID);
-            timeStepSize = Long.parseLong(getAttributeFromRegistry(authConfigList,
-                    TOTPAuthenticatorConstants.TIME_STEP_SIZE));
+            timeStepSize = Long.parseLong(getAttributeFromRegistry(authConfigList, attribute));
         } catch (RegistryException e) {
             if (context != null) {
                 context.setProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG,
@@ -809,6 +869,48 @@ public class TOTPUtil {
         } catch (CryptoException e) {
             throw new TOTPException("Error while decrypting the key", e);
         }
+    }
+
+    /**
+     * Get decrypted stored secret key for the local users.
+     *
+     * @param username Local user's username.
+     * @return Decrypted stored secret key
+     * @throws TOTPException if an error occurred while decrypting the stored secret key.
+     */
+    public static String getSecretKeyOfLocalUser(AuthenticationContext context,
+                                                 String username) throws TOTPException {
+
+        String secretKey;
+        String tenantAwareUsername = null;
+        try {
+            if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
+                return decrypt(context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString());
+            }
+            tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
+            UserRealm userRealm = TOTPUtil.getUserRealm(username);
+            if (userRealm != null) {
+                Map<String, String> userClaimValues = userRealm
+                        .getUserStoreManager().getUserClaimValues
+                                (tenantAwareUsername, new String[]
+                                        {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL}, null);
+                secretKey = decrypt(userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
+            } else {
+                throw new TOTPException(
+                        "Cannot find the user realm for the given tenant domain : " +
+                                CarbonContext.getThreadLocalCarbonContext().getTenantDomain());
+            }
+        } catch (UserStoreException e) {
+            throw new TOTPException(
+                    "TOTPTokenVerifier failed while trying to access userRealm of the user : " +
+                            tenantAwareUsername, e);
+        } catch (CryptoException e) {
+            throw new TOTPException("Error while decrypting the key", e);
+        } catch (AuthenticationFailedException e) {
+            throw new TOTPException(
+                    "TOTPTokenVerifier cannot find the property value for encodingMethod");
+        }
+        return secretKey;
     }
 
     /**

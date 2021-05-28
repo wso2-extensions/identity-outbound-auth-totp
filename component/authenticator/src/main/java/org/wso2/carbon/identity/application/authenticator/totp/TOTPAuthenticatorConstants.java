@@ -67,6 +67,7 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String WINDOW_SIZE = "windowSize";
 	public static final String ENROL_USER_IN_AUTHENTICATIONFLOW = "enrolUserInAuthenticationFlow";
 	public static final String TIME_STEP_SIZE = "timeStepSize";
+	public static final String RE_ENROLLMENT_VALID_PERIOD = "reEnrollmentValidityPeriod";
 	public static final String ENCODING_METHOD = "encodingMethod";
 	public static final String ENABLE_TOTP = "ENABLE_TOTP";
 	public static final String SUPER_TENANT = "carbon.super";
@@ -78,8 +79,10 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String ENABLE_TOTP_REQUEST_PAGE_URL = "TOTPAuthenticationEndpointEnableTOTPPage";
 	public static final String USE_EVENT_HANDLER_BASED_EMAIL_SENDER = "useEventHandlerBasedEmailSender";
 	public static final String TEMPLATE_TYPE = "TEMPLATE_TYPE";
+	public static final String QR_CODE_URL = "qr-code-url";
 	public static final String ATTRIBUTE_EMAIL_SENT_TO = "send-to";
 	public static final String EVENT_NAME = "TOTP";
+	public static final String SESSION_DATA_KEY ="session-data-key";
 	public static final String AUTHENTICATED_USER = "authenticatedUser";
 	public static final String LOCAL_AUTHENTICATOR = "LOCAL";
 	public static final String ENABLE_ACCOUNT_LOCKING_FOR_FAILED_ATTEMPTS = "EnableAccountLockingForFailedAttempts";
