@@ -78,7 +78,6 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String ENABLE_TOTP_REQUEST_PAGE_URL = "TOTPAuthenticationEndpointEnableTOTPPage";
 	public static final String USE_EVENT_HANDLER_BASED_EMAIL_SENDER = "useEventHandlerBasedEmailSender";
 	public static final String TEMPLATE_TYPE = "TEMPLATE_TYPE";
-	public static final String ATTRIBUTE_EMAIL_SENT_TO = "send-to";
 	public static final String EVENT_NAME = "TOTP";
 	public static final String AUTHENTICATED_USER = "authenticatedUser";
 	public static final String LOCAL_AUTHENTICATOR = "LOCAL";
@@ -88,8 +87,6 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String PROPERTY_ACCOUNT_LOCK_ON_FAILURE_MAX = "account.lock.handler.On.Failure.Max.Attempts";
 	public static final String PROPERTY_ACCOUNT_LOCK_TIME = "account.lock.handler.Time";
 	public static final String ADMIN_INITIATED = "AdminInitiated";
-	public static final String FEDERATED_USER_ID = "FederatedUserId";
-	public static final String FEDERATED_EMAIL_ATTRIBUTE_KEY = "email";
 
 	public static final String ENABLE_SEND_VERIFICATION_CODE_BY_EMAIL = "AllowSendingVerificationCodeByEmail";
 }
