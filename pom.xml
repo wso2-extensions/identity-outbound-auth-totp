@@ -42,19 +42,9 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>commons-io.wso2</groupId>
-                <artifactId>commons-io</artifactId>
-                <version>${commons-io.wso2.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.wso2.carbon.identity</groupId>
-                <artifactId>org.wso2.carbon.identity.totp</artifactId>
-                <version>${carbon.identity.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.wso2.carbon.identity.framework</groupId>
-                <artifactId>org.wso2.carbon.identity.mgt</artifactId>
-                <version>${carbon.identity.framework.version}</version>
+                <groupId>org.wso2.carbon.extension.identity.authenticator.outbound.totp</groupId>
+                <artifactId>org.wso2.carbon.extension.identity.authenticator.totp.connector</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.wso2.carbon.identity.framework</groupId>
@@ -113,12 +103,6 @@
             </dependency>
 
             <!--Test Dependencies-->
-            <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>${junit.version}</version>
-            </dependency>
-
             <dependency>
                 <groupId>org.testng</groupId>
                 <artifactId>testng</artifactId>
@@ -357,7 +341,6 @@
         <carbon.identity.event.version>5.13.33</carbon.identity.event.version>
         <carbon.identity.event.version.range>[5.13.0, 6.0.0)</carbon.identity.event.version.range>
         <!--Test Dependencies-->
-        <junit.version>4.12</junit.version>
         <testng.version>6.9.10</testng.version>
         <jacoco.version>0.7.9</jacoco.version>
         <powermock.version>1.6.5</powermock.version>
@@ -367,6 +350,7 @@
         <maven.scr.plugin.version>1.26.0</maven.scr.plugin.version>
         <apache.felix.scr.ds.annotations.version>1.2.4</apache.felix.scr.ds.annotations.version>
         <osgi.service.import.version.range>[1.2.0,2.0.0)</osgi.service.import.version.range>
+        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
     </properties>
 
     <build>
@@ -393,6 +377,11 @@
                     <configuration>
                         <obrRepository>NONE</obrRepository>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven-compiler-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
