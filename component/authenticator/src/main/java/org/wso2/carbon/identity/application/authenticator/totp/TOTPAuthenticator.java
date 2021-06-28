@@ -33,7 +33,9 @@ import org.wso2.carbon.identity.application.authentication.framework.config.mode
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.exception.LogoutFailedException;
+import org.wso2.carbon.identity.application.authentication.framework.exception.UserSessionException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
+import org.wso2.carbon.identity.application.authentication.framework.store.UserSessionStore;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorConfig;
@@ -43,6 +45,7 @@ import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
+import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
@@ -56,6 +59,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.HttpServletRequest;
@@ -155,7 +159,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             throws AuthenticationFailedException {
 
         String username = null;
-        AuthenticatedUser authenticatedUser;
+        AuthenticatedUser authenticatedUser = null;
+        boolean isInitialFederatedUserLogin = false;
         String tenantDomain = context.getTenantDomain();
         context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
                 TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
@@ -165,24 +170,62 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         }
         String retryParam = "";
         try {
-            FederatedAuthenticatorUtil.setUsernameFromFirstStep(context);
-            username = String.valueOf(context.getProperty("username"));
-            authenticatedUser = (AuthenticatedUser) context.getProperty("authenticatedUser");
-            // find the authenticated user.
-            if (authenticatedUser == null) {
-                diagnosticLog.error("Cannot find an authenticated user in the context. Cannot proceed further " +
-                        "without identifying the user");
-                throw new AuthenticationFailedException(
-                        "Authentication failed!. Cannot proceed further without identifying the user");
+            if (!TOTPUtil.isLocalUser(context)) {
+                username = FederatedAuthenticatorUtil.getLoggedInFederatedUser(context);
+                if (username == null) {
+                    diagnosticLog.error("Cannot resolve the username of the authenticated federated user." +
+                            "Cannot proceed further without identifying the user.");
+                    throw new AuthenticationFailedException(
+                            "Cannot resolve the username of the authenticated federated user." +
+                                    "Cannot proceed further without identifying the user.");
+                }
+
+                // Check whether the federated user has a local association.
+                if (StringUtils.isBlank(FederatedAuthenticatorUtil.
+                        getLocalUsernameAssociatedWithFederatedUser(MultitenantUtils.
+                                getTenantAwareUsername(username), context))) {
+
+                    if (log.isDebugEnabled()) {
+                        log.debug("Initial login attempt of the federated user: " + username);
+                    }
+                    diagnosticLog.info("Initial login attempt of the federated user: " + username);
+
+                    isInitialFederatedUserLogin = true;
+                    authenticatedUser = TOTPUtil.getAuthenticatedUser(context);
+                    context.setProperty(TOTPAuthenticatorConstants.FEDERATED_USERNAME, username);
+                }
             }
+
+            /*
+            Resolve username and authenticated user for all the local and federated users except for the initial
+            federated user login.
+             */
+            if (!isInitialFederatedUserLogin) {
+                FederatedAuthenticatorUtil.setUsernameFromFirstStep(context);
+                username = String.valueOf(context.getProperty("username"));
+                authenticatedUser = (AuthenticatedUser) context.getProperty("authenticatedUser");
+
+                // Find the authenticated user.
+                if (authenticatedUser == null) {
+                    diagnosticLog.error("Cannot find an authenticated user in the context. Cannot proceed further " +
+                            "without identifying the user");
+                    throw new AuthenticationFailedException(
+                            "Authentication failed!. Cannot proceed further without identifying the user");
+                }
+            }
+
             if (context.isRetrying()) {
                 retryParam = "&authFailure=true&authFailureMsg=login.fail.message";
             }
-            boolean isTOTPEnabled = isTOTPEnabledForLocalUser(username);
-            if (log.isDebugEnabled()) {
-                log.debug("TOTP is enabled by user: " + isTOTPEnabled);
+            boolean isTOTPEnabled =false;
+            // Not required to check the TOTP enable state for the initial login of the federated users.
+            if (!isInitialFederatedUserLogin) {
+                isTOTPEnabled = isTOTPEnabledForLocalUser(username);
             }
             if (isTOTPEnabled) {
+                if (log.isDebugEnabled()) {
+                    log.debug("TOTP is enabled by user: " + username);
+                }
                 diagnosticLog.info("TOTP is enabled by user: " + username);
             }
             boolean isTOTPEnabledByAdmin = IdentityHelperUtil.checkSecondStepEnableByAdmin(context);
@@ -209,7 +252,12 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         log.debug("User has not enabled TOTP: " + username);
                     }
                     diagnosticLog.info("TOTP has not been enabled by user: " + username);
-                    Map<String, String> claims = TOTPKeyGenerator.generateClaims(username, false, context);
+                    Map<String, String> claims;
+                    if (isInitialFederatedUserLogin) {
+                        claims = TOTPKeyGenerator.generateClaimsForFedUser(username, tenantDomain, context);
+                    } else {
+                        claims = TOTPKeyGenerator.generateClaims(username, false, context);
+                    }
                     context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
                             claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
                     context.setProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
@@ -311,21 +359,37 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
         diagnosticLog.info("Processing TOTP authentication response.");
         String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
-        String username = context.getProperty("username").toString();
-        validateAccountLockStatusForLocalUser(context, username);
+        String username;
+        boolean isFederatedUserFirstLogin = false;
+        // Get the username of the federated user from the context who is trying to login for the first time.
+        if (context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USERNAME) != null) {
+            username = context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USERNAME).toString();
+            isFederatedUserFirstLogin = true;
+        } else {
+            username = context.getProperty("username").toString();
+            validateAccountLockStatusForLocalUser(context, username);
+        }
         if (StringUtils.isBlank(token)) {
             handleTotpVerificationFail(context);
             diagnosticLog.error("Empty TOTP in the request. Authentication Failed for user: " + username);
             throw new AuthenticationFailedException("Empty TOTP in the request. Authentication Failed for user: " +
                     username);
         }
-        checkTotpEnabled(context, username);
         try {
             int tokenValue = Integer.parseInt(token);
-            if (!isValidTokenLocalUser(tokenValue, username, context)) {
-                handleTotpVerificationFail(context);
-                diagnosticLog.error("Invalid TOTP token. Authentication failed for user:  " + username);
-                throw new AuthenticationFailedException("Invalid Token. Authentication failed, user :  " + username);
+            if (isFederatedUserFirstLogin) {
+                if (!isValidTokenFederatedUser(tokenValue, context)) {
+                    diagnosticLog.error("Invalid Token. Authentication failed for federated user: " + username);
+                    throw new AuthenticationFailedException("Invalid Token. Authentication failed for federated user: "
+                            + username);
+                }
+            } else {
+                checkTotpEnabled(context, username);
+                if (!isValidTokenLocalUser(tokenValue, username, context)) {
+                    handleTotpVerificationFail(context);
+                    diagnosticLog.error("Invalid TOTP token. Authentication failed for user:  " + username);
+                    throw new AuthenticationFailedException("Invalid Token. Authentication failed, user :  " + username);
+                }
             }
             if (StringUtils.isNotBlank(username)) {
                 AuthenticatedUser authenticatedUser = new AuthenticatedUser();
@@ -545,22 +609,10 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     private boolean isValidTokenLocalUser(int token, String username, AuthenticationContext context)
             throws TOTPException {
 
-        TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;
         String tenantDomain = MultitenantUtils.getTenantDomain(username);
         String tenantAwareUsername = null;
         try {
-            if (TOTPAuthenticatorConstants.BASE64
-                    .equals(TOTPUtil.getEncodingMethod(tenantDomain, context))) {
-                encoding = TOTPKeyRepresentation.BASE64;
-            }
-            long timeStep = TimeUnit.SECONDS.toMillis(TOTPUtil.getTimeStepSize(context));
-            int windowSize = TOTPUtil.getWindowSize(context);
-            TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder totpAuthenticatorConfigBuilder =
-                    new TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder()
-                            .setKeyRepresentation(encoding).setWindowSize(windowSize)
-                            .setTimeStepSizeInMillis(timeStep);
-            TOTPAuthenticatorCredentials totpAuthenticator =
-                    new TOTPAuthenticatorCredentials(totpAuthenticatorConfigBuilder.build());
+            TOTPAuthenticatorCredentials totpAuthenticator = getTotpAuthenticator(context, tenantDomain);
             tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
             UserRealm userRealm = TOTPUtil.getUserRealm(username);
             if (userRealm != null) {
@@ -595,6 +647,48 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         }
     }
 
+    private TOTPAuthenticatorCredentials getTotpAuthenticator(AuthenticationContext context, String tenantDomain) {
+
+        TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;
+        if (TOTPAuthenticatorConstants.BASE64
+                .equals(TOTPUtil.getEncodingMethod(tenantDomain, context))) {
+            encoding = TOTPKeyRepresentation.BASE64;
+        }
+        long timeStep = TimeUnit.SECONDS.toMillis(TOTPUtil.getTimeStepSize(context));
+        int windowSize = TOTPUtil.getWindowSize(context);
+        TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder totpAuthenticatorConfigBuilder =
+                new TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder()
+                        .setKeyRepresentation(encoding).setWindowSize(windowSize)
+                        .setTimeStepSizeInMillis(timeStep);
+        TOTPAuthenticatorCredentials totpAuthenticator =
+                new TOTPAuthenticatorCredentials(totpAuthenticatorConfigBuilder.build());
+        return totpAuthenticator;
+    }
+
+    /**
+     * Verify whether a given token is valid for the federated user.
+     *
+     * @param token        TOTP Token which needs to be validated
+     * @param context      Authentication context
+     * @return true if token is valid otherwise false
+     * @throws TOTPException If an error occurred while validating token.
+     */
+    private boolean isValidTokenFederatedUser(int token, AuthenticationContext context)
+            throws TOTPException {
+
+        String secretKey = null;
+        if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
+            try {
+                secretKey = TOTPUtil.decrypt(context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).
+                        toString());
+            } catch (CryptoException e) {
+                throw new TOTPException("Error while decrypting the secret key", e);
+            }
+        }
+        TOTPAuthenticatorCredentials totpAuthenticator = getTotpAuthenticator(context, context.getTenantDomain());
+        return totpAuthenticator.authorize(secretKey, token);
+    }
+    
     /**
      * Execute account lock flow for TOTP verification failures.
      *

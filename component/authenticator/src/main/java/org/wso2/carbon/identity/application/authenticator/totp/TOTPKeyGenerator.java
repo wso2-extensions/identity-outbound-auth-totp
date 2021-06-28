@@ -61,16 +61,11 @@ public class TOTPKeyGenerator {
         String encodedQRCodeURL;
         String tenantAwareUsername = null;
         Map<String, String> claims = new HashMap<>();
-        long timeStep;
         try {
             UserRealm userRealm = TOTPUtil.getUserRealm(username);
             String tenantDomain = MultitenantUtils.getTenantDomain(username);
             tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
-            if (context == null) {
-                timeStep = TOTPUtil.getTimeStepSize(tenantDomain);
-            } else {
-                timeStep = TOTPUtil.getTimeStepSize(context);
-            }
+            long timeStep = getTimeStamp(context, tenantDomain);
             if (userRealm != null) {
                 Map<String, String> userClaimValues = userRealm.getUserStoreManager().
                         getUserClaimValues(tenantAwareUsername, new String[]{
@@ -110,6 +105,61 @@ public class TOTPKeyGenerator {
                     "TOTPKeyGenerator cannot find the property value for encoding method", e);
         }
         return claims;
+    }
+
+    /**
+     * Generate TOTP secret key for federated user, encoding method and QR Code url for user.
+     *
+     * @param username        Username of the user.
+     * @param context         Authentication context.
+     * @return Generated TOTP related claims of federated user.
+     * @throws TOTPException when user realm is null or while decrypting the key
+     */
+    public static Map<String, String> generateClaimsForFedUser(String username, String tenantDomain,
+                                                               AuthenticationContext context)
+            throws TOTPException {
+
+        String secretKey;
+        String encodedQRCodeURL;
+        Map<String, String> claims = new HashMap<>();
+        long timeStep = getTimeStamp(context, tenantDomain);
+        String tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
+        try {
+            TOTPAuthenticatorKey key = generateKey(tenantDomain, context);
+            secretKey = key.getKey();
+            claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
+                    TOTPUtil.encrypt(secretKey));
+
+            String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
+            String displayUsername = TOTPUtil.getTOTPDisplayUsername(tenantAwareUsername);
+            String qrCodeURL =
+                    "otpauth://totp/" + issuer + ":" + displayUsername + "?secret=" + secretKey + "&issuer=" +
+                            issuer + "&period=" + timeStep;
+            encodedQRCodeURL = Base64.encodeBase64String(qrCodeURL.getBytes());
+            claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, encodedQRCodeURL);
+        } catch (CryptoException e) {
+            throw new TOTPException("TOTPKeyGenerator failed while decrypt the storedSecretKey ", e);
+        } catch (AuthenticationFailedException e) {
+            throw new TOTPException(
+                    "TOTPKeyGenerator cannot find the property value for encoding method", e);
+        }
+        return claims;
+    }
+
+    private static long getTimeStamp(AuthenticationContext context, String tenantDomain) throws TOTPException {
+
+        long timeStep;
+        try {
+            if (context == null) {
+                timeStep = TOTPUtil.getTimeStepSize(tenantDomain);
+            } else {
+                timeStep = TOTPUtil.getTimeStepSize(context);
+            }
+        } catch (AuthenticationFailedException e) {
+            throw new TOTPException(
+                    "TOTPKeyGenerator cannot get stored time step size", e);
+        }
+        return timeStep;
     }
 
     /**

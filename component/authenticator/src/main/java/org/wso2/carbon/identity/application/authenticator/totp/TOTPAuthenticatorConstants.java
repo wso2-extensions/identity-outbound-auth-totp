@@ -87,6 +87,7 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String PROPERTY_ACCOUNT_LOCK_ON_FAILURE_MAX = "account.lock.handler.On.Failure.Max.Attempts";
 	public static final String PROPERTY_ACCOUNT_LOCK_TIME = "account.lock.handler.Time";
 	public static final String ADMIN_INITIATED = "AdminInitiated";
+	public static final String FEDERATED_USERNAME = "FederatedUsername";
 
 	public static final String ENABLE_SEND_VERIFICATION_CODE_BY_EMAIL = "AllowSendingVerificationCodeByEmail";
 }
