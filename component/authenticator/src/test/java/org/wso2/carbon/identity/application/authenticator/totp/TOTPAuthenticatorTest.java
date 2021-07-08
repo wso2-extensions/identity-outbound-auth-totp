@@ -460,7 +460,7 @@ public class TOTPAuthenticatorTest {
         Map<String, String> claims = new HashMap<>();
         claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "AnySecretKey");
         userStoreManager.setUserClaimValues(MultitenantUtils.getTenantAwareUsername(username), claims, null);
-        Whitebox.invokeMethod(totpAuthenticator, "isTOTPEnabledForLocalUser", "admin");
+        Whitebox.invokeMethod(totpAuthenticator, "isSecretKeyExistForUser", "admin");
     }
 
     @Test(description = "Test case for initiateAuthenticationRequest() method when authenticated user is null",

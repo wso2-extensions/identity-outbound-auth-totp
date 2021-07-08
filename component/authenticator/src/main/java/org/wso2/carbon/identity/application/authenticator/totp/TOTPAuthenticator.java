@@ -33,9 +33,7 @@ import org.wso2.carbon.identity.application.authentication.framework.config.mode
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.exception.LogoutFailedException;
-import org.wso2.carbon.identity.application.authentication.framework.exception.UserSessionException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
-import org.wso2.carbon.identity.application.authentication.framework.store.UserSessionStore;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
@@ -48,7 +46,6 @@ import org.wso2.carbon.identity.application.common.model.JustInTimeProvisioningC
 import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
-import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.idp.mgt.IdentityProviderManagementException;
 import org.wso2.carbon.user.api.UserRealm;
@@ -63,7 +60,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.HttpServletRequest;
@@ -202,17 +198,17 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             if (context.isRetrying()) {
                 retryParam = "&authFailure=true&authFailureMsg=login.fail.message";
             }
-            boolean isTOTPEnabled =false;
+            boolean isSecretKeyExistForUser =false;
             // Not required to check the TOTP enable state for the initial login of the federated users.
             if (!isInitialFederationAttempt) {
-                isTOTPEnabled = isTOTPEnabledForLocalUser(UserCoreUtil.addDomainToName(username,
+                isSecretKeyExistForUser = isSecretKeyExistForUser(UserCoreUtil.addDomainToName(username,
                         authenticatingUser.getUserStoreDomain()));
             }
-            if (isTOTPEnabled) {
+            if (isSecretKeyExistForUser) {
                 if (log.isDebugEnabled()) {
-                    log.debug("TOTP is enabled by user: " + username);
+                    log.debug("Secret key exists for the user: " + username);
                 }
-                diagnosticLog.info("TOTP is enabled by user: " + username);
+                diagnosticLog.info("Secret key exists for the user: " + username);
             }
             boolean isTOTPEnabledByAdmin = IdentityHelperUtil.checkSecondStepEnableByAdmin(context);
             if (log.isDebugEnabled()) {
@@ -225,7 +221,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             // authentication option from TOTP pages.
             String multiOptionURI = getMultiOptionURIQueryParam(request);
 
-            if (isTOTPEnabled && request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
+            if (isSecretKeyExistForUser &&
+                    request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
                 //if TOTP is enabled for the user.
                 String totpLoginPageUrl = buildTOTPLoginPageURL(context, username, retryParam, multiOptionURI);
                 diagnosticLog.info("Redirecting user to TOTP endpoint: " + totpLoginPageUrl);
@@ -348,9 +345,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
         AuthenticatedUser authenticatingUser =
                 (AuthenticatedUser) context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
-        String username = UserCoreUtil.addTenantDomainToEntry(authenticatingUser.getUserName(),
-                context.getTenantDomain());
-        username = UserCoreUtil.addDomainToName(username, authenticatingUser.getUserStoreDomain());
+        String username = authenticatingUser.toFullQualifiedUsername();
         validateAccountLockStatusForLocalUser(context, username);
 
         if (StringUtils.isBlank(token)) {
@@ -549,7 +544,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
      * @return true, if TOTP enable for local user
      * @throws TOTPException when user realm is null or could not find user
      */
-    private boolean isTOTPEnabledForLocalUser(String username)
+    private boolean isSecretKeyExistForUser(String username)
             throws TOTPException, AuthenticationFailedException {
 
         diagnosticLog.info("Checking if TOTP enabled for the user: " + username);
