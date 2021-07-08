@@ -90,4 +90,46 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String FEDERATED_USERNAME = "FederatedUsername";
 
 	public static final String ENABLE_SEND_VERIFICATION_CODE_BY_EMAIL = "AllowSendingVerificationCodeByEmail";
+
+	public static final String IS_INITIAL_FEDERATED_USER_ATTEMPT = "isInitialFederationAttempt";
+
+	public static final String TOTP_AUTHENTICATOR_ERROR_PREFIX = "TPA";
+
+	/**
+	 * Enum which contains the error codes and corresponding error messages.
+	 */
+	public enum ErrorMessages {
+
+		ERROR_CODE_INVALID_FEDERATED_AUTHENTICATOR("65001", "No IDP found with the name IDP: " +
+				"%s in tenant: %s"),
+		ERROR_CODE_NO_FEDERATED_USER("65002", "No federated user found"),
+		ERROR_CODE_INVALID_FEDERATED_USER_AUTHENTICATION("65003", "Can not handle federated user " +
+				"authentication with TOTP as JIT Provision is not enabled for the IDP: in the tenant: %s"),
+		ERROR_CODE_NO_AUTHENTICATED_USER("65004", "Can not find the authenticated user");
+
+		private final String code;
+		private final String message;
+
+		ErrorMessages(String code, String message) {
+
+			this.code = code;
+			this.message = message;
+		}
+
+		public String getCode() {
+
+			return TOTP_AUTHENTICATOR_ERROR_PREFIX + "-" + code;
+		}
+
+		public String getMessage() {
+
+			return message;
+		}
+
+		@Override
+		public String toString() {
+
+			return code + " - " + message;
+		}
+	}
 }

@@ -31,6 +31,7 @@ import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticator
 import org.wso2.carbon.identity.event.services.IdentityEventService;
 import org.wso2.carbon.identity.governance.IdentityGovernanceService;
 import org.wso2.carbon.identity.handler.event.account.lock.service.AccountLockService;
+import org.wso2.carbon.idp.mgt.IdpManager;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.ConfigurationContextService;
 
@@ -174,5 +175,22 @@ public class TOTPAuthenticatorServiceComponent {
 	protected void unsetAccountLockService(AccountLockService accountLockService) {
 
 		TOTPDataHolder.getInstance().setAccountLockService(null);
+	}
+
+	@Reference(
+			name = "org.wso2.carbon.idp.mgt.IdpManager",
+			service = IdpManager.class,
+			cardinality = ReferenceCardinality.MANDATORY,
+			policy = ReferencePolicy.DYNAMIC,
+			unbind = "unsetIdentityProviderManagementService"
+	)
+	protected void setIdentityProviderManagementService(IdpManager idpManager) {
+
+		TOTPDataHolder.getInstance().setIdpManager(idpManager);
+	}
+
+	protected void unsetIdentityProviderManagementService(IdpManager idpManager) {
+
+		TOTPDataHolder.getInstance().setIdpManager(null);
 	}
 }

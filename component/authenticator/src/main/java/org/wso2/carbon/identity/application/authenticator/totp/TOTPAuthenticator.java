@@ -38,15 +38,19 @@ import org.wso2.carbon.identity.application.authentication.framework.model.Authe
 import org.wso2.carbon.identity.application.authentication.framework.store.UserSessionStore;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
+import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorConfig;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorCredentials;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPKeyRepresentation;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
+import org.wso2.carbon.identity.application.common.model.IdentityProvider;
+import org.wso2.carbon.identity.application.common.model.JustInTimeProvisioningConfig;
 import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.idp.mgt.IdentityProviderManagementException;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.api.UserStoreManager;
@@ -65,6 +69,7 @@ import java.util.concurrent.TimeUnit;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ErrorMessages;
 import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getMultiOptionURIQueryParam;
 import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getTOTPErrorPage;
 import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getTOTPLoginPage;
@@ -159,8 +164,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             throws AuthenticationFailedException {
 
         String username = null;
-        AuthenticatedUser authenticatedUser = null;
-        boolean isInitialFederatedUserLogin = false;
         String tenantDomain = context.getTenantDomain();
         context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
                 TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
@@ -168,59 +171,42 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             IdentityHelperUtil
                     .loadApplicationAuthenticationXMLFromRegistry(context, getName(), tenantDomain);
         }
-        String retryParam = "";
+
+        AuthenticatedUser authenticatedUserFromContext = TOTPUtil.getAuthenticatedUser(context);
+        if (authenticatedUserFromContext == null) {
+            throw new AuthenticationFailedException(
+                    ErrorMessages.ERROR_CODE_NO_AUTHENTICATED_USER.getCode(),
+                    ErrorMessages.ERROR_CODE_NO_AUTHENTICATED_USER.getMessage());
+        }
+
+        /*
+        The username that the server is using to identify the user, is needed to be identified, as
+        for the federated users, the username in the authentication context may not be same as the
+        username when the user is provisioned to the server.
+         */
+        String mappedLocalUsername = getMappedLocalUsername(authenticatedUserFromContext, context);
+
+        /*
+        If the mappedLocalUsername is blank, that means this is an initial login attempt by an non provisioned
+        federated user.
+         */
+        boolean isInitialFederationAttempt = StringUtils.isBlank(mappedLocalUsername);
+
         try {
-            if (!TOTPUtil.isLocalUser(context)) {
-                username = FederatedAuthenticatorUtil.getLoggedInFederatedUser(context);
-                if (username == null) {
-                    diagnosticLog.error("Cannot resolve the username of the authenticated federated user." +
-                            "Cannot proceed further without identifying the user.");
-                    throw new AuthenticationFailedException(
-                            "Cannot resolve the username of the authenticated federated user." +
-                                    "Cannot proceed further without identifying the user.");
-                }
+            AuthenticatedUser authenticatingUser = resolveAuthenticatingUser(context, authenticatedUserFromContext,
+                    mappedLocalUsername, tenantDomain, isInitialFederationAttempt);
+            username = UserCoreUtil.addTenantDomainToEntry(authenticatingUser.getUserName(), tenantDomain);
+            context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER, authenticatingUser);
 
-                // Check whether the federated user has a local association.
-                if (StringUtils.isBlank(FederatedAuthenticatorUtil.
-                        getLocalUsernameAssociatedWithFederatedUser(MultitenantUtils.
-                                getTenantAwareUsername(username), context))) {
-
-                    if (log.isDebugEnabled()) {
-                        log.debug("Initial login attempt of the federated user: " + username);
-                    }
-                    diagnosticLog.info("Initial login attempt of the federated user: " + username);
-
-                    isInitialFederatedUserLogin = true;
-                    authenticatedUser = TOTPUtil.getAuthenticatedUser(context);
-                    context.setProperty(TOTPAuthenticatorConstants.FEDERATED_USERNAME, username);
-                }
-            }
-
-            /*
-            Resolve username and authenticated user for all the local and federated users except for the initial
-            federated user login.
-             */
-            if (!isInitialFederatedUserLogin) {
-                FederatedAuthenticatorUtil.setUsernameFromFirstStep(context);
-                username = String.valueOf(context.getProperty("username"));
-                authenticatedUser = (AuthenticatedUser) context.getProperty("authenticatedUser");
-
-                // Find the authenticated user.
-                if (authenticatedUser == null) {
-                    diagnosticLog.error("Cannot find an authenticated user in the context. Cannot proceed further " +
-                            "without identifying the user");
-                    throw new AuthenticationFailedException(
-                            "Authentication failed!. Cannot proceed further without identifying the user");
-                }
-            }
-
+            String retryParam = "";
             if (context.isRetrying()) {
                 retryParam = "&authFailure=true&authFailureMsg=login.fail.message";
             }
             boolean isTOTPEnabled =false;
             // Not required to check the TOTP enable state for the initial login of the federated users.
-            if (!isInitialFederatedUserLogin) {
-                isTOTPEnabled = isTOTPEnabledForLocalUser(username);
+            if (!isInitialFederationAttempt) {
+                isTOTPEnabled = isTOTPEnabledForLocalUser(UserCoreUtil.addDomainToName(username,
+                        authenticatingUser.getUserStoreDomain()));
             }
             if (isTOTPEnabled) {
                 if (log.isDebugEnabled()) {
@@ -253,10 +239,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     }
                     diagnosticLog.info("TOTP has not been enabled by user: " + username);
                     Map<String, String> claims;
-                    if (isInitialFederatedUserLogin) {
+                    if (isInitialFederationAttempt) {
                         claims = TOTPKeyGenerator.generateClaimsForFedUser(username, tenantDomain, context);
                     } else {
-                        claims = TOTPKeyGenerator.generateClaims(username, false, context);
+                        claims = TOTPKeyGenerator.generateClaims(UserCoreUtil.addDomainToName(username,
+                                authenticatingUser.getUserStoreDomain()), false, context);
                     }
                     context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
                             claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
@@ -278,7 +265,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         response.sendRedirect(totpErrorPageUrl);
                     } else {
                         //if admin does not enforces TOTP and TOTP is not enabled for the user.
-                        context.setSubject(authenticatedUser);
+                        context.setSubject(authenticatingUser);
                         StepConfig stepConfig = context.getSequenceConfig().getStepMap()
                                 .get(context.getCurrentStep() - 1);
                         if (stepConfig.getAuthenticatedAutenticator()
@@ -359,16 +346,13 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
         diagnosticLog.info("Processing TOTP authentication response.");
         String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
-        String username;
-        boolean isFederatedUserFirstLogin = false;
-        // Get the username of the federated user from the context who is trying to login for the first time.
-        if (context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USERNAME) != null) {
-            username = context.getProperty(TOTPAuthenticatorConstants.FEDERATED_USERNAME).toString();
-            isFederatedUserFirstLogin = true;
-        } else {
-            username = context.getProperty("username").toString();
-            validateAccountLockStatusForLocalUser(context, username);
-        }
+        AuthenticatedUser authenticatingUser =
+                (AuthenticatedUser) context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
+        String username = UserCoreUtil.addTenantDomainToEntry(authenticatingUser.getUserName(),
+                context.getTenantDomain());
+        username = UserCoreUtil.addDomainToName(username, authenticatingUser.getUserStoreDomain());
+        validateAccountLockStatusForLocalUser(context, username);
+
         if (StringUtils.isBlank(token)) {
             handleTotpVerificationFail(context);
             diagnosticLog.error("Empty TOTP in the request. Authentication Failed for user: " + username);
@@ -377,7 +361,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         }
         try {
             int tokenValue = Integer.parseInt(token);
-            if (isFederatedUserFirstLogin) {
+            if (isInitialFederationAttempt(context)) {
                 if (!isValidTokenFederatedUser(tokenValue, context)) {
                     diagnosticLog.error("Invalid Token. Authentication failed for federated user: " + username);
                     throw new AuthenticationFailedException("Invalid Token. Authentication failed for federated user: "
@@ -740,7 +724,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     break;
             }
         }
-        String username = context.getProperty("username").toString();
+        String username = authenticatedUser.getUserName();
         Map<String, String> claimValues = getUserClaimValues(authenticatedUser, username);
         if (claimValues == null) {
             claimValues = new HashMap<>();
@@ -874,5 +858,146 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             diagnosticLog.error(errorMessage + ". Error message: " + e.getMessage());
             throw new AuthenticationFailedException(errorMessage, e);
         }
+    }
+
+    private boolean isJitProvisioningEnabled(AuthenticatedUser user, String tenantDomain)
+            throws AuthenticationFailedException {
+
+        String federatedIdp = user.getFederatedIdPName();
+        IdentityProvider idp = getIdentityProvider(federatedIdp, tenantDomain);
+        JustInTimeProvisioningConfig provisioningConfig = idp.getJustInTimeProvisioningConfig();
+        if (provisioningConfig == null) {
+            if (log.isDebugEnabled()) {
+                log.debug(String.format("No JIT provisioning configs for idp: %s in tenant: %s", federatedIdp,
+                        tenantDomain));
+            }
+            return false;
+        }
+        return provisioningConfig.isProvisioningEnabled();
+    }
+
+    private String getFederatedUserStoreDomain(AuthenticatedUser user, String tenantDomain)
+            throws AuthenticationFailedException {
+
+        String federatedIdp = user.getFederatedIdPName();
+        IdentityProvider idp = getIdentityProvider(federatedIdp, tenantDomain);
+        JustInTimeProvisioningConfig provisioningConfig = idp.getJustInTimeProvisioningConfig();
+        if (provisioningConfig == null) {
+            if (log.isDebugEnabled()) {
+                log.debug(String.format("No JIT provisioning configs for idp: %s in tenant: %s", federatedIdp,
+                        tenantDomain));
+            }
+            return null;
+        }
+        String provisionedUserStore = provisioningConfig.getProvisioningUserStore();
+        if (log.isDebugEnabled()) {
+            log.debug(String.format("Setting userstore: %s as the provisioning userstore for user: %s in tenant: %s",
+                    provisionedUserStore, user.getUserName(), tenantDomain));
+        }
+        return provisionedUserStore;
+    }
+
+    private IdentityProvider getIdentityProvider(String idpName, String tenantDomain) throws
+            AuthenticationFailedException {
+
+        try {
+            IdentityProvider idp = TOTPDataHolder.getInstance().getIdpManager().getIdPByName(idpName, tenantDomain);
+            if (idp == null) {
+                throw new AuthenticationFailedException(
+                        String.format(
+                        ErrorMessages.ERROR_CODE_INVALID_FEDERATED_AUTHENTICATOR.getMessage(), idpName, tenantDomain));
+            }
+            return idp;
+        } catch (IdentityProviderManagementException e) {
+            throw new AuthenticationFailedException("");
+        }
+    }
+
+    /**
+     * Retrieve the provisioned username of the authenticated user. If this is a federated scenario, the
+     * authenticated username will be same as the username in context. If the flow is for a JIT provisioned user, the
+     * provisioned username will be returned.
+     *
+     * @param authenticatedUser AuthenticatedUser.
+     * @param context           AuthenticationContext.
+     * @return Provisioned username
+     * @throws AuthenticationFailedException If an error occurred while getting the provisioned username.
+     */
+    private String getMappedLocalUsername(AuthenticatedUser authenticatedUser, AuthenticationContext context)
+            throws AuthenticationFailedException {
+
+        if (!authenticatedUser.isFederatedUser()) {
+            return authenticatedUser.getUserName();
+        }
+
+        // If the user is federated, we need to check whether the user is already provisioned to the organization.
+        String federatedUsername = FederatedAuthenticatorUtil.getLoggedInFederatedUser(context);
+        if (StringUtils.isBlank(federatedUsername)) {
+            throw new AuthenticationFailedException(
+                    ErrorMessages.ERROR_CODE_NO_AUTHENTICATED_USER.getCode(),
+                    ErrorMessages.ERROR_CODE_NO_FEDERATED_USER.getMessage());
+        }
+        String associatedLocalUsername =
+                FederatedAuthenticatorUtil.getLocalUsernameAssociatedWithFederatedUser(MultitenantUtils.
+                        getTenantAwareUsername(federatedUsername), context);
+        if (StringUtils.isNotBlank(associatedLocalUsername)) {
+            return associatedLocalUsername;
+        }
+        return null;
+    }
+
+    /**
+     * Identify the AuthenticatedUser that the authenticator trying to authenticate. This needs to be done to
+     * identify the locally mapped user for federated authentication scenarios.
+     *
+     * @param context                    Authentication context
+     * @param authenticatedUserInContext AuthenticatedUser retrieved from context.
+     * @param mappedLocalUsername        Mapped local username if available.
+     * @param tenantDomain               Application tenant domain.
+     * @param isInitialFederationAttempt Whether auth attempt by a not JIT provisioned federated user.
+     * @return AuthenticatedUser that the authenticator trying to authenticate.
+     * @throws AuthenticationFailedException If an error occurred.
+     */
+    private AuthenticatedUser resolveAuthenticatingUser(AuthenticationContext context,
+                                                        AuthenticatedUser authenticatedUserInContext,
+                                                        String mappedLocalUsername,
+                                                        String tenantDomain, boolean isInitialFederationAttempt)
+            throws AuthenticationFailedException {
+
+        // Handle local users.
+        if (!authenticatedUserInContext.isFederatedUser()) {
+            return authenticatedUserInContext;
+        }
+
+        if (!isJitProvisioningEnabled(authenticatedUserInContext, tenantDomain)) {
+            throw new AuthenticationFailedException(
+                    ErrorMessages.ERROR_CODE_INVALID_FEDERATED_USER_AUTHENTICATION.getCode(),
+                    ErrorMessages.ERROR_CODE_INVALID_FEDERATED_USER_AUTHENTICATION.getMessage());
+        }
+
+        // This is a federated initial authentication scenario.
+        if (isInitialFederationAttempt) {
+            context.setProperty(TOTPAuthenticatorConstants.IS_INITIAL_FEDERATED_USER_ATTEMPT, true);
+            return authenticatedUserInContext;
+        }
+
+        /*
+        At this point, the authenticating user is in our system but can have a different mapped username compared to the
+        identifier that is in the authentication context. Therefore, we need to have a new AuthenticatedUser object
+        with the mapped local username to identify the user.
+         */
+        AuthenticatedUser authenticatingUser = new AuthenticatedUser(authenticatedUserInContext);
+        authenticatingUser.setUserName(mappedLocalUsername);
+        authenticatingUser.setUserStoreDomain(getFederatedUserStoreDomain(authenticatedUserInContext, tenantDomain));
+        return authenticatingUser;
+    }
+
+    private boolean isInitialFederationAttempt(AuthenticationContext context) {
+
+        if (context.getProperty(TOTPAuthenticatorConstants.IS_INITIAL_FEDERATED_USER_ATTEMPT) != null) {
+            return Boolean.parseBoolean(context.
+                    getProperty(TOTPAuthenticatorConstants.IS_INITIAL_FEDERATED_USER_ATTEMPT).toString());
+        }
+        return false;
     }
 }
