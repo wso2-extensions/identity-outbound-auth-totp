@@ -704,4 +704,19 @@ public class TOTPUtil {
 		}
 		return false;
 	}
+
+    /**
+     * Checks whether sending verification code via email option is enabled.
+     *
+     * Ideally for TOTP we shouldn't handle fallback options at the authenticator level. This is there for sake of
+     * backward compatibility. At the moment this option is a server level one.
+     *
+     * @return Whether sending verification code via email is enabled.
+     */
+    public static boolean isSendVerificationCodeByEmailEnabled() {
+
+        String sendVerificationCodeViaEmailConfig = getTOTPParameters()
+                .getOrDefault(TOTPAuthenticatorConstants.ENABLE_SEND_VERIFICATION_CODE_BY_EMAIL, "false");
+        return Boolean.parseBoolean(sendVerificationCodeViaEmailConfig);
+    }
 }
