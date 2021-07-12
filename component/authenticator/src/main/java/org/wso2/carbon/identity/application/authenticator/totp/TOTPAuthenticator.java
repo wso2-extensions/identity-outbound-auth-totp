@@ -100,7 +100,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 		if (context.isLogoutRequest()) {
 			return AuthenticatorFlowStatus.SUCCESS_COMPLETED;
 		} else if (request.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN) != null) {
-			if (generateTOTPToken(context)) {
+			if (generateOTPAndSendByEmail(context)) {
 				return AuthenticatorFlowStatus.INCOMPLETE;
 			} else {
 				return AuthenticatorFlowStatus.FAIL_COMPLETED;
@@ -382,7 +382,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 	 */
 	@Override
 	public String getContextIdentifier(HttpServletRequest request) {
-		return request.getRequestedSessionId();
+		return request.getParameter("sessionDataKey");
 	}
 
 	/**
@@ -411,13 +411,25 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 	 * @param context AuthenticationContext
 	 * @return true, if token is generated successfully
 	 */
-	private boolean generateTOTPToken(AuthenticationContext context) {
-        String username;
-        if (context.getProperty("username") == null) {
+	private boolean generateOTPAndSendByEmail(AuthenticationContext context) {
+		String username = getUsernameFromContext(context);
+
+		if (!TOTPUtil.isSendVerificationCodeByEmailEnabled()) {
+			String appName = context.getServiceProviderName();
+			String tenantDomain = context.getTenantDomain();
+			String sessionDataKey = context.getContextIdentifier();
+
+			String msg = "An attempt was made to send a verification code by email for user: %s for application: %s " +
+					"of %s tenant using sessionDataKey: %s. But sending verification code by email is disabled by " +
+					"admin.";
+			log.warn(String.format(msg, username, appName, tenantDomain, sessionDataKey));
+			return false;
+		}
+
+		if (username == null) {
             log.error("No username found in the authentication context.");
             return false;
         } else {
-            username = context.getProperty("username").toString();
             try {
                 TOTPTokenGenerator.generateTOTPTokenLocal(username, context);
                 if (log.isDebugEnabled()) {
@@ -429,6 +441,15 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             }
         }
         return true;
+	}
+
+	private String getUsernameFromContext(AuthenticationContext context) {
+
+		if (context.getProperty("username") == null) {
+			return null;
+		}
+
+		return context.getProperty("username").toString();
 	}
 
 	/**
