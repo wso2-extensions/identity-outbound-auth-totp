@@ -39,6 +39,7 @@ import org.wso2.carbon.identity.application.authentication.framework.config.mode
 import org.wso2.carbon.identity.application.authentication.framework.config.model.StepConfig;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
+import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
@@ -783,6 +784,28 @@ public class TOTPUtil {
             }
         }
         return false;
+    }
+
+    /**
+     * Returns AuthenticatedUser object from context.
+     *
+     * @param context AuthenticationContext.
+     * @return AuthenticatedUser
+     */
+    public static AuthenticatedUser getAuthenticatedUser(AuthenticationContext context) {
+
+        AuthenticatedUser authenticatedUser = null;
+        Map<Integer, StepConfig> stepConfigMap = context.getSequenceConfig().getStepMap();
+        if (stepConfigMap != null) {
+            for (StepConfig stepConfig : stepConfigMap.values()) {
+                AuthenticatedUser authenticatedUserInStepConfig = stepConfig.getAuthenticatedUser();
+                if (stepConfig.isSubjectAttributeStep() && authenticatedUserInStepConfig != null) {
+                    authenticatedUser = new AuthenticatedUser(stepConfig.getAuthenticatedUser());
+                    break;
+                }
+            }
+        }
+        return authenticatedUser;
     }
 
     /**
