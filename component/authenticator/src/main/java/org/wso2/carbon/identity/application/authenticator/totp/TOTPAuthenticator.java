@@ -80,7 +80,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
     private static final long serialVersionUID = 2009231028659744926L;
     private static final Log log = LogFactory.getLog(TOTPAuthenticator.class);
-    private static final Log diagnosticLog = LogFactory.getLog("diagnostics");
 
     /**
      * Check whether token or action are in request.
@@ -114,7 +113,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             throws AuthenticationFailedException, LogoutFailedException {
 
         if (context.isLogoutRequest()) {
-            diagnosticLog.info("In Logout flow. Hence returning from TOTP Authenticator");
             return AuthenticatorFlowStatus.SUCCESS_COMPLETED;
         } else if (request.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN) != null) {
             if (generateOTPAndSendByEmail(context)) {
@@ -208,14 +206,10 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 if (log.isDebugEnabled()) {
                     log.debug("Secret key exists for the user: " + username);
                 }
-                diagnosticLog.info("Secret key exists for the user: " + username);
             }
             boolean isTOTPEnabledByAdmin = IdentityHelperUtil.checkSecondStepEnableByAdmin(context);
             if (log.isDebugEnabled()) {
                 log.debug("TOTP  is enabled by admin: " + isTOTPEnabledByAdmin);
-            }
-            if (isTOTPEnabledByAdmin) {
-                diagnosticLog.info("TOTP is enabled for the user by admin.");
             }
             // This multi option URI is used to navigate back to multi option page to select a different
             // authentication option from TOTP pages.
@@ -225,7 +219,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
                 //if TOTP is enabled for the user.
                 String totpLoginPageUrl = buildTOTPLoginPageURL(context, username, retryParam, multiOptionURI);
-                diagnosticLog.info("Redirecting user to TOTP endpoint: " + totpLoginPageUrl);
                 response.sendRedirect(totpLoginPageUrl);
             } else {
                 if (TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context)
@@ -234,7 +227,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     if (log.isDebugEnabled()) {
                         log.debug("User has not enabled TOTP: " + username);
                     }
-                    diagnosticLog.info("TOTP has not been enabled by user: " + username);
                     Map<String, String> claims;
                     if (isInitialFederationAttempt) {
                         claims = TOTPKeyGenerator.generateClaimsForFedUser(username, tenantDomain, context);
@@ -247,7 +239,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     context.setProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
                             claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL));
                     String qrURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
-                    diagnosticLog.info("Redirecting user to TOTP enrolment page.");
                     TOTPUtil.redirectToEnableTOTPReqPage(request, response, context, qrURL);
                 } else if (Boolean.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP))) {
                     //if TOTP is not enabled for the user and user continued the enrolment.
@@ -277,22 +268,15 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 }
             }
         } catch (IOException e) {
-            diagnosticLog.error("Communication error when redirecting the TOTP login response for user : " +
-                    username + ". Error message: " + e.getMessage());
             throw new AuthenticationFailedException(
                     "Error when redirecting the TOTP login response, user : " + username, e);
         } catch (TOTPException e) {
-            diagnosticLog.error("Error when checking TOTP enabled for the user: " + username + ". Error message: " +
-                    e.getMessage());
             throw new AuthenticationFailedException(
                     "Error when checking TOTP enabled for the user : " + username, e);
         } catch (AuthenticationFailedException e) {
-            diagnosticLog.error("Authentication failed. Cannot get the username from first step. Error message: " +
-                    e.getMessage());
             throw new AuthenticationFailedException(
                     "Authentication failed!. Cannot get the username from first step.", e);
         } catch (URLBuilderException | URISyntaxException e) {
-            diagnosticLog.error("Error while building TOTP page URL. Error message: " + e.getMessage());
             throw new AuthenticationFailedException("Error while building TOTP page URL.", e);
         }
     }
@@ -341,7 +325,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                                                  AuthenticationContext context)
             throws AuthenticationFailedException {
 
-        diagnosticLog.info("Processing TOTP authentication response.");
         String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
         AuthenticatedUser authenticatingUser =
                 (AuthenticatedUser) context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
@@ -350,7 +333,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
         if (StringUtils.isBlank(token)) {
             handleTotpVerificationFail(context);
-            diagnosticLog.error("Empty TOTP in the request. Authentication Failed for user: " + username);
             throw new AuthenticationFailedException("Empty TOTP in the request. Authentication Failed for user: " +
                     username);
         }
@@ -358,7 +340,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             int tokenValue = Integer.parseInt(token);
             if (isInitialFederationAttempt(context)) {
                 if (!isValidTokenFederatedUser(tokenValue, context)) {
-                    diagnosticLog.error("Invalid Token. Authentication failed for federated user: " + username);
                     throw new AuthenticationFailedException("Invalid Token. Authentication failed for federated user: "
                             + username);
                 }
@@ -366,7 +347,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 checkTotpEnabled(context, username);
                 if (!isValidTokenLocalUser(tokenValue, username, context)) {
                     handleTotpVerificationFail(context);
-                    diagnosticLog.error("Invalid TOTP token. Authentication failed for user:  " + username);
                     throw new AuthenticationFailedException("Invalid Token. Authentication failed, user :  " + username);
                 }
             }
@@ -383,16 +363,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             }
         } catch (NumberFormatException e) {
             handleTotpVerificationFail(context);
-            diagnosticLog.error("TOTP authentication process failed for user: " + username + ". Error message: " +
-                    e.getMessage());
             throw new AuthenticationFailedException("TOTP Authentication process failed for user " + username, e);
         } catch (TOTPException e) {
-            diagnosticLog.error("TOTP authentication process failed for user: " + username + ". Error message: " +
-                    e.getMessage());
             throw new AuthenticationFailedException("TOTP Authentication process failed for user " + username, e);
         }
         // It reached here means the authentication was successful.
-        diagnosticLog.info("TOTP authentication process is successful for the user: " + username);
         resetTotpFailedAttempts(context);
     }
 
@@ -413,8 +388,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             try {
                 TOTPKeyGenerator.addTOTPClaimsAndRetrievingQRCodeURL(claims, username, context);
             } catch (TOTPException e) {
-                diagnosticLog.error("Error while adding TOTP claims to the user: " + username + ". Error message: " +
-                        e.getMessage());
                 throw new AuthenticationFailedException("Error while adding TOTP claims to the user : " + username, e);
             }
         }
@@ -436,7 +409,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             if (log.isDebugEnabled()) {
                 log.debug(errorMessage);
             }
-            diagnosticLog.error(errorMessage);
             throw new AuthenticationFailedException(errorMessage);
         }
     }
@@ -504,7 +476,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             String msg = "Sending verification code by email is disabled by admin. An attempt was made to send a " +
                     "verification code by email for user: %s for application: %s of %s tenant using sessionDataKey: %s";
             log.warn(String.format(msg, username, appName, tenantDomain, sessionDataKey));
-            diagnosticLog.info(String.format(msg, username, appName, tenantDomain, sessionDataKey));
             return false;
         }
 
@@ -517,14 +488,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 if (log.isDebugEnabled()) {
                     log.debug("TOTP Token is generated");
                 }
-                diagnosticLog.info("TOTP token successfully generated for user: " + username);
             } catch (TOTPException e) {
                 log.error("Error when generating the totp token", e);
-                diagnosticLog.error("Error when generating the totp token. Error message: " + e.getMessage());
                 return false;
             }
         }
-        diagnosticLog.info("Sending verification code by email option is enabled.");
         return true;
     }
 
@@ -547,7 +515,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     private boolean isSecretKeyExistForUser(String username)
             throws TOTPException, AuthenticationFailedException {
 
-        diagnosticLog.info("Checking if TOTP enabled for the user: " + username);
         UserRealm userRealm = TOTPUtil.getUserRealm(username);
         String tenantAwareUsername = null;
         try {
@@ -561,15 +528,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         UserClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
                 return StringUtils.isNotBlank(secretKey);
             } else {
-                diagnosticLog.error("Cannot find the user realm for the given tenant domain : " +
-                        CarbonContext.getThreadLocalCarbonContext().getTenantDomain());
                 throw new TOTPException(
                         "Cannot find the user realm for the given tenant domain : " +
                                 CarbonContext.getThreadLocalCarbonContext().getTenantDomain());
             }
         } catch (UserStoreException e) {
-            diagnosticLog.error("TOTPAccessController failed while trying to access userRealm of the user : " +
-                    tenantAwareUsername + ". Error message: " + e.getMessage());
             throw new TOTPException(
                     "TOTPAccessController failed while trying to access userRealm of the user : " +
                             tenantAwareUsername, e);
@@ -603,24 +566,17 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
                 return totpAuthenticator.authorize(secretKey, token);
             } else {
-                diagnosticLog.error("Cannot find the user realm for the given tenant domain: " +
-                        CarbonContext.getThreadLocalCarbonContext().getTenantDomain());
                 throw new TOTPException(
                         "Cannot find the user realm for the given tenant domain : " +
                                 CarbonContext.getThreadLocalCarbonContext().getTenantDomain());
             }
         } catch (UserStoreException e) {
-            diagnosticLog.error("TOTPTokenVerifier failed while trying to access userRealm of the user : " +
-                    tenantAwareUsername + ". Error message: " + e.getMessage());
             throw new TOTPException(
                     "TOTPTokenVerifier failed while trying to access userRealm of the user : " +
                             tenantAwareUsername, e);
         } catch (CryptoException e) {
-            diagnosticLog.error("Error while decrypting the key. Error message: " + e.getMessage());
             throw new TOTPException("Error while decrypting the key", e);
         } catch (AuthenticationFailedException e) {
-            diagnosticLog.error("TOTPTokenVerifier cannot find the property value for encodingMethod. Error " +
-                    "message: " + e.getMessage());
             throw new TOTPException(
                     "TOTPTokenVerifier cannot find the property value for encodingMethod");
         }
@@ -749,7 +705,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             IdentityUtil.threadLocalProperties.get().put(TOTPAuthenticatorConstants.ADMIN_INITIATED, false);
             setUserClaimValues(authenticatedUser, username, updatedClaims);
             String errorMessage = String.format("User account: %s is locked.", authenticatedUser.getUserName());
-            diagnosticLog.error(errorMessage);
             throw new AuthenticationFailedException(errorMessage);
         } else {
             updatedClaims
@@ -808,7 +763,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 log.debug("Error while resetting failed TOTP attempts count for user: " + username, e);
             }
             String errorMessage = "Failed to reset failed attempts count for user : " + username;
-            diagnosticLog.error(errorMessage + ". Error message: " + e.getMessage());
             throw new AuthenticationFailedException(errorMessage, e);
         }
     }
@@ -830,7 +784,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 log.debug("Error while reading user claims of user: " + authenticatedUser.getUserName(), e);
             }
             String errorMessage = "Failed to read user claims for user : " + authenticatedUser.getUserName();
-            diagnosticLog.error(errorMessage + ". Error message: " + e.getMessage());
             throw new AuthenticationFailedException(errorMessage, e);
         }
         return claimValues;
@@ -850,7 +803,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 log.debug("Error while updating user claims of user: " + authenticatedUser.getUserName(), e);
             }
             String errorMessage = "Failed to update user claims for user : " + authenticatedUser.getUserName();
-            diagnosticLog.error(errorMessage + ". Error message: " + e.getMessage());
             throw new AuthenticationFailedException(errorMessage, e);
         }
     }
