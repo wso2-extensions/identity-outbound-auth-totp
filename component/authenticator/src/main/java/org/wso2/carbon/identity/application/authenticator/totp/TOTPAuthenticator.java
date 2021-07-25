@@ -856,7 +856,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             }
             return idp;
         } catch (IdentityProviderManagementException e) {
-            throw new AuthenticationFailedException("");
+            throw new AuthenticationFailedException(String.format(
+                    ErrorMessages.ERROR_CODE_INVALID_FEDERATED_AUTHENTICATOR.getMessage(), idpName, tenantDomain));
         }
     }
 
