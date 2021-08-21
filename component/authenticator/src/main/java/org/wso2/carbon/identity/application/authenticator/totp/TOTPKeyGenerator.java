@@ -88,6 +88,12 @@ public class TOTPKeyGenerator {
 
                 String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
                 String displayUsername = TOTPUtil.getTOTPDisplayUsername(tenantAwareUsername);
+                if (context.getSubject() != null && context.getSubject().isFederatedUser()) {
+                    String displayUsernameForFederatedUser = TOTPUtil.createDisplayNameForFederatedUsers(context);
+                    if (displayUsernameForFederatedUser != null) {
+                        displayUsername = displayUsernameForFederatedUser;
+                    }
+                }
                 String qrCodeURL =
                         "otpauth://totp/" + issuer + ":" + displayUsername + "?secret=" + secretKey + "&issuer=" +
                                 issuer + "&period=" + timeStep;
@@ -132,6 +138,12 @@ public class TOTPKeyGenerator {
 
             String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
             String displayUsername = TOTPUtil.getTOTPDisplayUsername(tenantAwareUsername);
+            if (context.getSubject() != null && context.getSubject().isFederatedUser()) {
+                String displayUsernameForFederatedUser = TOTPUtil.createDisplayNameForFederatedUsers(context);
+                if (displayUsernameForFederatedUser != null) {
+                    displayUsername = displayUsernameForFederatedUser;
+                }
+            }
             String qrCodeURL =
                     "otpauth://totp/" + issuer + ":" + displayUsername + "?secret=" + secretKey + "&issuer=" +
                             issuer + "&period=" + timeStep;
