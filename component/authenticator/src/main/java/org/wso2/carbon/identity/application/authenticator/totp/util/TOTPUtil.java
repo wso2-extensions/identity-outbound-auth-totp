@@ -869,11 +869,11 @@ public class TOTPUtil {
     }
 
     /**
-     * Create display name for TOTP in federated Flows
+     * Create display name for TOTP in federated Flows.
      *
      * @param context Authentication context.
      * @return TOTP display name for the federated users.
-     * @throws TOTPException
+     * @throws TOTPException When handling identity provider configurations.
      */
     public static String createDisplayNameForFederatedUsers(AuthenticationContext context)
             throws TOTPException {
@@ -924,9 +924,9 @@ public class TOTPUtil {
      *
      * @param externalIdPConfig External IDP configuration.
      * @param stepConfig        Step configuration.
-     * @param context           Authentication context
+     * @param context           Authentication context.
      * @return Hash map with local claim uri to federated user claim value.
-     * @throws TOTPException
+     * @throws TOTPException When handling claim mappings.
      */
     private static Map<String, String> mapFederateClaimsToLocal(ExternalIdPConfig externalIdPConfig, StepConfig stepConfig,
                                                                 AuthenticationContext context)
