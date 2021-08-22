@@ -910,13 +910,10 @@ public class TOTPUtil {
                                 .getDisplayName();
                         return idpType.concat(":").concat(claimValue);
                     }
-
                 }
             }
-
         }
         return null;
-
     }
 
     /**
@@ -971,9 +968,7 @@ public class TOTPUtil {
                 }
             }
         }
-
         return localClaimValues;
     }
-
 
 }
