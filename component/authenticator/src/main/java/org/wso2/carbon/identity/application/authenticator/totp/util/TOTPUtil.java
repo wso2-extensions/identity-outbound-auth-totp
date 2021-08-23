@@ -875,7 +875,7 @@ public class TOTPUtil {
      * @return TOTP display name for the federated users.
      * @throws TOTPException When handling identity provider configurations.
      */
-    private static String createDisplayNameForFederatedUsers(AuthenticationContext context, String username)
+    public static String createDisplayNameForFederatedUsers(AuthenticationContext context, String username)
             throws TOTPException {
 
         SequenceConfig sequenceConfig = context.getSequenceConfig();
@@ -977,24 +977,6 @@ public class TOTPUtil {
             }
         }
         return localClaimValues;
-    }
-
-    /**
-     * Get the display username for federated users.
-     *
-     * @param context  Authentication context.
-     * @param username Username of the authenticated user.
-     * @return Display username for federated users.
-     * @throws TOTPException When creating the username.
-     */
-    public static String getTOTOIssuerDisplayNameForFederatedUser(AuthenticationContext context, String username)
-            throws TOTPException {
-
-        String displayUsernameForFederatedUser = createDisplayNameForFederatedUsers(context, username);
-        if (displayUsernameForFederatedUser != null) {
-            username = displayUsernameForFederatedUser;
-        }
-        return username;
     }
 
 }

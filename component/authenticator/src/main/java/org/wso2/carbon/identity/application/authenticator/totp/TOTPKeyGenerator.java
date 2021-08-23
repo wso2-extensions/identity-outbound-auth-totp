@@ -88,9 +88,7 @@ public class TOTPKeyGenerator {
 
                 String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
                 String displayUsername = TOTPUtil.getTOTPDisplayUsername(tenantAwareUsername);
-                if (context != null && context.getSubject() != null && context.getSubject().isFederatedUser()) {
-                    displayUsername = TOTPUtil.getTOTOIssuerDisplayNameForFederatedUser(context, displayUsername);
-                }
+                displayUsername = getTOTPIssuerDisplayNameForFederatedUser(context, displayUsername);
                 String qrCodeURL =
                         "otpauth://totp/" + issuer + ":" + displayUsername + "?secret=" + secretKey + "&issuer=" +
                                 issuer + "&period=" + timeStep;
@@ -135,9 +133,7 @@ public class TOTPKeyGenerator {
 
             String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
             String displayUsername = TOTPUtil.getTOTPDisplayUsername(tenantAwareUsername);
-            if (context != null && context.getSubject() != null && context.getSubject().isFederatedUser()) {
-                displayUsername = TOTPUtil.getTOTOIssuerDisplayNameForFederatedUser(context, displayUsername);
-            }
+            displayUsername = getTOTPIssuerDisplayNameForFederatedUser(context, displayUsername);
             String qrCodeURL =
                     "otpauth://totp/" + issuer + ":" + displayUsername + "?secret=" + secretKey + "&issuer=" +
                             issuer + "&period=" + timeStep;
@@ -293,5 +289,24 @@ public class TOTPKeyGenerator {
     public static TOTPAuthenticatorKey generateKey(String tenantDomain) throws AuthenticationFailedException {
 
         return generateKey(tenantDomain, null);
+    }
+
+    /**
+     * Get the display username for federated users.
+     *
+     * @param context  Authentication context.
+     * @param username Username of the authenticated user.
+     * @return Display username for federated users.
+     * @throws TOTPException When creating the username.
+     */
+    private static String getTOTPIssuerDisplayNameForFederatedUser(AuthenticationContext context, String username)
+            throws TOTPException {
+        if (context != null && context.getSubject() != null && context.getSubject().isFederatedUser()) {
+            String displayUsernameForFederatedUser = TOTPUtil.createDisplayNameForFederatedUsers(context, username);
+            if (displayUsernameForFederatedUser != null) {
+                username = displayUsernameForFederatedUser;
+            }
+        }
+        return username;
     }
 }
