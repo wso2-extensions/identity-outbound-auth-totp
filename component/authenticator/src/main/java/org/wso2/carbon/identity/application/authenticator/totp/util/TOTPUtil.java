@@ -875,7 +875,7 @@ public class TOTPUtil {
      * @return TOTP display name for the federated users.
      * @throws TOTPException When handling identity provider configurations.
      */
-    public static String createDisplayNameForFederatedUsers(AuthenticationContext context)
+    private static String createDisplayNameForFederatedUsers(AuthenticationContext context, String username)
             throws TOTPException {
 
         SequenceConfig sequenceConfig = context.getSequenceConfig();
@@ -894,21 +894,31 @@ public class TOTPUtil {
                     throw new TOTPException(
                             "TOTP Display name creation failed!. Error while getting External IDP config.", e);
                 }
-                if (stepConfig != null && stepConfig.isSubjectAttributeStep()) {
+                if (stepConfig.isSubjectAttributeStep()) {
                     if (externalIdPConfig != null) {
                         Map<String, String> localClaimValues = mapFederateClaimsToLocal(externalIdPConfig, stepConfig, context);
-                        if (localClaimValues.size() == 0 ||
-                                !localClaimValues.containsKey(TOTPAuthenticatorConstants.EMAIL_CLAIM_URL) ||
-                                externalIdPConfig.getIdentityProvider() == null ||
+                        if (localClaimValues.size() == 0 || externalIdPConfig.getIdentityProvider() == null ||
                                 externalIdPConfig.getIdentityProvider().getDefaultAuthenticatorConfig() == null ||
                                 externalIdPConfig.getIdentityProvider().getDefaultAuthenticatorConfig()
                                         .getDisplayName() == null) {
                             return null;
                         }
-                        String claimValue = localClaimValues.get(TOTPAuthenticatorConstants.EMAIL_CLAIM_URL);
+
+                        String claimValue;
+                        if (localClaimValues.containsKey(TOTPAuthenticatorConstants.EMAIL_CLAIM_URL)) {
+                            claimValue = localClaimValues.get(TOTPAuthenticatorConstants.EMAIL_CLAIM_URL);
+                        } else if (localClaimValues.containsKey(TOTPAuthenticatorConstants.FIRST_NAME_CLAIM_URL)) {
+                            claimValue = localClaimValues.get(TOTPAuthenticatorConstants.FIRST_NAME_CLAIM_URL);
+                        } else {
+                            claimValue = localClaimValues.getOrDefault(TOTPAuthenticatorConstants.LAST_NAME_CLAIM_URL,
+                                    username);
+                        }
+
                         String idpType = externalIdPConfig.getIdentityProvider().getDefaultAuthenticatorConfig()
                                 .getDisplayName();
-                        return idpType.concat(":").concat(claimValue);
+                        if (claimValue != null && idpType != null) {
+                            return idpType.concat(":").concat(claimValue);
+                        }
                     }
                 }
             }
@@ -936,7 +946,7 @@ public class TOTPUtil {
         Map<ClaimMapping, String> extAttrs = stepConfig.getAuthenticatedUser().getUserAttributes();
         Map<String, String> originalExternalAttributeValueMap =
                 FrameworkUtils.getClaimMappings(extAttrs, false);
-        Map<String, String> claimMapping;
+        Map<String, String> claimMapping = new HashMap<>();
         Map<String, String> localClaimValues = new HashMap<>();
         if (useDefaultIdpDialect && StringUtils.isNotBlank(idPStandardDialect)) {
             try {
@@ -948,18 +958,16 @@ public class TOTPUtil {
                 throw new TOTPException("TOTP Display name creation failed!. Error while handling claim mappings.", e);
             }
         } else {
-            Map<String, String> IDPClaimMapping = new HashMap<>();
             ClaimMapping[] customClaimMapping = externalIdPConfig.getClaimMappings();
             for (ClaimMapping externalClaim : customClaimMapping) {
                 if (originalExternalAttributeValueMap.containsKey(externalClaim.getRemoteClaim().getClaimUri())) {
-                    IDPClaimMapping.put(externalClaim.getLocalClaim().getClaimUri(),
+                    claimMapping.put(externalClaim.getLocalClaim().getClaimUri(),
                             externalClaim.getRemoteClaim().getClaimUri());
                 }
             }
-            claimMapping = IDPClaimMapping;
         }
 
-        if (claimMapping != null) {
+        if (claimMapping != null && claimMapping.size() > 0) {
             for (Map.Entry<String, String> entry : claimMapping.entrySet()) {
                 if (originalExternalAttributeValueMap.containsKey(entry.getValue()) &&
                         originalExternalAttributeValueMap.get(entry.getValue()) != null) {
@@ -969,6 +977,24 @@ public class TOTPUtil {
             }
         }
         return localClaimValues;
+    }
+
+    /**
+     * Get the display username for federated users.
+     *
+     * @param context  Authentication context.
+     * @param username Username of the authenticated user.
+     * @return Display username for federated users.
+     * @throws TOTPException When creating the username.
+     */
+    public static String getTOTOIssuerDisplayNameForFederatedUser(AuthenticationContext context, String username)
+            throws TOTPException {
+
+        String displayUsernameForFederatedUser = createDisplayNameForFederatedUsers(context, username);
+        if (displayUsernameForFederatedUser != null) {
+            username = displayUsernameForFederatedUser;
+        }
+        return username;
     }
 
 }
