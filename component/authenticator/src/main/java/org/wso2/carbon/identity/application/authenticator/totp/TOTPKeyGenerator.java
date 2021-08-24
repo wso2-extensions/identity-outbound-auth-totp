@@ -301,9 +301,10 @@ public class TOTPKeyGenerator {
      */
     private static String getTOTPIssuerDisplayNameForFederatedUser(AuthenticationContext context, String username)
             throws TOTPException {
+
         if (context != null && context.getSubject() != null && context.getSubject().isFederatedUser()) {
             String displayUsernameForFederatedUser = TOTPUtil.createDisplayNameForFederatedUsers(context, username);
-            if (displayUsernameForFederatedUser != null) {
+            if (StringUtils.isNotBlank(displayUsernameForFederatedUser)) {
                 username = displayUsernameForFederatedUser;
             }
         }
