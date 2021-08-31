@@ -88,7 +88,9 @@ public class TOTPKeyGenerator {
 
                 String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
                 String displayUsername = TOTPUtil.getTOTPDisplayUsername(tenantAwareUsername);
-                displayUsername = getTOTPIssuerDisplayNameForFederatedUser(context, displayUsername);
+                if (context != null && context.getSubject() != null && context.getSubject().isFederatedUser()) {
+                    displayUsername = getTOTPIssuerDisplayNameForFederatedUser(context, displayUsername);
+                }
                 String qrCodeURL =
                         "otpauth://totp/" + issuer + ":" + displayUsername + "?secret=" + secretKey + "&issuer=" +
                                 issuer + "&period=" + timeStep;
@@ -133,7 +135,9 @@ public class TOTPKeyGenerator {
 
             String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
             String displayUsername = TOTPUtil.getTOTPDisplayUsername(tenantAwareUsername);
-            displayUsername = getTOTPIssuerDisplayNameForFederatedUser(context, displayUsername);
+            if (context != null && context.getSubject() != null && context.getSubject().isFederatedUser()) {
+                displayUsername = getTOTPIssuerDisplayNameForFederatedUser(context, displayUsername);
+            }
             String qrCodeURL =
                     "otpauth://totp/" + issuer + ":" + displayUsername + "?secret=" + secretKey + "&issuer=" +
                             issuer + "&period=" + timeStep;
@@ -302,11 +306,9 @@ public class TOTPKeyGenerator {
     private static String getTOTPIssuerDisplayNameForFederatedUser(AuthenticationContext context, String username)
             throws TOTPException {
 
-        if (context != null && context.getSubject() != null && context.getSubject().isFederatedUser()) {
-            String displayUsernameForFederatedUser = TOTPUtil.createDisplayNameForFederatedUsers(context, username);
-            if (StringUtils.isNotBlank(displayUsernameForFederatedUser)) {
-                username = displayUsernameForFederatedUser;
-            }
+        String displayUsernameForFederatedUser = TOTPUtil.createDisplayNameForFederatedUsers(context, username);
+        if (StringUtils.isNotBlank(displayUsernameForFederatedUser)) {
+            username = displayUsernameForFederatedUser;
         }
         return username;
     }
