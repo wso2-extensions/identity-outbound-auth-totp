@@ -88,7 +88,7 @@ public class TOTPKeyGenerator {
 
                 String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
                 String displayUsername = TOTPUtil.getTOTPDisplayUsername(tenantAwareUsername);
-                if (context != null && context.getSubject() != null && context.getSubject().isFederatedUser()) {
+                if (isFederatedUser(context)) {
                     displayUsername = getTOTPIssuerDisplayNameForFederatedUser(context, displayUsername);
                 }
                 String qrCodeURL =
@@ -135,7 +135,7 @@ public class TOTPKeyGenerator {
 
             String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
             String displayUsername = TOTPUtil.getTOTPDisplayUsername(tenantAwareUsername);
-            if (context != null && context.getSubject() != null && context.getSubject().isFederatedUser()) {
+            if (isFederatedUser(context)) {
                 displayUsername = getTOTPIssuerDisplayNameForFederatedUser(context, displayUsername);
             }
             String qrCodeURL =
@@ -311,5 +311,16 @@ public class TOTPKeyGenerator {
             username = displayUsernameForFederatedUser;
         }
         return username;
+    }
+
+    /**
+     * Check whether the user is federated or not.
+     *
+     * @param context Authentication context.
+     * @return Boolean whether user is federated or not.
+     */
+    private static boolean isFederatedUser(AuthenticationContext context) {
+
+        return context != null && context.getSubject() != null && context.getSubject().isFederatedUser();
     }
 }
