@@ -33,9 +33,13 @@ import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.core.util.CryptoUtil;
 import org.wso2.carbon.extension.identity.helper.IdentityHelperConstants;
 import org.wso2.carbon.extension.identity.helper.util.IdentityHelperUtil;
+import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
+import org.wso2.carbon.identity.application.authentication.framework.FederatedApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authentication.framework.config.ConfigurationFacade;
 import org.wso2.carbon.identity.application.authentication.framework.config.builder.FileBasedConfigurationBuilder;
 import org.wso2.carbon.identity.application.authentication.framework.config.model.AuthenticatorConfig;
+import org.wso2.carbon.identity.application.authentication.framework.config.model.ExternalIdPConfig;
+import org.wso2.carbon.identity.application.authentication.framework.config.model.SequenceConfig;
 import org.wso2.carbon.identity.application.authentication.framework.config.model.StepConfig;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
@@ -44,12 +48,16 @@ import org.wso2.carbon.identity.application.authentication.framework.util.Framew
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
+import org.wso2.carbon.identity.application.common.model.ClaimMapping;
 import org.wso2.carbon.identity.application.common.model.Property;
+import org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataHandler;
+import org.wso2.carbon.identity.claim.metadata.mgt.exception.ClaimMetadataException;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.governance.IdentityGovernanceException;
 import org.wso2.carbon.identity.handler.event.account.lock.exception.AccountLockServiceException;
+import org.wso2.carbon.idp.mgt.IdentityProviderManagementException;
 import org.wso2.carbon.registry.core.Registry;
 import org.wso2.carbon.registry.core.Resource;
 import org.wso2.carbon.registry.core.exceptions.RegistryException;
@@ -64,6 +72,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -858,4 +867,116 @@ public class TOTPUtil {
 
         return !new URI(contextFromConfig).isAbsolute();
     }
+
+    /**
+     * Create display name for TOTP in federated Flows.
+     *
+     * @param context Authentication context.
+     * @return TOTP display name for the federated users.
+     * @throws TOTPException When handling identity provider configurations.
+     */
+    public static String createDisplayNameForFederatedUsers(AuthenticationContext context, String username)
+            throws TOTPException {
+
+        SequenceConfig sequenceConfig = context.getSequenceConfig();
+        for (Map.Entry<Integer, StepConfig> entry : sequenceConfig.getStepMap().entrySet()) {
+            StepConfig stepConfig = entry.getValue();
+            AuthenticatorConfig authenticatorConfig = stepConfig.getAuthenticatedAutenticator();
+            ApplicationAuthenticator authenticator = authenticatorConfig.getApplicationAuthenticator();
+
+            if (authenticator instanceof FederatedApplicationAuthenticator) {
+                ExternalIdPConfig externalIdPConfig;
+                String externalIdPConfigName = stepConfig.getAuthenticatedIdP();
+                try {
+                    externalIdPConfig = ConfigurationFacade.getInstance()
+                            .getIdPConfigByName(externalIdPConfigName, context.getTenantDomain());
+                } catch (IdentityProviderManagementException e) {
+                    throw new TOTPException(
+                            "TOTP Display name creation failed!. Error while getting External IDP config.", e);
+                }
+                if (stepConfig.isSubjectAttributeStep()) {
+                    if (externalIdPConfig != null) {
+                        Map<String, String> localClaimValues = mapFederateClaimsToLocal(externalIdPConfig, stepConfig, context);
+                        if (localClaimValues.size() == 0 || externalIdPConfig.getIdentityProvider() == null ||
+                                externalIdPConfig.getIdentityProvider().getDefaultAuthenticatorConfig() == null ||
+                                externalIdPConfig.getIdentityProvider().getDefaultAuthenticatorConfig()
+                                        .getDisplayName() == null) {
+                            return null;
+                        }
+
+                        String claimValue;
+                        if (localClaimValues.containsKey(TOTPAuthenticatorConstants.EMAIL_CLAIM_URL)) {
+                            claimValue = localClaimValues.get(TOTPAuthenticatorConstants.EMAIL_CLAIM_URL);
+                        } else if (localClaimValues.containsKey(TOTPAuthenticatorConstants.FIRST_NAME_CLAIM_URL)) {
+                            claimValue = localClaimValues.get(TOTPAuthenticatorConstants.FIRST_NAME_CLAIM_URL);
+                        } else {
+                            claimValue = localClaimValues.getOrDefault(TOTPAuthenticatorConstants.LAST_NAME_CLAIM_URL,
+                                    username);
+                        }
+
+                        String idpType = externalIdPConfig.getIdentityProvider().getDefaultAuthenticatorConfig()
+                                .getDisplayName();
+                        if (claimValue != null && idpType != null) {
+                            return idpType.concat(":").concat(claimValue);
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Map the federated claims to local claims.
+     *
+     * @param externalIdPConfig External IDP configuration.
+     * @param stepConfig        Step configuration.
+     * @param context           Authentication context.
+     * @return Hash map with local claim uri to federated user claim value.
+     * @throws TOTPException When handling claim mappings.
+     */
+    private static Map<String, String> mapFederateClaimsToLocal(ExternalIdPConfig externalIdPConfig, StepConfig stepConfig,
+                                                                AuthenticationContext context)
+            throws TOTPException {
+
+        boolean useDefaultIdpDialect = externalIdPConfig.useDefaultLocalIdpDialect();
+        ApplicationAuthenticator authenticator =
+                stepConfig.getAuthenticatedAutenticator().getApplicationAuthenticator();
+        String idPStandardDialect = authenticator.getClaimDialectURI();
+        Map<ClaimMapping, String> extAttrs = stepConfig.getAuthenticatedUser().getUserAttributes();
+        Map<String, String> originalExternalAttributeValueMap =
+                FrameworkUtils.getClaimMappings(extAttrs, false);
+        Map<String, String> claimMapping = new HashMap<>();
+        Map<String, String> localClaimValues = new HashMap<>();
+        if (useDefaultIdpDialect && StringUtils.isNotBlank(idPStandardDialect)) {
+            try {
+                claimMapping = ClaimMetadataHandler.getInstance()
+                        .getMappingsMapFromOtherDialectToCarbon(idPStandardDialect,
+                                originalExternalAttributeValueMap.keySet(), context.getTenantDomain(),
+                                true);
+            } catch (ClaimMetadataException e) {
+                throw new TOTPException("TOTP Display name creation failed!. Error while handling claim mappings.", e);
+            }
+        } else {
+            ClaimMapping[] customClaimMapping = externalIdPConfig.getClaimMappings();
+            for (ClaimMapping externalClaim : customClaimMapping) {
+                if (originalExternalAttributeValueMap.containsKey(externalClaim.getRemoteClaim().getClaimUri())) {
+                    claimMapping.put(externalClaim.getLocalClaim().getClaimUri(),
+                            externalClaim.getRemoteClaim().getClaimUri());
+                }
+            }
+        }
+
+        if (claimMapping != null && claimMapping.size() > 0) {
+            for (Map.Entry<String, String> entry : claimMapping.entrySet()) {
+                if (originalExternalAttributeValueMap.containsKey(entry.getValue()) &&
+                        originalExternalAttributeValueMap.get(entry.getValue()) != null) {
+                    localClaimValues.put(entry.getKey(),
+                            originalExternalAttributeValueMap.get(entry.getValue()));
+                }
+            }
+        }
+        return localClaimValues;
+    }
+
 }

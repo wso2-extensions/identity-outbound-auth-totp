@@ -88,6 +88,9 @@ public class TOTPKeyGenerator {
 
                 String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
                 String displayUsername = TOTPUtil.getTOTPDisplayUsername(tenantAwareUsername);
+                if (isFederatedUser(context)) {
+                    displayUsername = getTOTPIssuerDisplayNameForFederatedUser(context, displayUsername);
+                }
                 String qrCodeURL =
                         "otpauth://totp/" + issuer + ":" + displayUsername + "?secret=" + secretKey + "&issuer=" +
                                 issuer + "&period=" + timeStep;
@@ -132,6 +135,9 @@ public class TOTPKeyGenerator {
 
             String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
             String displayUsername = TOTPUtil.getTOTPDisplayUsername(tenantAwareUsername);
+            if (isFederatedUser(context)) {
+                displayUsername = getTOTPIssuerDisplayNameForFederatedUser(context, displayUsername);
+            }
             String qrCodeURL =
                     "otpauth://totp/" + issuer + ":" + displayUsername + "?secret=" + secretKey + "&issuer=" +
                             issuer + "&period=" + timeStep;
@@ -287,5 +293,34 @@ public class TOTPKeyGenerator {
     public static TOTPAuthenticatorKey generateKey(String tenantDomain) throws AuthenticationFailedException {
 
         return generateKey(tenantDomain, null);
+    }
+
+    /**
+     * Get the display username for federated users.
+     *
+     * @param context  Authentication context.
+     * @param username Username of the authenticated user.
+     * @return Display username for federated users.
+     * @throws TOTPException When creating the username.
+     */
+    private static String getTOTPIssuerDisplayNameForFederatedUser(AuthenticationContext context, String username)
+            throws TOTPException {
+
+        String displayUsernameForFederatedUser = TOTPUtil.createDisplayNameForFederatedUsers(context, username);
+        if (StringUtils.isNotBlank(displayUsernameForFederatedUser)) {
+            username = displayUsernameForFederatedUser;
+        }
+        return username;
+    }
+
+    /**
+     * Check whether the user is federated or not.
+     *
+     * @param context Authentication context.
+     * @return Boolean whether user is federated or not.
+     */
+    private static boolean isFederatedUser(AuthenticationContext context) {
+
+        return context != null && context.getSubject() != null && context.getSubject().isFederatedUser();
     }
 }
