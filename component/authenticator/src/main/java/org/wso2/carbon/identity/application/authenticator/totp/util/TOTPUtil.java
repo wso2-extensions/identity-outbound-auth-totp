@@ -914,10 +914,9 @@ public class TOTPUtil {
                                     username);
                         }
 
-                        String idpType = externalIdPConfig.getIdentityProvider().getDefaultAuthenticatorConfig()
-                                .getDisplayName();
-                        if (claimValue != null && idpType != null) {
-                            return idpType.concat(":").concat(claimValue);
+                        String idpName = externalIdPConfig.getIdentityProvider().getIdentityProviderName();
+                        if (claimValue != null && idpName != null) {
+                            return idpName.concat(":").concat(claimValue);
                         }
                     }
                 }
