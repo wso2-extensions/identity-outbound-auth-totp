@@ -77,6 +77,7 @@ public class TOTPKeyGenerator {
                     generatedSecretKey = key.getKey();
                     claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
                             TOTPUtil.encrypt(generatedSecretKey));
+                    claims.put(TOTPAuthenticatorConstants.TOTP_ENABLED_CLAIM_URI,"true");
                 } else {
                     decryptedSecretKey = TOTPUtil.decrypt(storedSecretKey);
                 }
@@ -241,6 +242,7 @@ public class TOTPKeyGenerator {
             Map<String, String> claims = new HashMap<>();
             if (userRealm != null) {
                 claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "");
+                claims.put(TOTPAuthenticatorConstants.TOTP_ENABLED_CLAIM_URI,"false");
                 userRealm.getUserStoreManager()
                         .setUserClaimValues(tenantAwareUsername, claims, null);
                 return true;
