@@ -380,6 +380,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
                 claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
                         context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString());
+                // When secret key is available, have to make TOTP_ENABLED_CLAIM_URI true.
+                claims.put(TOTPAuthenticatorConstants.TOTP_ENABLED_CLAIM_URI, "true");
             }
             if (context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL) != null) {
                 claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
