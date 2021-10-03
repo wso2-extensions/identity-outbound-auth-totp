@@ -375,6 +375,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
         if (context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP) != null && Boolean
                 .valueOf(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString())) {
+            checkForUpdatedSecretKey(context,username);
             //adds the claims to the profile if the user enrol and continued.
             Map<String, String> claims = new HashMap<>();
             if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
@@ -392,6 +393,33 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             } catch (TOTPException e) {
                 throw new AuthenticationFailedException("Error while adding TOTP claims to the user : " + username, e);
             }
+        }
+    }
+
+    /**
+     * Update the secret key in the context with value in database before validate.
+     *
+     * @param context  Authenticated context.
+     * @param username Authenticated users' username
+     * @throws AuthenticationFailedException When getting the secret key from database.
+     */
+    private void checkForUpdatedSecretKey(AuthenticationContext context, String username)
+            throws AuthenticationFailedException {
+
+        try {
+            String tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
+            UserRealm userRealm = TOTPUtil.getUserRealm(username);
+            if (userRealm != null) {
+                Map<String, String> userClaimValues = userRealm.getUserStoreManager()
+                        .getUserClaimValues(tenantAwareUsername,
+                                new String[]{TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL}, null);
+                String secretKey = userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
+                if (StringUtils.isNotEmpty(secretKey)) {
+                    context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, secretKey);
+                }
+            }
+        } catch (UserStoreException e) {
+            throw new AuthenticationFailedException("Error while getting TOTP secret key : " + username, e);
         }
     }
 
