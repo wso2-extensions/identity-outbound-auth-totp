@@ -400,7 +400,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
      * Update the secret key in the context with value in database before validate.
      *
      * @param context  Authenticated context.
-     * @param username Authenticated users' username
+     * @param username Authenticated users' username.
      * @throws AuthenticationFailedException When getting the secret key from database.
      */
     private void checkForUpdatedSecretKey(AuthenticationContext context, String username)
