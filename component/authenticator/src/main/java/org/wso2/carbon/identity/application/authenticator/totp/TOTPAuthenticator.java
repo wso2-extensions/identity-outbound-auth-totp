@@ -375,7 +375,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
         if (context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP) != null && Boolean
                 .valueOf(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString())) {
-            checkForUpdatedSecretKey(context,username);
+            checkForUpdatedSecretKey(context, username);
             //adds the claims to the profile if the user enrol and continued.
             Map<String, String> claims = new HashMap<>();
             if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
@@ -419,7 +419,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 }
             }
         } catch (UserStoreException e) {
-            throw new AuthenticationFailedException("Error while getting TOTP secret key : " + username, e);
+            throw new AuthenticationFailedException("Error while getting TOTP secret key of the user: " + username, e);
         }
     }
 
