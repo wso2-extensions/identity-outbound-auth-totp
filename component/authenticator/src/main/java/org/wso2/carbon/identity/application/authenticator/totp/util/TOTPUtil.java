@@ -18,7 +18,9 @@
 
 package org.wso2.carbon.identity.application.authenticator.totp.util;
 
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.Charsets;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -892,32 +894,31 @@ public class TOTPUtil {
                             .getIdPConfigByName(externalIdPConfigName, context.getTenantDomain());
                 } catch (IdentityProviderManagementException e) {
                     throw new TOTPException(
-                            "TOTP Display name creation failed!. Error while getting External IDP config.", e);
+                            "TOTP Display name creation failed!. Error while getting External IDP config. ", e);
                 }
-                if (stepConfig.isSubjectAttributeStep()) {
-                    if (externalIdPConfig != null) {
-                        Map<String, String> localClaimValues = mapFederateClaimsToLocal(externalIdPConfig, stepConfig, context);
-                        if (localClaimValues.size() == 0 || externalIdPConfig.getIdentityProvider() == null ||
-                                externalIdPConfig.getIdentityProvider().getDefaultAuthenticatorConfig() == null ||
-                                externalIdPConfig.getIdentityProvider().getDefaultAuthenticatorConfig()
-                                        .getDisplayName() == null) {
-                            return null;
-                        }
+                if (stepConfig.isSubjectAttributeStep() && externalIdPConfig != null) {
+                    Map<String, String> localClaimValues =
+                            mapFederateClaimsToLocal(externalIdPConfig, stepConfig, context);
+                    if (localClaimValues.size() == 0 || externalIdPConfig.getIdentityProvider() == null ||
+                            externalIdPConfig.getIdentityProvider().getDefaultAuthenticatorConfig() == null ||
+                            StringUtils.isBlank(externalIdPConfig.getIdentityProvider().getDefaultAuthenticatorConfig()
+                                    .getDisplayName())) {
+                        return null;
+                    }
 
-                        String claimValue;
-                        if (localClaimValues.containsKey(TOTPAuthenticatorConstants.EMAIL_CLAIM_URL)) {
-                            claimValue = localClaimValues.get(TOTPAuthenticatorConstants.EMAIL_CLAIM_URL);
-                        } else if (localClaimValues.containsKey(TOTPAuthenticatorConstants.FIRST_NAME_CLAIM_URL)) {
-                            claimValue = localClaimValues.get(TOTPAuthenticatorConstants.FIRST_NAME_CLAIM_URL);
-                        } else {
-                            claimValue = localClaimValues.getOrDefault(TOTPAuthenticatorConstants.LAST_NAME_CLAIM_URL,
-                                    username);
-                        }
+                    String claimValue;
+                    if (localClaimValues.containsKey(TOTPAuthenticatorConstants.EMAIL_CLAIM_URL)) {
+                        claimValue = localClaimValues.get(TOTPAuthenticatorConstants.EMAIL_CLAIM_URL);
+                    } else if (localClaimValues.containsKey(TOTPAuthenticatorConstants.FIRST_NAME_CLAIM_URL)) {
+                        claimValue = localClaimValues.get(TOTPAuthenticatorConstants.FIRST_NAME_CLAIM_URL);
+                    } else {
+                        claimValue =
+                                localClaimValues.getOrDefault(TOTPAuthenticatorConstants.LAST_NAME_CLAIM_URL, username);
+                    }
 
-                        String idpName = externalIdPConfig.getIdentityProvider().getIdentityProviderName();
-                        if (claimValue != null && idpName != null) {
-                            return idpName.concat(":").concat(claimValue);
-                        }
+                    String idpName = externalIdPConfig.getIdentityProvider().getIdentityProviderName();
+                    if (StringUtils.isNotBlank(claimValue) && StringUtils.isNotBlank(idpName)) {
+                        return idpName.concat(":").concat(claimValue);
                     }
                 }
             }
@@ -934,8 +935,8 @@ public class TOTPUtil {
      * @return Hash map with local claim uri to federated user claim value.
      * @throws TOTPException When handling claim mappings.
      */
-    private static Map<String, String> mapFederateClaimsToLocal(ExternalIdPConfig externalIdPConfig, StepConfig stepConfig,
-                                                                AuthenticationContext context)
+    private static Map<String, String> mapFederateClaimsToLocal(ExternalIdPConfig externalIdPConfig,
+                                                                StepConfig stepConfig, AuthenticationContext context)
             throws TOTPException {
 
         boolean useDefaultIdpDialect = externalIdPConfig.useDefaultLocalIdpDialect();
@@ -951,27 +952,27 @@ public class TOTPUtil {
             try {
                 claimMapping = ClaimMetadataHandler.getInstance()
                         .getMappingsMapFromOtherDialectToCarbon(idPStandardDialect,
-                                originalExternalAttributeValueMap.keySet(), context.getTenantDomain(),
-                                true);
+                                originalExternalAttributeValueMap.keySet(), context.getTenantDomain(), true);
             } catch (ClaimMetadataException e) {
-                throw new TOTPException("TOTP Display name creation failed!. Error while handling claim mappings.", e);
+                throw new TOTPException("TOTP Display name creation failed!. Error while handling claim mappings. ", e);
             }
         } else {
             ClaimMapping[] customClaimMapping = externalIdPConfig.getClaimMappings();
-            for (ClaimMapping externalClaim : customClaimMapping) {
-                if (originalExternalAttributeValueMap.containsKey(externalClaim.getRemoteClaim().getClaimUri())) {
-                    claimMapping.put(externalClaim.getLocalClaim().getClaimUri(),
-                            externalClaim.getRemoteClaim().getClaimUri());
+            if (ArrayUtils.isNotEmpty(customClaimMapping)) {
+                for (ClaimMapping externalClaim : customClaimMapping) {
+                    if (originalExternalAttributeValueMap.containsKey(externalClaim.getRemoteClaim().getClaimUri())) {
+                        claimMapping.put(externalClaim.getLocalClaim().getClaimUri(),
+                                externalClaim.getRemoteClaim().getClaimUri());
+                    }
                 }
             }
         }
 
-        if (claimMapping != null && claimMapping.size() > 0) {
+        if (MapUtils.isNotEmpty(claimMapping) && claimMapping.size() > 0) {
             for (Map.Entry<String, String> entry : claimMapping.entrySet()) {
                 if (originalExternalAttributeValueMap.containsKey(entry.getValue()) &&
-                        originalExternalAttributeValueMap.get(entry.getValue()) != null) {
-                    localClaimValues.put(entry.getKey(),
-                            originalExternalAttributeValueMap.get(entry.getValue()));
+                        StringUtils.isNotBlank(originalExternalAttributeValueMap.get(entry.getValue()))) {
+                    localClaimValues.put(entry.getKey(), originalExternalAttributeValueMap.get(entry.getValue()));
                 }
             }
         }
