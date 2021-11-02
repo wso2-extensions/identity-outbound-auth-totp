@@ -42,6 +42,8 @@ import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenti
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPKeyRepresentation;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.application.common.model.Property;
+import org.wso2.carbon.identity.core.ServiceURLBuilder;
+import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
@@ -233,7 +235,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 		} catch (AuthenticationFailedException e) {
 			throw new AuthenticationFailedException(
 					"Authentication failed!. Cannot get the username from first step.", e);
-		} catch (URISyntaxException e) {
+		} catch (URISyntaxException | URLBuilderException e) {
 			throw new AuthenticationFailedException("Error while building TOTP page URL.", e);
 		}
 	}
@@ -725,13 +727,12 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 		}
 	}
 
-	private String buildAbsoluteURL(String redirectUrl) throws URISyntaxException {
+	private String buildAbsoluteURL(String redirectUrl) throws URISyntaxException, URLBuilderException {
 
 		URI uri = new URI(redirectUrl);
 		if (uri.isAbsolute()) {
 			return redirectUrl;
-		} else {
-			return IdentityUtil.getServerURL(redirectUrl, true, true);
 		}
+		return ServiceURLBuilder.create().addPath(redirectUrl).build().getAbsolutePublicURL();
 	}
 }

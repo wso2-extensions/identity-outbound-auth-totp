@@ -21,6 +21,7 @@ package org.wso2.carbon.identity.application.authenticator.totp;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
+import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.testng.PowerMockObjectFactory;
@@ -46,6 +47,8 @@ import org.wso2.carbon.identity.application.authentication.framework.exception.L
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
+import org.wso2.carbon.identity.core.ServiceURL;
+import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.core.UserRealm;
 import org.wso2.carbon.user.core.UserStoreException;
@@ -55,9 +58,9 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-
 
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
@@ -69,7 +72,7 @@ import static org.powermock.api.mockito.PowerMockito.*;
 
 @PrepareForTest({TOTPUtil.class, TOTPTokenGenerator.class, ConfigurationFacade.class, TOTPTokenGenerator.class,
         FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, CarbonContext.class,
-        FederatedAuthenticatorUtil.class, IdentityUtil.class})
+        FederatedAuthenticatorUtil.class, IdentityUtil.class, ServiceURLBuilder.class})
 @PowerMockIgnore({"javax.crypto.*" })
 public class TOTPAuthenticatorTest {
 
@@ -352,6 +355,7 @@ public class TOTPAuthenticatorTest {
     public void testInitiateAuthenticationRequest() throws AuthenticationFailedException, UserStoreException {
         String username = "admin";
         mockStatic(IdentityUtil.class);
+        mockServiceURLBuilder();
         when(IdentityUtil.getPrimaryDomainName()).thenReturn(USER_STORE_DOMAIN);
         AuthenticatedUser authenticatedUser = AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
         AuthenticationContext authenticationContext = new AuthenticationContext();
@@ -459,6 +463,52 @@ public class TOTPAuthenticatorTest {
     @ObjectFactory
     public IObjectFactory getObjectFactory() {
         return new PowerMockObjectFactory();
+    }
+
+    private void mockServiceURLBuilder() {
+
+        ServiceURLBuilder builder = new ServiceURLBuilder() {
+            String path = "";
+            @Override
+            public ServiceURLBuilder addPath(String... strings) {
+
+                Arrays.stream(strings).forEach(x -> {
+                    path += "/" + x;
+                });
+                return this;
+            }
+
+            @Override
+            public ServiceURLBuilder addParameter(String s, String s1) {
+
+                return this;
+            }
+
+            @Override
+            public ServiceURLBuilder setFragment(String s) {
+
+                return this;
+            }
+
+            @Override
+            public ServiceURLBuilder addFragmentParameter(String s, String s1) {
+
+                return this;
+            }
+
+            @Override
+            public ServiceURL build() {
+
+                ServiceURL serviceURL = mock(ServiceURL.class);
+                PowerMockito.when(serviceURL.getAbsolutePublicURL()).thenReturn("https://localhost:9443" + path);
+                PowerMockito.when(serviceURL.getRelativePublicURL()).thenReturn(path);
+                PowerMockito.when(serviceURL.getRelativeInternalURL()).thenReturn(path);
+                return serviceURL;
+            }
+        };
+
+        mockStatic(ServiceURLBuilder.class);
+        PowerMockito.when(ServiceURLBuilder.create()).thenReturn(builder);
     }
 
 }
