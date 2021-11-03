@@ -42,6 +42,8 @@ import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenti
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPKeyRepresentation;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.application.common.model.Property;
+import org.wso2.carbon.identity.core.ServiceURLBuilder;
+import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
@@ -53,6 +55,8 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -183,8 +187,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 					"&username=" + username + multiOptionURI;
 			if (isTOTPEnabled && request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
 				//if TOTP is enabled for the user.
-				response.sendRedirect(IdentityUtil.getServerURL(totpLoginPageUrl, true,
-                        true));
+				response.sendRedirect(buildAbsoluteURL(totpLoginPageUrl));
 			} else {
 				if (TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context)
 						&& request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
@@ -232,6 +235,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 		} catch (AuthenticationFailedException e) {
 			throw new AuthenticationFailedException(
 					"Authentication failed!. Cannot get the username from first step.", e);
+		} catch (URISyntaxException | URLBuilderException e) {
+			throw new AuthenticationFailedException("Error while building TOTP page URL.", e);
 		}
 	}
 
@@ -720,5 +725,14 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			String errorMessage = "Failed to update user claims for user : " + authenticatedUser.getUserName();
 			throw new AuthenticationFailedException(errorMessage, e);
 		}
+	}
+
+	private String buildAbsoluteURL(String redirectUrl) throws URISyntaxException, URLBuilderException {
+
+		URI uri = new URI(redirectUrl);
+		if (uri.isAbsolute()) {
+			return redirectUrl;
+		}
+		return ServiceURLBuilder.create().addPath(redirectUrl).build().getAbsolutePublicURL();
 	}
 }

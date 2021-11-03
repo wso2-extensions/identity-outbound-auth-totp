@@ -41,6 +41,16 @@
             <groupId>org.wso2.carbon.extension.identity.authenticator.utils</groupId>
             <artifactId>org.wso2.carbon.extension.identity.helper</artifactId>
             <version>${identity.extension.utils}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>jcl-over-slf4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>log4j-over-slf4j</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon.identity.event.handler.accountlock</groupId>
@@ -55,6 +65,16 @@
             <groupId>org.apache.rampart.wso2</groupId>
             <artifactId>rampart-core</artifactId>
             <version>${rampart.wso2.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>jcl-over-slf4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>log4j-over-slf4j</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.rampart.wso2</groupId>
@@ -103,7 +123,21 @@
         <dependency>
             <groupId>org.wso2.carbon.identity.framework</groupId>
             <artifactId>org.wso2.carbon.identity.event</artifactId>
-            <version>${carbon.identity.event.version}</version>
+            <version>${carbon.identity.framework.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.framework</groupId>
+            <artifactId>org.wso2.carbon.identity.core</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>jcl-over-slf4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>log4j-over-slf4j</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
     <build>
