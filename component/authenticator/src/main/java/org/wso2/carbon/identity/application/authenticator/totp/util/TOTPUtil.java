@@ -968,7 +968,7 @@ public class TOTPUtil {
             }
         }
 
-        if (MapUtils.isNotEmpty(claimMapping) && claimMapping.size() > 0) {
+        if (claimMapping != null) {
             for (Map.Entry<String, String> entry : claimMapping.entrySet()) {
                 if (originalExternalAttributeValueMap.containsKey(entry.getValue()) &&
                         StringUtils.isNotBlank(originalExternalAttributeValueMap.get(entry.getValue()))) {
