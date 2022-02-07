@@ -509,7 +509,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             return false;
         }
 
-        if (username == null) {
+        if (StringUtils.isBlank(username)) {
             log.error("No username found in the authentication context.");
             return false;
         } else {
