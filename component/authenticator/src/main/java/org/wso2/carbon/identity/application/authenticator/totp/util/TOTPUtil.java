@@ -402,7 +402,7 @@ public class TOTPUtil {
     public static long getTimeStepSizeFromRegistry(String tenantDomain, AuthenticationContext context)
             throws TOTPException {
 
-        Long timeStepSize = null;
+        long timeStepSize = -1;
         int tenantID = IdentityTenantUtil.getTenantId(tenantDomain);
         try {
             NodeList authConfigList = getAuthenticationConfigNodeList(tenantDomain, tenantID);
@@ -452,10 +452,11 @@ public class TOTPUtil {
     }
 
     /**
+     * Get stored windows size.
      *
-     * @param tenantDomain Tenant Domain
+     * @param tenantDomain Tenant Domain.
      * @return Window size of the totp configuration.
-     * @throws AuthenticationFailedException
+     * @throws AuthenticationFailedException On Error while getting value for window size from registry.
      */
     public static int getWindowSize(String tenantDomain) throws AuthenticationFailedException {
 
@@ -487,7 +488,7 @@ public class TOTPUtil {
     public static int getWindowSizeFromRegistry(String tenantDomain, AuthenticationContext context)
             throws TOTPException {
 
-        Integer windowSize = null;
+        int windowSize = -1;
         int tenantID = IdentityTenantUtil.getTenantId(tenantDomain);
         try {
             NodeList authConfigList = getAuthenticationConfigNodeList(tenantDomain, tenantID);
