@@ -402,7 +402,7 @@ public class TOTPUtil {
     public static long getTimeStepSizeFromRegistry(String tenantDomain, AuthenticationContext context)
             throws TOTPException {
 
-        Long timeStepSize = null;
+        long timeStepSize = -1;
         int tenantID = IdentityTenantUtil.getTenantId(tenantDomain);
         try {
             NodeList authConfigList = getAuthenticationConfigNodeList(tenantDomain, tenantID);
@@ -449,6 +449,68 @@ public class TOTPUtil {
         } else {
             return Integer.parseInt(context.getProperty(TOTPAuthenticatorConstants.WINDOW_SIZE).toString());
         }
+    }
+
+    /**
+     * Get stored windows size.
+     *
+     * @param tenantDomain Tenant Domain.
+     * @return Window size of the totp configuration.
+     * @throws AuthenticationFailedException On Error while getting value for window size from registry.
+     */
+    public static int getWindowSize(String tenantDomain) throws AuthenticationFailedException {
+
+        int windowSize;
+        if (TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN.equals(tenantDomain)) {
+            windowSize = Integer.parseInt(getTOTPParameters().get(TOTPAuthenticatorConstants.WINDOW_SIZE));
+        } else {
+            try {
+                windowSize = getWindowSizeFromRegistry(tenantDomain, null);
+                if (windowSize == -1) {
+                    windowSize = Integer.parseInt(
+                            IdentityHelperUtil.getAuthenticatorParameters(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)
+                                    .get(TOTPAuthenticatorConstants.WINDOW_SIZE));
+                }
+            } catch (TOTPException e) {
+                throw new AuthenticationFailedException("Cannot find the property value for windowSize", e);
+            }
+        }
+        return windowSize;
+    }
+
+    /**
+     * Get stored window size.
+     *
+     * @param tenantDomain Tenant domain name.
+     * @return Window size.
+     * @throws TOTPException On Error while getting value for window size from registry.
+     */
+    public static int getWindowSizeFromRegistry(String tenantDomain, AuthenticationContext context)
+            throws TOTPException {
+
+        int windowSize = -1;
+        int tenantID = IdentityTenantUtil.getTenantId(tenantDomain);
+        try {
+            NodeList authConfigList = getAuthenticationConfigNodeList(tenantDomain, tenantID);
+            windowSize = Integer.parseInt(getAttributeFromRegistry(authConfigList,
+                    TOTPAuthenticatorConstants.WINDOW_SIZE));
+        } catch (RegistryException e) {
+            if (context != null) {
+                context.setProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG,
+                        TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG);
+            } else {
+                return -1;
+            }
+        } catch (SAXException e) {
+            throw new TOTPException("Error while parsing the content as XML", e);
+        } catch (ParserConfigurationException e) {
+            throw new TOTPException("Error while creating new Document Builder", e);
+        } catch (IOException e) {
+            throw new TOTPException("Error while parsing the content as XML via ByteArrayInputStream", e);
+        } finally {
+            PrivilegedCarbonContext.endTenantFlow();
+        }
+        return windowSize;
     }
 
     /**

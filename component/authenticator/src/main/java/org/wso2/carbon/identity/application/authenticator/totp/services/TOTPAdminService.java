@@ -37,6 +37,7 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * This class is used to initiate, reset the TOTP and refresh the secret key.
@@ -254,18 +255,26 @@ public class TOTPAdminService {
         TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;
         String tenantDomain = MultitenantUtils.getTenantDomain(username);
         String encodingMethod;
+        long timeStepSize;
+        int windowSize;
         try {
             if (context == null) {
                 encodingMethod = TOTPUtil.getEncodingMethod(tenantDomain);
+                timeStepSize = TOTPUtil.getTimeStepSize(tenantDomain);
+                windowSize = TOTPUtil.getWindowSize(tenantDomain);
             } else {
                 encodingMethod = TOTPUtil.getEncodingMethod(tenantDomain, context);
+                timeStepSize = TOTPUtil.getTimeStepSize(context);
+                windowSize = TOTPUtil.getWindowSize(context);
             }
+            timeStepSize = TimeUnit.SECONDS.toMillis(timeStepSize);
             if (TOTPAuthenticatorConstants.BASE64.equals(encodingMethod)) {
                 encoding = TOTPKeyRepresentation.BASE64;
             }
             TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder configBuilder =
                     new TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder()
-                            .setKeyRepresentation(encoding);
+                            .setKeyRepresentation(encoding)
+                            .setTimeStepSizeInMillis(timeStepSize).setWindowSize(windowSize);
             TOTPAuthenticatorCredentials totpAuthenticator =
                     new TOTPAuthenticatorCredentials(configBuilder.build());
             if (log.isDebugEnabled()) {

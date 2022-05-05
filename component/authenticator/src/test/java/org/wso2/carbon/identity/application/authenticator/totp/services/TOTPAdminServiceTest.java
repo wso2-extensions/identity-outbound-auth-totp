@@ -80,6 +80,8 @@ public class TOTPAdminServiceTest {
         doReturn(userClaimValues).when(mockUserStoreManager).getUserClaimValues(username + "@" + tenantDomain,
                 new String[]{TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL}, null);
         when(TOTPUtil.decrypt(anyString())).thenReturn(secretKey);
+        when(TOTPUtil.getWindowSize(tenantDomain)).thenReturn(3);
+        when(TOTPUtil.getTimeStepSize(tenantDomain)).thenReturn(30L);
 
         TOTPAdminService totpAdminService = new TOTPAdminService();
         Assert.assertFalse(totpAdminService.validateTOTP(username, null, invalidOTP));
