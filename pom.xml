@@ -337,7 +337,6 @@
             [4.3.1.wso2v2,5.0.0)
         </httpcomponents-httpclient.imp.pkg.version.range>
         <orbit.version.commons.lang>2.6.0.wso2v1</orbit.version.commons.lang>
-        <org.wso2.securevault.version>1.0.0-wso2v2</org.wso2.securevault.version>
         <hector-core.wso2.version>1.1.4.wso2v1</hector-core.wso2.version>
         <hector-core.imp.pkg.version.range>[1.1.4.wso2v1,2.0.0)</hector-core.imp.pkg.version.range>
         <waffle.imp.pkg.version.range>[1.6.wso2v4, 2.0)</waffle.imp.pkg.version.range>
