@@ -43,6 +43,7 @@ public abstract class TOTPAuthenticatorConstants {
 			"http://wso2.org/claims/identity/failedLoginLockoutCount";
 	public static final String ACCOUNT_LOCKED_CLAIM = "http://wso2.org/claims/identity/accountLocked";
 	public static final String ACCOUNT_UNLOCK_TIME_CLAIM = "http://wso2.org/claims/identity/unlockTime";
+	public static final String ACCOUNT_LOCKED_REASON_CLAIM_URI = "http://wso2.org/claims/identity/lockedReason";
 	public static final String BASE32 = "Base32";
 	public static final String BASE64 = "Base64";
 	public static final String APPLICATION_AUTHENTICATION_XML = "application-authentication.xml";
@@ -85,4 +86,5 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String PROPERTY_ACCOUNT_LOCK_TIME = "account.lock.handler.Time";
 	public static final String ADMIN_INITIATED = "AdminInitiated";
 	public static final String ENABLE_SEND_VERIFICATION_CODE_BY_EMAIL = "AllowSendingVerificationCodeByEmail";
+	public static final String MAX_TOTP_ATTEMPTS_EXCEEDED = "MAX_TOTP_ATTEMPTS_EXCEEDED";
 }
