@@ -158,19 +158,24 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             throws AuthenticationFailedException {
 
         String username = null;
-        String tenantDomain = context.getTenantDomain();
-        context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
-                TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
-        if (!tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
-            IdentityHelperUtil
-                    .loadApplicationAuthenticationXMLFromRegistry(context, getName(), tenantDomain);
-        }
 
         AuthenticatedUser authenticatedUserFromContext = TOTPUtil.getAuthenticatedUser(context);
         if (authenticatedUserFromContext == null) {
             throw new AuthenticationFailedException(
                     ErrorMessages.ERROR_CODE_NO_AUTHENTICATED_USER.getCode(),
                     ErrorMessages.ERROR_CODE_NO_AUTHENTICATED_USER.getMessage());
+        }
+        String tenantDomain = authenticatedUserFromContext.getTenantDomain();
+        if (StringUtils.isBlank(tenantDomain)) {
+            throw new AuthenticationFailedException(
+                    ErrorMessages.ERROR_CODE_NO_USER_TENANT.getCode(),
+                    ErrorMessages.ERROR_CODE_NO_USER_TENANT.getMessage());
+        }
+        context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
+                TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
+        if (!tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
+            IdentityHelperUtil
+                    .loadApplicationAuthenticationXMLFromRegistry(context, getName(), tenantDomain);
         }
 
         /*
