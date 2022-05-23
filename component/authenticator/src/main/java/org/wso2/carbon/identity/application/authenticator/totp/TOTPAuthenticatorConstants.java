@@ -110,7 +110,8 @@ public abstract class TOTPAuthenticatorConstants {
 		ERROR_CODE_NO_FEDERATED_USER("65002", "No federated user found"),
 		ERROR_CODE_INVALID_FEDERATED_USER_AUTHENTICATION("65003", "Can not handle federated user " +
 				"authentication with TOTP as JIT Provision is not enabled for the IDP: in the tenant: %s"),
-		ERROR_CODE_NO_AUTHENTICATED_USER("65004", "Can not find the authenticated user");
+		ERROR_CODE_NO_AUTHENTICATED_USER("65004", "Can not find the authenticated user"),
+		ERROR_CODE_NO_USER_TENANT("65005", "Can not find the authenticated user's tenant domain");
 
 		private final String code;
 		private final String message;
