@@ -43,6 +43,8 @@ import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticator
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
 import org.wso2.carbon.identity.application.common.model.Property;
+import org.wso2.carbon.identity.core.ServiceURLBuilder;
+import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.governance.IdentityGovernanceException;
 import org.wso2.carbon.identity.handler.event.account.lock.exception.AccountLockServiceException;
@@ -57,6 +59,10 @@ import org.xml.sax.SAXException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -780,5 +786,42 @@ public class TOTPUtil {
         String sendVerificationCodeViaEmailConfig = getTOTPParameters()
                 .getOrDefault(TOTPAuthenticatorConstants.ENABLE_SEND_VERIFICATION_CODE_BY_EMAIL, "false");
         return Boolean.parseBoolean(sendVerificationCodeViaEmailConfig);
+    }
+
+    /**
+     * Validates an URL.
+     *
+     * @param urlString URL String.
+     * @return true if valid URL, false otherwise.
+     */
+    public static boolean isValidURL(String urlString) {
+
+        if (urlString != null) {
+            try {
+                if (isURLRelative(urlString)) {
+                    // Build Absolute URL using the relative url path.
+                    urlString = buildAbsoluteURL(urlString);
+                }
+                new URL(urlString);
+            } catch (MalformedURLException | URISyntaxException | URLBuilderException e) {
+                log.debug(e.getMessage(), e);
+                return false;
+            }
+        } else {
+            String errorMsg = "Invalid URL: 'NULL'";
+            log.debug(errorMsg);
+            return false;
+        }
+        return true;
+    }
+
+    private static boolean isURLRelative(String uriString) throws URISyntaxException {
+
+        return !new URI(uriString).isAbsolute();
+    }
+
+    private static String buildAbsoluteURL(String contextPath) throws URLBuilderException {
+
+        return ServiceURLBuilder.create().addPath(contextPath).build().getAbsolutePublicURL();
     }
 }
