@@ -123,7 +123,7 @@
             </dependency>
             <dependency>
                 <groupId>org.powermock</groupId>
-                <artifactId>powermock-api-mockito</artifactId>
+                <artifactId>powermock-api-mockito2</artifactId>
                 <version>${powermock.version}</version>
                 <scope>test</scope>
             </dependency>
@@ -342,10 +342,10 @@
         <carbon.identity.event.version.range>[5.13.0, 6.0.0)</carbon.identity.event.version.range>
         <!--Test Dependencies-->
         <testng.version>6.9.10</testng.version>
-        <jacoco.version>0.7.9</jacoco.version>
-        <powermock.version>1.6.5</powermock.version>
+        <jacoco.version>0.8.7</jacoco.version>
+        <powermock.version>2.0.9</powermock.version>
         <slf4j.api.version>1.7.12</slf4j.api.version>
-        <maven.surefire.plugin.version>2.18.1</maven.surefire.plugin.version>
+        <maven.surefire.plugin.version>2.22.2</maven.surefire.plugin.version>
 
         <maven.scr.plugin.version>1.26.0</maven.scr.plugin.version>
         <apache.felix.scr.ds.annotations.version>1.2.4</apache.felix.scr.ds.annotations.version>
