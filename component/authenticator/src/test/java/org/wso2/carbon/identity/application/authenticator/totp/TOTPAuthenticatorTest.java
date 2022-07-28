@@ -338,6 +338,10 @@ public class TOTPAuthenticatorTest {
 
         AuthenticationContext authenticationContext = new AuthenticationContext();
         authenticationContext.setProperty("username", username);
+
+        AuthenticatedUser user = new AuthenticatedUser();
+        user.setAuthenticatedSubjectIdentifier("admin@carbon.super");
+        when(TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
         Assert.assertTrue(Whitebox.invokeMethod(totpAuthenticator, "generateOTPAndSendByEmail",
                 authenticationContext));
     }
@@ -363,6 +367,10 @@ public class TOTPAuthenticatorTest {
         doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
         when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn("true");
         when(TOTPTokenGenerator.generateTOTPTokenLocal(username, authenticationContext)).thenReturn("123456");
+
+        AuthenticatedUser user = new AuthenticatedUser();
+        user.setAuthenticatedSubjectIdentifier("admin@carbon.super");
+        when(TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
         AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse,
                 authenticationContext);
         Assert.assertEquals(status, AuthenticatorFlowStatus.INCOMPLETE);
@@ -382,6 +390,10 @@ public class TOTPAuthenticatorTest {
         doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
         when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn("true");
         when(TOTPTokenGenerator.generateTOTPTokenLocal(username, authenticationContext)).thenReturn("123456");
+
+        AuthenticatedUser user = new AuthenticatedUser();
+        user.setAuthenticatedSubjectIdentifier("admin@carbon.super");
+        when(TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
         AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse,
                 authenticationContext);
         Assert.assertEquals(status, AuthenticatorFlowStatus.FAIL_COMPLETED);
@@ -391,6 +403,10 @@ public class TOTPAuthenticatorTest {
     public void testProcessWithSendTokenFalse() throws AuthenticationFailedException, LogoutFailedException {
 
         doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
+        mockStatic(TOTPUtil.class);
+        AuthenticatedUser user = new AuthenticatedUser();
+        user.setAuthenticatedSubjectIdentifier("admin@carbon.super");
+        when(TOTPUtil.getAuthenticatedUser(context)).thenReturn(user);
         when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn("true");
         AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse, context);
         Assert.assertEquals(status, AuthenticatorFlowStatus.FAIL_COMPLETED);

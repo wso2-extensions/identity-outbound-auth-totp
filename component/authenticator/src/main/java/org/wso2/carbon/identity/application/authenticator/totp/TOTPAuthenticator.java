@@ -501,7 +501,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
      */
     private boolean generateOTPAndSendByEmail(AuthenticationContext context) {
 
-        String username = getUsernameFromContext(context);
+        String username = TOTPUtil.getAuthenticatedUser(context).getAuthenticatedSubjectIdentifier();
 
         if (!TOTPUtil.isSendVerificationCodeByEmailEnabled()) {
             String appName = context.getServiceProviderName();
