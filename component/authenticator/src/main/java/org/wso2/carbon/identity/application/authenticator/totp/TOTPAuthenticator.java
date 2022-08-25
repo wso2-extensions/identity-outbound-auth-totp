@@ -710,8 +710,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     break;
             }
         }
-        String username = authenticatedUser.getUserName();
-        Map<String, String> claimValues = getUserClaimValues(authenticatedUser, username);
+        Map<String, String> claimValues = getUserClaimValues(authenticatedUser);
         if (claimValues == null) {
             claimValues = new HashMap<>();
         }
@@ -740,13 +739,13 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_LOCKED_REASON_CLAIM_URI,
                     TOTPAuthenticatorConstants.MAX_TOTP_ATTEMPTS_EXCEEDED);
             IdentityUtil.threadLocalProperties.get().put(TOTPAuthenticatorConstants.ADMIN_INITIATED, false);
-            setUserClaimValues(authenticatedUser, username, updatedClaims);
+            setUserClaimValues(authenticatedUser, updatedClaims);
             String errorMessage = String.format("User account: %s is locked.", authenticatedUser.getUserName());
             throw new AuthenticationFailedException(errorMessage);
         } else {
             updatedClaims
                     .put(TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM, String.valueOf(currentAttempts + 1));
-            setUserClaimValues(authenticatedUser, username, updatedClaims);
+            setUserClaimValues(authenticatedUser, updatedClaims);
         }
     }
 
@@ -771,7 +770,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             }
         }
 
-        String username = context.getProperty("username").toString();
+        String username = authenticatedUser.toFullQualifiedUsername();
         String usernameWithDomain = IdentityUtil.addDomainToName(authenticatedUser.getUserName(),
                 authenticatedUser.getUserStoreDomain());
         try {
@@ -804,11 +803,12 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         }
     }
 
-    private Map<String, String> getUserClaimValues(AuthenticatedUser authenticatedUser, String username)
+    private Map<String, String> getUserClaimValues(AuthenticatedUser authenticatedUser)
             throws AuthenticationFailedException {
 
         Map<String, String> claimValues;
         try {
+            String username = authenticatedUser.toFullQualifiedUsername();
             UserRealm userRealm = TOTPUtil.getUserRealm(username);
             UserStoreManager userStoreManager = userRealm.getUserStoreManager();
             claimValues = userStoreManager.getUserClaimValues(IdentityUtil.addDomainToName(
@@ -826,11 +826,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         return claimValues;
     }
 
-    private void setUserClaimValues(AuthenticatedUser authenticatedUser, String username,
-                                    Map<String, String> updatedClaims)
+    private void setUserClaimValues(AuthenticatedUser authenticatedUser, Map<String, String> updatedClaims)
             throws AuthenticationFailedException {
 
         try {
+            String username = authenticatedUser.toFullQualifiedUsername();
             UserRealm userRealm = TOTPUtil.getUserRealm(username);
             UserStoreManager userStoreManager = userRealm.getUserStoreManager();
             userStoreManager.setUserClaimValues(IdentityUtil.addDomainToName(authenticatedUser.getUserName(),
