@@ -179,6 +179,8 @@ public class TOTPAuthenticatorTest {
         mockStatic(IdentityHelperUtil.class);
         mockStatic(FederatedAuthenticatorUtil.class);
         mockStatic(IdentityUtil.class);
+        mockStatic(IdentityTenantUtil.class);
+        when(IdentityTenantUtil.getTenantId(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)).thenReturn(1);
     }
 
     private void mockServiceURLBuilder() throws URLBuilderException {
