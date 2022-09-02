@@ -144,7 +144,7 @@
         <!--Carbon identity version-->
         <carbon.identity.framework.version>5.23.28</carbon.identity.framework.version>
 
-        <carbon.identity.version>5.23.28</carbon.identity.version>
+        <carbon.identity.version>5.0.8</carbon.identity.version>
         <carbon.identity.package.export.version>${carbon.identity.version}</carbon.identity.package.export.version>
         <carbon.identity.package.export.project.version>${project.version}
         </carbon.identity.package.export.project.version>
