@@ -486,6 +486,8 @@ public class TOTPAuthenticatorTest {
         context.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
         when(TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
         when(TOTPUtil.getAuthenticatedUser(context)).thenReturn(null);
+        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
     }
 
@@ -524,6 +526,9 @@ public class TOTPAuthenticatorTest {
         when(TOTPUtil.getTOTPLoginPage(any(AuthenticationContext.class))).thenCallRealMethod();
         when(TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(authenticatedUser);
         when(TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
+        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
+
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, authenticationContext);
     }
 
@@ -562,6 +567,8 @@ public class TOTPAuthenticatorTest {
         when(justInTimeProvisioningConfig.isProvisioningEnabled()).thenReturn(true);
         when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(mockedContext)).thenReturn(true);
         when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
+        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
 
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, mockedContext);
         Assert.assertEquals(mockedContext.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER),
@@ -601,6 +608,8 @@ public class TOTPAuthenticatorTest {
         when(stepConfig.getAuthenticatedAutenticator()).thenReturn(authenticatorConfig);
         when(authenticatorConfig.getApplicationAuthenticator()).thenReturn(applicationAuthenticator);
         when(TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
+        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, mockedContext);
         Assert.assertEquals(mockedContext.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION),
                 TOTPAuthenticatorConstants.FEDERETOR);
@@ -649,6 +658,8 @@ public class TOTPAuthenticatorTest {
         mockServiceURLBuilder();
 
         when(TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
+        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
         verify(httpServletResponse).sendRedirect(captor.capture());
 
@@ -666,6 +677,10 @@ public class TOTPAuthenticatorTest {
             "TOTP is not enabled for the user.", priority = 2)
     public void testInitiateAuthenticationWithEnableTOTP()
             throws AuthenticationFailedException, UserStoreException, IOException {
+
+//        Map<String, String> parameterMap = new HashMap<>();
+//        AuthenticatorConfig authenticatorConfig = new AuthenticatorConfig("totp", true,
+//                parameterMap);
 
         String username = "admin";
         mockStatic(IdentityUtil.class);
@@ -688,6 +703,8 @@ public class TOTPAuthenticatorTest {
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
         when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context)).thenReturn(true);
         when(TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
+        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
     }
 
