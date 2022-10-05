@@ -91,7 +91,7 @@ import static org.powermock.api.mockito.PowerMockito.mockStatic;
         FederatedAuthenticatorUtil.class, IdentityUtil.class, ServiceURLBuilder.class, IdentityTenantUtil.class,
         UserSessionStore.class, TOTPDataHolder.class, IdpManager.class, IdentityProvider.class,
         JustInTimeProvisioningConfig.class})
-@PowerMockIgnore({"javax.crypto.*"})
+@PowerMockIgnore({"javax.crypto.*","org.mockito.*","org.powermock.api.mockito.invocation.*"})
 public class TOTPAuthenticatorTest {
 
     private static final String USER_STORE_DOMAIN = "PRIMARY";
@@ -179,6 +179,8 @@ public class TOTPAuthenticatorTest {
         mockStatic(IdentityHelperUtil.class);
         mockStatic(FederatedAuthenticatorUtil.class);
         mockStatic(IdentityUtil.class);
+        mockStatic(IdentityTenantUtil.class);
+        when(IdentityTenantUtil.getTenantId(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)).thenReturn(1);
     }
 
     private void mockServiceURLBuilder() throws URLBuilderException {

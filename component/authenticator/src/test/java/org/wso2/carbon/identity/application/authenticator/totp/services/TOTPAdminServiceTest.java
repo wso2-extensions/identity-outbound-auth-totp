@@ -44,7 +44,7 @@ import static org.mockito.MockitoAnnotations.initMocks;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
 @PrepareForTest({TOTPUtil.class, TOTPTokenGenerator.class, MultitenantUtils.class, TOTPAuthenticatorCredentials.class})
-@PowerMockIgnore({"javax.crypto.*"})
+@PowerMockIgnore({"javax.crypto.*","org.mockito.*",})
 public class TOTPAdminServiceTest {
 
     @Mock
