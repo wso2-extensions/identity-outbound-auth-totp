@@ -20,6 +20,7 @@ package org.wso2.carbon.identity.application.authenticator.totp.util;
 
 import org.mockito.Mock;
 import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.testng.PowerMockObjectFactory;
 import org.powermock.reflect.Whitebox;
@@ -62,6 +63,7 @@ import static org.testng.Assert.assertEquals;
 
 @PrepareForTest({FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, ConfigurationFacade.class,
         IdentityTenantUtil.class, ServiceURLBuilder.class})
+@PowerMockIgnore({"org.mockito.*","org.powermock.api.mockito.invocation.*"})
 public class TOTPUtilTest {
 
     private TOTPUtil totpUtil;
