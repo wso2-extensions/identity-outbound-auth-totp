@@ -346,7 +346,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
         StringBuilder params = new StringBuilder();
         for (Map.Entry<String, String> entry : paramMap.entrySet()) {
-            params.append(entry.getKey()).append(entry.getValue());
+            params.append("&").append(entry.getKey()).append("=").append(entry.getValue());
         }
         return params.toString();
     }
