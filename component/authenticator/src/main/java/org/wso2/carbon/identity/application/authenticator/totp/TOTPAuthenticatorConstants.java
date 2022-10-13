@@ -87,4 +87,5 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String ADMIN_INITIATED = "AdminInitiated";
 	public static final String ENABLE_SEND_VERIFICATION_CODE_BY_EMAIL = "AllowSendingVerificationCodeByEmail";
 	public static final String MAX_TOTP_ATTEMPTS_EXCEEDED = "MAX_TOTP_ATTEMPTS_EXCEEDED";
+	public static final String OVERALL_FAILED_LOGIN_LOCKOUT_COUNT = "overallFailedLoginLockoutCount";
 }

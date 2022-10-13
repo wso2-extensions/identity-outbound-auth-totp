@@ -613,15 +613,26 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 		Map<String, String> updatedClaims = new HashMap<>();
 		if ((currentAttempts + 1) >= maxAttempts) {
 			// Calculate the incremental unlock-time-interval in milli seconds.
-			unlockTimePropertyValue = (long) (unlockTimePropertyValue * 1000 * 60 * Math.pow(unlockTimeRatio,
-					failedLoginLockoutCountValue));
+			if (context.getProperty(TOTPAuthenticatorConstants.OVERALL_FAILED_LOGIN_LOCKOUT_COUNT) != null &&
+				context.getProperty(TOTPAuthenticatorConstants.OVERALL_FAILED_LOGIN_LOCKOUT_COUNT)
+						instanceof Integer) {
+				int overallLockoutCount =
+						(int) context.getProperty(TOTPAuthenticatorConstants.OVERALL_FAILED_LOGIN_LOCKOUT_COUNT);
+				unlockTimePropertyValue = (long) (unlockTimePropertyValue * 1000 * 60 * Math.pow(unlockTimeRatio,
+						overallLockoutCount));
+				updatedClaims.put(TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM,
+						String.valueOf(overallLockoutCount + 1));
+			} else {
+				unlockTimePropertyValue = (long) (unlockTimePropertyValue * 1000 * 60 * Math.pow(unlockTimeRatio,
+						failedLoginLockoutCountValue));
+				updatedClaims.put(TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM,
+						String.valueOf(failedLoginLockoutCountValue + 1));
+			}
 			// Calculate unlock-time by adding current-time and unlock-time-interval in milli seconds.
 			long unlockTime = System.currentTimeMillis() + unlockTimePropertyValue;
 			updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_LOCKED_CLAIM, Boolean.TRUE.toString());
 			updatedClaims.put(TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM, "0");
 			updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_UNLOCK_TIME_CLAIM, String.valueOf(unlockTime));
-			updatedClaims.put(TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM,
-					String.valueOf(failedLoginLockoutCountValue + 1));
 			updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_LOCKED_REASON_CLAIM_URI,
 					TOTPAuthenticatorConstants.MAX_TOTP_ATTEMPTS_EXCEEDED);
 			IdentityUtil.threadLocalProperties.get().put(TOTPAuthenticatorConstants.ADMIN_INITIATED, false);
