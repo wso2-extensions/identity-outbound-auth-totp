@@ -613,7 +613,9 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 		Map<String, String> updatedClaims = new HashMap<>();
 		if ((currentAttempts + 1) >= maxAttempts) {
 			// Calculate the incremental unlock-time-interval in milli seconds.
-			if (context.getProperty(TOTPAuthenticatorConstants.OVERALL_FAILED_LOGIN_LOCKOUT_COUNT) != null) {
+			if (context.getProperty(TOTPAuthenticatorConstants.OVERALL_FAILED_LOGIN_LOCKOUT_COUNT) != null &&
+				context.getProperty(TOTPAuthenticatorConstants.OVERALL_FAILED_LOGIN_LOCKOUT_COUNT)
+						instanceof Integer) {
 				int overallLockoutCount =
 						(int) context.getProperty(TOTPAuthenticatorConstants.OVERALL_FAILED_LOGIN_LOCKOUT_COUNT);
 				unlockTimePropertyValue = (long) (unlockTimePropertyValue * 1000 * 60 * Math.pow(unlockTimeRatio,
