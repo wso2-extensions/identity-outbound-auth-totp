@@ -680,10 +680,6 @@ public class TOTPAuthenticatorTest {
     public void testInitiateAuthenticationWithEnableTOTP()
             throws AuthenticationFailedException, UserStoreException, IOException {
 
-//        Map<String, String> parameterMap = new HashMap<>();
-//        AuthenticatorConfig authenticatorConfig = new AuthenticatorConfig("totp", true,
-//                parameterMap);
-
         String username = "admin";
         mockStatic(IdentityUtil.class);
         when(IdentityUtil.getPrimaryDomainName()).thenReturn(USER_STORE_DOMAIN);
