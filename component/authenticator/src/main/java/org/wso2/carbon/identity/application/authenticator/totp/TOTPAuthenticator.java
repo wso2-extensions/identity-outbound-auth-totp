@@ -212,9 +212,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             String errorParam = StringUtils.EMPTY;
             if (Boolean.parseBoolean(showAuthFailureReasonOnLoginPage)) {
                 if (errorContext != null && errorContext.getErrorCode() != null) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Identity error message context is not null");
-                    }
+                    log.debug("Identity error message context is not null");
                     String errorCode = errorContext.getErrorCode();
                     String reason = null;
                     if (errorCode.contains(":")) {
