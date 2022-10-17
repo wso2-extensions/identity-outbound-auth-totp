@@ -209,7 +209,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             IdentityErrorMsgContext errorContext = IdentityUtil.getIdentityErrorMsg();
             IdentityUtil.clearIdentityErrorMsg();
 
-            String errorParam = "";
+            String errorParam = StringUtils.EMPTY;
             if (Boolean.parseBoolean(showAuthFailureReasonOnLoginPage)) {
                 if (errorContext != null && errorContext.getErrorCode() != null) {
                     if (log.isDebugEnabled()) {
@@ -285,7 +285,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     context.setProperty(TOTPAuthenticatorConstants.ENABLE_TOTP, true);
 
                     String totpLoginPageUrl = buildTOTPLoginPageURL(context, username, retryParam,
-                            "", multiOptionURI);
+                            StringUtils.EMPTY, multiOptionURI);
                     response.sendRedirect(totpLoginPageUrl);
                 } else {
                     if (isTOTPEnabledByAdmin) {
@@ -489,7 +489,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             if (log.isDebugEnabled()) {
                 log.debug(errorMessage);
             }
-            String accountLockedReason = "";
+            String accountLockedReason = StringUtils.EMPTY;
             try {
                 UserRealm userRealm = TOTPUtil.getUserRealm(username);
                 UserStoreManager userStoreManager = userRealm.getUserStoreManager();
