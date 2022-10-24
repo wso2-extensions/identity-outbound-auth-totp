@@ -407,7 +407,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 checkTotpEnabled(context, username);
                 if (!isValidTokenLocalUser(tokenValue, username, context)) {
                     handleTotpVerificationFail(context);
-                    throw new AuthenticationFailedException("Invalid Token. Authentication failed, user :  " + username);
+                    throw new AuthenticationFailedException("Invalid Token. Authentication failed, user :  "
+                            + username);
                 }
             }
             if (StringUtils.isNotBlank(username)) {
@@ -515,7 +516,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             catch (UserStoreException e) {
                 throw new AuthenticationFailedException(errorMessage+ " Could not get the account locked reason");
             }
-            IdentityErrorMsgContext customErrorMessageContext = new IdentityErrorMsgContext(UserCoreConstants.ErrorCode.USER_IS_LOCKED +
+            IdentityErrorMsgContext customErrorMessageContext = new IdentityErrorMsgContext(
+                    UserCoreConstants.ErrorCode.USER_IS_LOCKED +
                     ":" + accountLockedReason);
             IdentityUtil.setIdentityErrorMsg(customErrorMessageContext);
             throw new AuthenticationFailedException(errorMessage);
