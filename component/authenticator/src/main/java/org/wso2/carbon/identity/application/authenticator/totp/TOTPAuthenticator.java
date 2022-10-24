@@ -514,7 +514,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 }
             }
             catch (UserStoreException e) {
-                throw new AuthenticationFailedException(errorMessage+ " Could not get the account locked reason");
+                throw new AuthenticationFailedException(errorMessage + " Could not get the account locked reason");
             }
             IdentityErrorMsgContext customErrorMessageContext = new IdentityErrorMsgContext(
                     UserCoreConstants.ErrorCode.USER_IS_LOCKED +
