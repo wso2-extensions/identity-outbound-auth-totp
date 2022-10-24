@@ -91,7 +91,7 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String PROPERTY_ACCOUNT_LOCK_TIME = "account.lock.handler.Time";
 	public static final String ADMIN_INITIATED = "AdminInitiated";
 	public static final String FEDERATED_USERNAME = "FederatedUsername";
-
+	public static final String IS_TOTP_ENROL_ALLOWED_IN_ADAPTIVE_SCRIPT = "isTOTPEnrolAllowed";
 	public static final String ENABLE_SEND_VERIFICATION_CODE_BY_EMAIL = "AllowSendingVerificationCodeByEmail";
 
 	public static final String IS_INITIAL_FEDERATED_USER_ATTEMPT = "isInitialFederationAttempt";

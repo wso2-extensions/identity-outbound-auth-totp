@@ -47,6 +47,7 @@ import org.wso2.carbon.identity.application.authentication.framework.context.Aut
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
+import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
@@ -84,11 +85,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import static org.apache.commons.lang.StringUtils.isNotBlank;
-import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE;
-import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ERROR_PAGE;
-import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN;
-import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOTP_HIDE_USERSTORE_FROM_USERNAME;
-import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.*;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.IS_TOTP_ENROL_ALLOWED_IN_ADAPTIVE_SCRIPT;
 
 /**
  * TOTP Util class.
@@ -96,7 +94,7 @@ import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthen
 public class TOTPUtil {
 
     private static final Log log = LogFactory.getLog(TOTPUtil.class);
-
+    private static TOTPAuthenticator totpAuthenticator = new TOTPAuthenticator();
     /**
      * Encrypt the given plain text.
      *
@@ -520,6 +518,11 @@ public class TOTPUtil {
      */
     public static boolean isEnrolUserInAuthenticationFlowEnabled(AuthenticationContext context) {
 
+        Map<String,String> runtimeParams = totpAuthenticator.getRuntimeParams(context);
+        boolean TOTPAdaptiveScriptEnabled=true;
+        if (StringUtils.isNotBlank(runtimeParams.get(IS_TOTP_ENROL_ALLOWED_IN_ADAPTIVE_SCRIPT))) {
+            TOTPAdaptiveScriptEnabled = Boolean.parseBoolean(runtimeParams.get(IS_TOTP_ENROL_ALLOWED_IN_ADAPTIVE_SCRIPT));
+        }
         if (log.isDebugEnabled()) {
             log.debug("Read the EnrolUserInAuthenticationFlow value from application authentication xml file");
         }
@@ -528,7 +531,9 @@ public class TOTPUtil {
                 context.getProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG);
         //If the config file is not in registry and the it is super tenant, getting the property from local.
         // Else getting it from context.
-        if ((getPropertiesFromIdentityConfig != null ||
+        if (!TOTPAdaptiveScriptEnabled) {
+            return false;
+        } else if ((getPropertiesFromIdentityConfig != null ||
                 TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN.equals(tenantDomain))) {
             return Boolean.parseBoolean(IdentityHelperUtil.getAuthenticatorParameters(
                     context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION).toString())
