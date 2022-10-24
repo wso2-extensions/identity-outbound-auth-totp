@@ -159,10 +159,13 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             throws AuthenticationFailedException {
 
         String username = null;
-        String showAuthFailureReasonOnLoginPage = null;
         Map<String, String> parameterMap = getAuthenticatorConfig().getParameterMap();
-        if (parameterMap != null) {
-            showAuthFailureReasonOnLoginPage = parameterMap.get(TOTPAuthenticatorConstants.CONF_SHOW_AUTH_FAILURE_REASON_ON_LOGIN_PAGE);
+        boolean showAuthFailureReason = Boolean.parseBoolean(parameterMap.get(
+                TOTPAuthenticatorConstants.CONF_SHOW_AUTH_FAILURE_REASON));
+        boolean showAuthFailureReasonOnLoginPage = false;
+        if (showAuthFailureReason) {
+            showAuthFailureReasonOnLoginPage = Boolean.parseBoolean(parameterMap.get(
+                    TOTPAuthenticatorConstants.CONF_SHOW_AUTH_FAILURE_REASON_ON_LOGIN_PAGE));
         }
         AuthenticatedUser authenticatedUserFromContext = TOTPUtil.getAuthenticatedUser(context);
         if (authenticatedUserFromContext == null) {
@@ -210,26 +213,28 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             IdentityUtil.clearIdentityErrorMsg();
 
             String errorParam = StringUtils.EMPTY;
-            if (Boolean.parseBoolean(showAuthFailureReasonOnLoginPage)) {
+            if (showAuthFailureReason) {
                 if (errorContext != null && errorContext.getErrorCode() != null) {
-                    log.debug("Identity error message context is not null");
+                    log.debug("Identity error message context is not null.");
                     String errorCode = errorContext.getErrorCode();
-                    String reason = null;
-                    if (errorCode.contains(":")) {
-                        String[] errorCodeWithReason = errorCode.split(":", 2);
-                        errorCode = errorCodeWithReason[0];
-                        if (errorCodeWithReason.length > 1) {
-                            reason = errorCodeWithReason[1];
+                    if (errorCode != null) {
+                        String reason = null;
+                        if (errorCode.contains(":")) {
+                            String[] errorCodeWithReason = errorCode.split(":", 2);
+                            errorCode = errorCodeWithReason[0];
+                            if (errorCodeWithReason.length > 1) {
+                                reason = errorCodeWithReason[1];
+                            }
                         }
-                    }
-
-                    if (errorCode.equals(UserCoreConstants.ErrorCode.USER_IS_LOCKED)) {
-                        Map<String, String> paramMap = new HashMap<>();
-                        paramMap.put(TOTPAuthenticatorConstants.ERROR_CODE, errorCode);
-                        if (StringUtils.isNotBlank(reason)) {
-                            paramMap.put(TOTPAuthenticatorConstants.LOCKED_REASON, reason);
+                        //Only adds error code if it is locked error code.
+                        if (errorCode.equals(UserCoreConstants.ErrorCode.USER_IS_LOCKED)) {
+                            Map<String, String> paramMap = new HashMap<>();
+                            paramMap.put(TOTPAuthenticatorConstants.ERROR_CODE, errorCode);
+                            if (StringUtils.isNotBlank(reason)) {
+                                paramMap.put(TOTPAuthenticatorConstants.LOCKED_REASON, reason);
+                            }
+                            errorParam = buildErrorParamString(paramMap);
                         }
-                        errorParam = buildErrorParamString(paramMap);
                     }
                 }
             }
@@ -255,7 +260,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             if (isSecretKeyExistForUser &&
                     request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
                 //if TOTP is enabled for the user.
-                String totpLoginPageUrl = buildTOTPLoginPageURL(context, username, retryParam,
+                String totpLoginPageUrl;
+                if (!showAuthFailureReasonOnLoginPage) {
+                    errorParam = StringUtils.EMPTY;
+                }
+                totpLoginPageUrl = buildTOTPLoginPageURL(context, username, retryParam,
                         errorParam, multiOptionURI);
                 response.sendRedirect(totpLoginPageUrl);
             } else {
@@ -281,14 +290,17 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 } else if (Boolean.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP))) {
                     //if TOTP is not enabled for the user and user continued the enrolment.
                     context.setProperty(TOTPAuthenticatorConstants.ENABLE_TOTP, true);
-
+                    if (!showAuthFailureReason) {
+                        errorParam = StringUtils.EMPTY;
+                    }
                     String totpLoginPageUrl = buildTOTPLoginPageURL(context, username, retryParam,
-                            StringUtils.EMPTY, multiOptionURI);
+                            errorParam, multiOptionURI);
                     response.sendRedirect(totpLoginPageUrl);
                 } else {
                     if (isTOTPEnabledByAdmin) {
                         //if TOTP is not enabled for the user and admin enforces TOTP.
-                        String totpErrorPageUrl = buildTOTPErrorPageURL(context, username, retryParam, multiOptionURI);
+                        String totpErrorPageUrl = buildTOTPErrorPageURL(context, username, retryParam, errorParam,
+                                multiOptionURI);
                         response.sendRedirect(totpErrorPageUrl);
                     } else {
                         //if admin does not enforce TOTP and TOTP is not enabled for the user.
@@ -331,11 +343,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     }
 
     private String buildTOTPErrorPageURL(AuthenticationContext context, String username, String retryParam,
-                                         String multiOptionURI)
+                                         String errorParam, String multiOptionURI)
             throws AuthenticationFailedException, URISyntaxException, URLBuilderException {
 
         String queryString = "sessionDataKey=" + context.getContextIdentifier() + "&authenticators=" + getName()
-                + "&type=totp_error" + retryParam + "&username=" + username + multiOptionURI;
+                + "&type=totp_error" + retryParam + "&username=" + username + errorParam + multiOptionURI;
         String errorPage = FrameworkUtils.appendQueryParamsStringToUrl(getTOTPErrorPage(context), queryString);
         return buildAbsoluteURL(errorPage);
     }
