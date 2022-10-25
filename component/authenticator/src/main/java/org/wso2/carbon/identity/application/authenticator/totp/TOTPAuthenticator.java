@@ -22,6 +22,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.owasp.encoder.Encode;
 import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.extension.identity.helper.FederatedAuthenticatorUtil;
@@ -290,8 +291,9 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                                          String multiOptionURI)
             throws AuthenticationFailedException, URISyntaxException, URLBuilderException {
 
-        String queryString = "sessionDataKey=" + context.getContextIdentifier() + "&authenticators=" + getName()
-                + "&type=totp" + retryParam + "&username=" + username + multiOptionURI;
+        String queryString = "t=" + context.getLoginTenantDomain() + "&sessionDataKey=" + context.getContextIdentifier()
+                + "&authenticators=" + getName() + "&type=totp" + retryParam + "&username=" + username
+                + "&sp=" + Encode.forUriComponent(context.getServiceProviderName()) + multiOptionURI;
         String loginPage = FrameworkUtils.appendQueryParamsStringToUrl(getTOTPLoginPage(context), queryString);
         return buildAbsoluteURL(loginPage);
     }
@@ -300,8 +302,9 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                                          String multiOptionURI)
             throws AuthenticationFailedException, URISyntaxException, URLBuilderException {
 
-        String queryString = "sessionDataKey=" + context.getContextIdentifier() + "&authenticators=" + getName()
-                + "&type=totp_error" + retryParam + "&username=" + username + multiOptionURI;
+        String queryString = "t=" + context.getLoginTenantDomain() + "&sessionDataKey=" + context.getContextIdentifier()
+                + "&authenticators=" + getName() + "&type=totp_error" + retryParam + "&username=" + username
+                + "&sp=" + Encode.forUriComponent(context.getServiceProviderName()) + multiOptionURI;
         String errorPage = FrameworkUtils.appendQueryParamsStringToUrl(getTOTPErrorPage(context), queryString);
         return buildAbsoluteURL(errorPage);
     }
