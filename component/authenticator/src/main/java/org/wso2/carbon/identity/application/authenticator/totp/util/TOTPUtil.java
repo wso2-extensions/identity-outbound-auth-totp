@@ -90,7 +90,7 @@ import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthen
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOTP_HIDE_USERSTORE_FROM_USERNAME;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE;
-import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.IS_TOTP_ENROL_ALLOWED_IN_ADAPTIVE_SCRIPT;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW;
 
 /**
  * TOTP Util class.
@@ -98,7 +98,6 @@ import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthen
 public class TOTPUtil {
 
     private static final Log log = LogFactory.getLog(TOTPUtil.class);
-    private static TOTPAuthenticator totpAuthenticator = new TOTPAuthenticator();
     /**
      * Encrypt the given plain text.
      *
@@ -522,11 +521,6 @@ public class TOTPUtil {
      */
     public static boolean isEnrolUserInAuthenticationFlowEnabled(AuthenticationContext context) {
 
-        Map<String,String> runtimeParams = totpAuthenticator.getRuntimeParams(context);
-        boolean TOTPAdaptiveScriptEnabled=true;
-        if (StringUtils.isNotBlank(runtimeParams.get(IS_TOTP_ENROL_ALLOWED_IN_ADAPTIVE_SCRIPT))) {
-            TOTPAdaptiveScriptEnabled = Boolean.parseBoolean(runtimeParams.get(IS_TOTP_ENROL_ALLOWED_IN_ADAPTIVE_SCRIPT));
-        }
         if (log.isDebugEnabled()) {
             log.debug("Read the EnrolUserInAuthenticationFlow value from application authentication xml file");
         }
@@ -535,17 +529,33 @@ public class TOTPUtil {
                 context.getProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG);
         //If the config file is not in registry and the it is super tenant, getting the property from local.
         // Else getting it from context.
-        if (!TOTPAdaptiveScriptEnabled) {
-            return false;
-        } else if ((getPropertiesFromIdentityConfig != null ||
+        if ((getPropertiesFromIdentityConfig != null ||
                 TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN.equals(tenantDomain))) {
             return Boolean.parseBoolean(IdentityHelperUtil.getAuthenticatorParameters(
                     context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION).toString())
-                    .get(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW));
+                    .get(ENROL_USER_IN_AUTHENTICATIONFLOW));
         } else {
-            return Boolean.parseBoolean((context.getProperty(
-                    TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW).toString()));
+            return Boolean.parseBoolean((context.getProperty(ENROL_USER_IN_AUTHENTICATIONFLOW).toString()));
         }
+    }
+
+    /**
+     * Get EnrolUserInAuthenticationFlow.
+     *
+     * @return true, if EnrolUserInAuthenticationFlow is enabled
+     */
+    public static boolean isEnrolUserInAuthenticationFlowEnabled(AuthenticationContext context,
+                                                                 Map<String, String> runtimeParams) {
+
+        if (log.isDebugEnabled()) {
+            log.debug("Read the EnrolUserInAuthenticationFlow value from adaptive authentication script");
+        }
+        if (StringUtils.isNotBlank(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW))) {
+            Boolean isEnrollmentAllowedInLoginFlow = Boolean.parseBoolean(runtimeParams
+                    .get(ENROL_USER_IN_AUTHENTICATIONFLOW));
+            return isEnrollmentAllowedInLoginFlow;
+        }
+        return isEnrolUserInAuthenticationFlowEnabled(context);
     }
 
     /**
@@ -581,6 +591,39 @@ public class TOTPUtil {
                     context.getContextIdentifier() + "&authenticators=" + TOTPAuthenticatorConstants.AUTHENTICATOR_NAME
                     + "&type=totp" + "&sp=" + Encode.forUriComponent(context.getServiceProviderName()) +
                     "&ske=" + skey + multiOptionURI;
+            String enableTOTPReqPageUrl =
+                    FrameworkUtils.appendQueryParamsStringToUrl(getEnableTOTPPage(context), queryParams);
+
+            try {
+                response.sendRedirect(enableTOTPReqPageUrl);
+            } catch (IOException e) {
+                throw new AuthenticationFailedException(
+                        "Error while redirecting the request to get enableTOTP " + "request page. ", e);
+            }
+        } else {
+            throw new AuthenticationFailedException("Error while getting value for EnrolUserInAuthenticationFlow");
+        }
+    }
+
+    /**
+     * Redirect the enableTOTP request page.
+     *
+     * @param request  The HttpServletRequest
+     * @param response The HttpServletResponse
+     * @param context  The AuthenticationContext
+     * @param skey     QR code claim
+     * @param runtimeParams runtime parameters
+     * @throws AuthenticationFailedException On error while getting value for enrolUserInAuthenticationFlow
+     */
+    public static void redirectToEnableTOTPReqPage(HttpServletRequest request, HttpServletResponse response,
+                                                   AuthenticationContext context, String skey,
+                                                   Map<String,String> runtimeParams)
+            throws AuthenticationFailedException {
+
+        if (isEnrolUserInAuthenticationFlowEnabled(context, runtimeParams)) {
+            String multiOptionURI = getMultiOptionURIQueryParam(request);
+            String queryParams = "sessionDataKey=" + context.getContextIdentifier() + "&authenticators=" +
+                    TOTPAuthenticatorConstants.AUTHENTICATOR_NAME + "&type=totp" + "&ske=" + skey + multiOptionURI;
             String enableTOTPReqPageUrl =
                     FrameworkUtils.appendQueryParamsStringToUrl(getEnableTOTPPage(context), queryParams);
 
