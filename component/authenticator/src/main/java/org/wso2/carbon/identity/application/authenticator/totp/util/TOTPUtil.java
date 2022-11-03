@@ -566,12 +566,36 @@ public class TOTPUtil {
                                                    AuthenticationContext context, String skey)
             throws AuthenticationFailedException {
 
+        redirectToEnableTOTPReqPage(request, response, context, skey, null, null);
+    }
+
+    /**
+     * Redirect the enableTOTP request page.
+     *
+     * @param request    The HttpServletRequest.
+     * @param response   The HttpServletResponse.
+     * @param context    The AuthenticationContext.
+     * @param skey       QR code claim.
+     * @param errorParam Error parameters.
+     * @param retryParam Retry parameters.
+     * @throws AuthenticationFailedException On error while getting value for enrolUserInAuthenticationFlow.
+     */
+    public static void redirectToEnableTOTPReqPage(HttpServletRequest request, HttpServletResponse response,
+                                                   AuthenticationContext context, String skey, String errorParam,
+                                                   String retryParam) throws AuthenticationFailedException {
+
         if (isEnrolUserInAuthenticationFlowEnabled(context)) {
             String multiOptionURI = getMultiOptionURIQueryParam(request);
             String queryParams = "t=" + context.getLoginTenantDomain() + "&sessionDataKey=" +
                     context.getContextIdentifier() + "&authenticators=" + TOTPAuthenticatorConstants.AUTHENTICATOR_NAME
                     + "&type=totp" + "&sp=" + Encode.forUriComponent(context.getServiceProviderName()) +
                     "&ske=" + skey + multiOptionURI;
+            if (StringUtils.isNotBlank(retryParam)) {
+                queryParams += retryParam;
+            }
+            if (StringUtils.isNotBlank(errorParam)) {
+                queryParams += errorParam;
+            }
             String enableTOTPReqPageUrl =
                     FrameworkUtils.appendQueryParamsStringToUrl(getEnableTOTPPage(context), queryParams);
 
@@ -1041,6 +1065,18 @@ public class TOTPUtil {
             }
         }
         return localClaimValues;
+    }
+
+    /**
+     * Check whether TOTP enrollment in single page enabled.
+     *
+     * @return true If TOTP enrollment in single page enabled. Otherwise, return false.
+     */
+    public static boolean isTOTPEnrollInSinglePageEnabled() {
+
+        String isTOTPEnrollInSinglePageEnabled = getTOTPParameters()
+                .getOrDefault(TOTPAuthenticatorConstants.TOTP_ENROLL_IN_SINGLE_PAGE, String.valueOf(false));
+        return Boolean.parseBoolean(isTOTPEnrollInSinglePageEnabled);
     }
 
 }

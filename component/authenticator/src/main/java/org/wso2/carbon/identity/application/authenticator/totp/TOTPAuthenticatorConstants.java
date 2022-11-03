@@ -104,6 +104,7 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String CONF_SHOW_AUTH_FAILURE_REASON_ON_LOGIN_PAGE = "showAuthFailureReasonOnLoginPage";
 	public static final String ERROR_CODE = "errorCode";
 	public static final String LOCKED_REASON = "lockedReason";
+	public static final String TOTP_ENROLL_IN_SINGLE_PAGE = "totpEnrollInSinglePage";
 
 	/**
 	 * Enum which contains the error codes and corresponding error messages.
