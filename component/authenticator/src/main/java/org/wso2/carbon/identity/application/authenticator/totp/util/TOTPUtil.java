@@ -550,10 +550,11 @@ public class TOTPUtil {
         if (log.isDebugEnabled()) {
             log.debug("Read the EnrolUserInAuthenticationFlow value from adaptive authentication script");
         }
-        if (StringUtils.isNotBlank(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW))) {
-            Boolean isEnrollmentAllowedInLoginFlow = Boolean.parseBoolean(runtimeParams
-                    .get(ENROL_USER_IN_AUTHENTICATIONFLOW));
-            return isEnrollmentAllowedInLoginFlow;
+
+        if( runtimeParams != null) {
+            if (StringUtils.isNotBlank(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW))) {
+                return Boolean.parseBoolean(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW));
+            }
         }
         return isEnrolUserInAuthenticationFlowEnabled(context);
     }
@@ -568,8 +569,8 @@ public class TOTPUtil {
      */
     public static void redirectToEnableTOTPReqPage(HttpServletResponse response, AuthenticationContext context,
                                                    String skey) throws AuthenticationFailedException {
-
-        redirectToEnableTOTPReqPage(null, response, context, skey);
+        //send this through the new function and set the runtime Params to null.
+        redirectToEnableTOTPReqPage(null, response, context, skey, null);
     }
 
     /**
@@ -581,6 +582,7 @@ public class TOTPUtil {
      * @param skey     QR code claim
      * @throws AuthenticationFailedException On error while getting value for enrolUserInAuthenticationFlow
      */
+    @Deprecated
     public static void redirectToEnableTOTPReqPage(HttpServletRequest request, HttpServletResponse response,
                                                    AuthenticationContext context, String skey)
             throws AuthenticationFailedException {

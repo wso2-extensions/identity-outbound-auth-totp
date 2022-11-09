@@ -29,6 +29,7 @@ import org.powermock.reflect.Whitebox;
 import org.testng.Assert;
 import org.testng.IObjectFactory;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.ObjectFactory;
 import org.testng.annotations.Test;
 import org.wso2.carbon.context.CarbonContext;
@@ -85,6 +86,7 @@ import static org.powermock.api.mockito.PowerMockito.doNothing;
 import static org.powermock.api.mockito.PowerMockito.doReturn;
 import static org.powermock.api.mockito.PowerMockito.mock;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW;
 
 @PrepareForTest({TOTPUtil.class, TOTPTokenGenerator.class, ConfigurationFacade.class, TOTPTokenGenerator.class,
         FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, CarbonContext.class,
@@ -670,10 +672,10 @@ public class TOTPAuthenticatorTest {
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
         verify(httpServletResponse).sendRedirect(captor.capture());
         // Assert everything related to the error scenario.
-        Assert.assertTrue(captor.getValue().contains("authenticationendpoint/totp.do"));
+        Assert.assertTrue(captor.getValue().contains("totp_error.do"));
         Assert.assertTrue(captor.getValue().contains("sessionDataKey=" + context.getContextIdentifier()));
         Assert.assertTrue(captor.getValue().contains("authenticators=totp"));
-        Assert.assertTrue(captor.getValue().contains("type=totp"));
+        Assert.assertTrue(captor.getValue().contains("type=totp_error"));
         Assert.assertTrue(captor.getValue().contains("username=" + username));
         Assert.assertTrue(captor.getValue().contains("multiOptionURI=" + URLEncoder.encode(multiOptionURL,
                 StandardCharsets.UTF_8.toString())));
@@ -710,10 +712,76 @@ public class TOTPAuthenticatorTest {
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
     }
 
+    @DataProvider(name = "isEnrollmentAllowedInRuntimeParams")
+    public Object[][] isEnrollmentAllowedInRuntimeParams(){
+        return new Object[][]{
+                {"true"},
+                {"false"}
+        };
+    }
+
+    @Test(dataProvider = "isEnrollmentAllowedInRuntimeParams", description = "Test whether " +
+            "isEnrolUserInAuthenticationFlowEnabled() returns true when ENROL_USER_IN_AUTHENTICATIONFLOW is set to " +
+            "\"true\" within the runtime parameters")
+    public void testIsEnrollmentAllowedInLoginFlowWithRuntimeParams(String isEnrolmentAllowedInRuntimeParams){
+
+        when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any())).thenCallRealMethod();
+        when(mockedRuntimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW)).thenReturn(isEnrolmentAllowedInRuntimeParams);
+        Assert.assertEquals(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, mockedRuntimeParams),
+                Boolean.parseBoolean(isEnrolmentAllowedInRuntimeParams));
+    }
+
+    @DataProvider(name = "isEnrollmentAllowedInConfig")
+    public Object[][] isEnrollmentAllowedInConfig(){
+        return new Object[][]{
+                {"true"},
+                {"false"}
+        };
+    }
+
+    @Test(dataProvider = "isEnrollmentAllowedInConfig", description = "Test whether " +
+            "isEnrolUserInAuthenticationFlowEnabled() returns false when ENROL_USER_IN_AUTHENTICATIONFLOW is set to " +
+            "\"true\" within the local IdentityHelperUtil")
+    public void testIsEnrollmentAllowedInLoginFlowWhenEnabledInConfig(String isEnrollmentAllowedInConfig){
+
+        Map<String, String> AuthParams = new HashMap<>();
+        AuthParams.put(ENROL_USER_IN_AUTHENTICATIONFLOW, isEnrollmentAllowedInConfig);
+        when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any())).thenCallRealMethod();
+        when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any())).thenCallRealMethod();
+        when(context.getProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG)).thenReturn(anyString());
+        when(mockedRuntimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW)).thenReturn(null);
+        when(context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION)).thenReturn("");
+        when(IdentityHelperUtil.getAuthenticatorParameters(any())).thenReturn(AuthParams);
+        Assert.assertEquals(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, mockedRuntimeParams),
+                Boolean.parseBoolean(isEnrollmentAllowedInConfig));
+    }
+
+    @DataProvider(name = "isEnrollmentAllowedInContext")
+    public Object[][] isEnrollmentAllowedInContext(){
+        return new Object[][]{
+                {"true"},
+                {"false"}
+        };
+    }
+
+    @Test(dataProvider = "isEnrollmentAllowedInContext", description = "Test whether " +
+            "isEnrolUserInAuthenticationFlowEnabled() returns false when ENROL_USER_IN_AUTHENTICATIONFLOW is set to " +
+            "\"true\" within the context")
+    public void testIsEnrollmentAllowedInLoginFlowWhenEnabledInContext(String isEnrollmentAllowedInContext ){
+
+        when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any())).thenCallRealMethod();
+        when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any())).thenCallRealMethod();
+        when(mockedRuntimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW)).thenReturn(null);
+        when(context.getProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG)).thenReturn(null);
+        when(context.getProperty(ENROL_USER_IN_AUTHENTICATIONFLOW)).thenReturn(isEnrollmentAllowedInContext);
+        when(context.getTenantDomain()).thenReturn("testDomain");
+        Assert.assertEquals(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, mockedRuntimeParams),
+                Boolean.parseBoolean(isEnrollmentAllowedInContext));
+    }
+
     @ObjectFactory
     public IObjectFactory getObjectFactory() {
 
         return new PowerMockObjectFactory();
     }
-
 }
