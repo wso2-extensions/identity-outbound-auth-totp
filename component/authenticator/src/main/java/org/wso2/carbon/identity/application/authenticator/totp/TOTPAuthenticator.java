@@ -306,7 +306,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                                 multiOptionURI);
                         response.sendRedirect(totpErrorPageUrl);
                     } else {
-                        //if admin does not enforce TOTP and TOTP is not enabled for the user.
+                        // If admin does not enforce TOTP and TOTP is not enabled for the user.
                         context.setSubject(authenticatingUser);
                         StepConfig stepConfig = context.getSequenceConfig().getStepMap()
                                 .get(context.getCurrentStep() - 1);

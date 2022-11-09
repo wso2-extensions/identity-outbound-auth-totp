@@ -547,9 +547,7 @@ public class TOTPUtil {
     public static boolean isEnrolUserInAuthenticationFlowEnabled(AuthenticationContext context,
                                                                  Map<String, String> runtimeParams) {
 
-        if (log.isDebugEnabled()) {
-            log.debug("Read the EnrolUserInAuthenticationFlow value from adaptive authentication script");
-        }
+        log.debug("Read the EnrolUserInAuthenticationFlow value from adaptive authentication script.");
 
         if( runtimeParams != null) {
             if (StringUtils.isNotBlank(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW))) {
@@ -633,7 +631,7 @@ public class TOTPUtil {
                 response.sendRedirect(enableTOTPReqPageUrl);
             } catch (IOException e) {
                 throw new AuthenticationFailedException(
-                        "Error while redirecting the request to get enableTOTP " + "request page. ", e);
+                        "Error while redirecting the request to get enableTOTP request page. ", e);
             }
         } else {
             throw new AuthenticationFailedException("Error while getting value for EnrolUserInAuthenticationFlow");
