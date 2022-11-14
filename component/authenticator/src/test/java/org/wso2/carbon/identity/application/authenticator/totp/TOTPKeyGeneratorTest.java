@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.application.authenticator.totp;
 
 import org.mockito.Mock;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.testng.PowerMockObjectFactory;
 import org.testng.Assert;
@@ -44,6 +45,7 @@ import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.powermock.api.mockito.PowerMockito.when;
 
 @PrepareForTest({TOTPUtil.class})
+@PowerMockIgnore({"org.mockito.*","org.powermock.api.mockito.invocation.*"})
 public class TOTPKeyGeneratorTest {
 
     @Mock

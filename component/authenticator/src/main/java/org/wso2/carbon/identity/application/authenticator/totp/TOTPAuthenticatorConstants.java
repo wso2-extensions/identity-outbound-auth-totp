@@ -100,6 +100,11 @@ public abstract class TOTPAuthenticatorConstants {
 
 	public static final String MAX_TOTP_ATTEMPTS_EXCEEDED = "MAX_TOTP_ATTEMPTS_EXCEEDED";
 
+	public static final String CONF_SHOW_AUTH_FAILURE_REASON = "showAuthFailureReason";
+	public static final String CONF_SHOW_AUTH_FAILURE_REASON_ON_LOGIN_PAGE = "showAuthFailureReasonOnLoginPage";
+	public static final String ERROR_CODE = "errorCode";
+	public static final String LOCKED_REASON = "lockedReason";
+
 	/**
 	 * Enum which contains the error codes and corresponding error messages.
 	 */
