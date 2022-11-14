@@ -658,8 +658,6 @@ public class TOTPAuthenticatorTest {
         when(context.getSequenceConfig()).thenReturn(sequenceConfig);
         when(sequenceConfig.getStepMap()).thenReturn(mockedMap);
         when(mockedMap.get(anyObject())).thenReturn(stepConfig);
-        when(TOTPUtil.getTOTPLoginPage(any(AuthenticationContext.class))).
-                thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
         when(stepConfig.getAuthenticatedAutenticator()).thenReturn(authenticatorConfig);
         when(authenticatorConfig.getApplicationAuthenticator()).thenReturn(applicationAuthenticator);
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
@@ -716,7 +714,8 @@ public class TOTPAuthenticatorTest {
     public Object[][] isEnrollmentAllowedInRuntimeParams(){
         return new Object[][]{
                 {"true"},
-                {"false"}
+                {"false"},
+                {null}
         };
     }
 
@@ -727,56 +726,13 @@ public class TOTPAuthenticatorTest {
 
         when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any())).thenCallRealMethod();
         when(mockedRuntimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW)).thenReturn(isEnrolmentAllowedInRuntimeParams);
-        Assert.assertEquals(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, mockedRuntimeParams),
-                Boolean.parseBoolean(isEnrolmentAllowedInRuntimeParams));
-    }
 
-    @DataProvider(name = "isEnrollmentAllowedInConfig")
-    public Object[][] isEnrollmentAllowedInConfig(){
-        return new Object[][]{
-                {"true"},
-                {"false"}
-        };
-    }
-
-    @Test(dataProvider = "isEnrollmentAllowedInConfig", description = "Test whether " +
-            "isEnrolUserInAuthenticationFlowEnabled() returns false when ENROL_USER_IN_AUTHENTICATIONFLOW is set to " +
-            "\"true\" within the local IdentityHelperUtil")
-    public void testIsEnrollmentAllowedInLoginFlowWhenEnabledInConfig(String isEnrollmentAllowedInConfig){
-
-        Map<String, String> AuthParams = new HashMap<>();
-        AuthParams.put(ENROL_USER_IN_AUTHENTICATIONFLOW, isEnrollmentAllowedInConfig);
-        when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any())).thenCallRealMethod();
-        when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any())).thenCallRealMethod();
-        when(context.getProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG)).thenReturn(anyString());
-        when(mockedRuntimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW)).thenReturn(null);
-        when(context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION)).thenReturn("");
-        when(IdentityHelperUtil.getAuthenticatorParameters(any())).thenReturn(AuthParams);
-        Assert.assertEquals(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, mockedRuntimeParams),
-                Boolean.parseBoolean(isEnrollmentAllowedInConfig));
-    }
-
-    @DataProvider(name = "isEnrollmentAllowedInContext")
-    public Object[][] isEnrollmentAllowedInContext(){
-        return new Object[][]{
-                {"true"},
-                {"false"}
-        };
-    }
-
-    @Test(dataProvider = "isEnrollmentAllowedInContext", description = "Test whether " +
-            "isEnrolUserInAuthenticationFlowEnabled() returns false when ENROL_USER_IN_AUTHENTICATIONFLOW is set to " +
-            "\"true\" within the context")
-    public void testIsEnrollmentAllowedInLoginFlowWhenEnabledInContext(String isEnrollmentAllowedInContext ){
-
-        when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any())).thenCallRealMethod();
-        when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any())).thenCallRealMethod();
-        when(mockedRuntimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW)).thenReturn(null);
-        when(context.getProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG)).thenReturn(null);
-        when(context.getProperty(ENROL_USER_IN_AUTHENTICATIONFLOW)).thenReturn(isEnrollmentAllowedInContext);
-        when(context.getTenantDomain()).thenReturn("testDomain");
-        Assert.assertEquals(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, mockedRuntimeParams),
-                Boolean.parseBoolean(isEnrollmentAllowedInContext));
+        if (isEnrolmentAllowedInRuntimeParams != null) {
+            Assert.assertEquals(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, mockedRuntimeParams),
+                    Boolean.parseBoolean(isEnrolmentAllowedInRuntimeParams));
+        } else {
+            Assert.assertFalse(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, mockedRuntimeParams));
+        }
     }
 
     @ObjectFactory

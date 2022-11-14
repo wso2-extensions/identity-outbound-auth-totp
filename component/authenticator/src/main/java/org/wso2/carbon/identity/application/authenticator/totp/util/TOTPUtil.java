@@ -47,7 +47,6 @@ import org.wso2.carbon.identity.application.authentication.framework.context.Aut
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
-import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
@@ -98,6 +97,7 @@ import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthen
 public class TOTPUtil {
 
     private static final Log log = LogFactory.getLog(TOTPUtil.class);
+
     /**
      * Encrypt the given plain text.
      *
@@ -549,7 +549,7 @@ public class TOTPUtil {
 
         log.debug("Read the EnrolUserInAuthenticationFlow value from adaptive authentication script.");
 
-        if( runtimeParams != null) {
+        if (runtimeParams != null) {
             if (StringUtils.isNotBlank(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW))) {
                 return Boolean.parseBoolean(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW));
             }
@@ -567,12 +567,13 @@ public class TOTPUtil {
      */
     public static void redirectToEnableTOTPReqPage(HttpServletResponse response, AuthenticationContext context,
                                                    String skey) throws AuthenticationFailedException {
-        //send this through the new function and set the runtime Params to null.
         redirectToEnableTOTPReqPage(null, response, context, skey, null);
     }
 
     /**
      * Redirect the enableTOTP request page.
+     * @deprecated use {@link #redirectToEnableTOTPReqPage(HttpServletRequest, HttpServletResponse,
+     *                                                    AuthenticationContext, String, Map<String, String>)} instead.
      *
      * @param request  The HttpServletRequest
      * @param response The HttpServletResponse
@@ -584,7 +585,8 @@ public class TOTPUtil {
     public static void redirectToEnableTOTPReqPage(HttpServletRequest request, HttpServletResponse response,
                                                    AuthenticationContext context, String skey)
             throws AuthenticationFailedException {
-
+        //TODO : call the new function here and pass runtime Params = null. This will ensure same functionality.
+        
         if (isEnrolUserInAuthenticationFlowEnabled(context)) {
             String multiOptionURI = getMultiOptionURIQueryParam(request);
             String queryParams = "t=" + context.getLoginTenantDomain() + "&sessionDataKey=" +
@@ -606,7 +608,7 @@ public class TOTPUtil {
     }
 
     /**
-     * Redirect the enableTOTP request page.
+     * Redirect the user to the enroll TOTP page if enabled.
      *
      * @param request  The HttpServletRequest
      * @param response The HttpServletResponse
@@ -617,7 +619,7 @@ public class TOTPUtil {
      */
     public static void redirectToEnableTOTPReqPage(HttpServletRequest request, HttpServletResponse response,
                                                    AuthenticationContext context, String skey,
-                                                   Map<String,String> runtimeParams)
+                                                   Map<String, String> runtimeParams)
             throws AuthenticationFailedException {
 
         if (isEnrolUserInAuthenticationFlowEnabled(context, runtimeParams)) {
