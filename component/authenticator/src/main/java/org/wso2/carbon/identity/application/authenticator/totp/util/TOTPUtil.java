@@ -585,7 +585,7 @@ public class TOTPUtil {
     public static void redirectToEnableTOTPReqPage(HttpServletRequest request, HttpServletResponse response,
                                                    AuthenticationContext context, String skey)
             throws AuthenticationFailedException {
-        
+
         if (isEnrolUserInAuthenticationFlowEnabled(context)) {
             String multiOptionURI = getMultiOptionURIQueryParam(request);
             String queryParams = "t=" + context.getLoginTenantDomain() + "&sessionDataKey=" +
