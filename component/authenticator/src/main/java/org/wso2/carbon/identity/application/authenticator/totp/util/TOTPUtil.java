@@ -636,7 +636,7 @@ public class TOTPUtil {
                         "Error while redirecting the request to get enableTOTP request page. ", e);
             }
         } else {
-            throw new AuthenticationFailedException("Error while getting value for EnrolUserInAuthenticationFlow");
+            throw new AuthenticationFailedException("Error while getting value for configuration EnrolUserInAuthenticationFlow.");
         }
     }
 
