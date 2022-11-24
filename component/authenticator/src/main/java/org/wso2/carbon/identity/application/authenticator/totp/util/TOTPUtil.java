@@ -585,7 +585,6 @@ public class TOTPUtil {
     public static void redirectToEnableTOTPReqPage(HttpServletRequest request, HttpServletResponse response,
                                                    AuthenticationContext context, String skey)
             throws AuthenticationFailedException {
-        //TODO : call the new function here and pass runtime Params = null. This will ensure same functionality.
         
         if (isEnrolUserInAuthenticationFlowEnabled(context)) {
             String multiOptionURI = getMultiOptionURIQueryParam(request);
