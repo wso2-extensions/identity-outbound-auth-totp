@@ -99,6 +99,10 @@
                         <groupId>org.slf4j</groupId>
                         <artifactId>log4j-over-slf4j</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>javassist</groupId>
+                        <artifactId>javassist</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
 
@@ -142,17 +146,17 @@
         <carbon.commons.version>4.8.7</carbon.commons.version>
         <carbon.commons.imp.pkg.version>[4.4.0, 5.0.0)</carbon.commons.imp.pkg.version>
         <!--Carbon identity version-->
-        <carbon.identity.framework.version>5.23.28</carbon.identity.framework.version>
+        <carbon.identity.framework.version>6.0.0</carbon.identity.framework.version>
 
-        <carbon.identity.version>5.0.8</carbon.identity.version>
+        <carbon.identity.version>6.0.0</carbon.identity.version>
         <carbon.identity.package.export.version>${carbon.identity.version}</carbon.identity.package.export.version>
         <carbon.identity.package.export.project.version>${project.version}
         </carbon.identity.package.export.project.version>
 
-        <carbon.identity.account.lock.handler.version>1.1.12</carbon.identity.account.lock.handler.version>
-        <carbon.identity.account.lock.handler.imp.pkg.version.range>[1.1.12, 2.0.0)
+        <carbon.identity.account.lock.handler.version>2.0.0</carbon.identity.account.lock.handler.version>
+        <carbon.identity.account.lock.handler.imp.pkg.version.range>[2.0.0, 3.0.0)
         </carbon.identity.account.lock.handler.imp.pkg.version.range>
-        <carbon.identity.package.import.version.range>[5.0.0, 6.0.0)</carbon.identity.package.import.version.range>
+        <carbon.identity.package.import.version.range>[6.0.0, 7.0.0)</carbon.identity.package.import.version.range>
         <!--Carbon component version-->
         <carbon.user.api.imp.pkg.version.range>[1.0.1, 2.0.0)</carbon.user.api.imp.pkg.version.range>
         <carbon.base.imp.pkg.version.range>[1.0.0, 2.0.0)</carbon.base.imp.pkg.version.range>
@@ -335,11 +339,11 @@
         <javax.xml.parsers.import.pkg.version>[0.0.0, 1.0.0)</javax.xml.parsers.import.pkg.version>
         <ehcache.version>1.5.0.wso2v3</ehcache.version>
         <project.scm.id>my-scm-server</project.scm.id>
-        <identity.extension.utils>1.0.8</identity.extension.utils>
-        <identity.extension.utils.import.version.range>[1.0.8, 2.0.0)
+        <identity.extension.utils>2.0.0</identity.extension.utils>
+        <identity.extension.utils.import.version.range>[2.0.0, 3.0.0)
         </identity.extension.utils.import.version.range>
-        <carbon.identity.event.version>5.13.33</carbon.identity.event.version>
-        <carbon.identity.event.version.range>[5.13.0, 6.0.0)</carbon.identity.event.version.range>
+        <carbon.identity.event.version>6.0.0</carbon.identity.event.version>
+        <carbon.identity.event.version.range>[6.0.0, 7.0.0)</carbon.identity.event.version.range>
         <!--Test Dependencies-->
         <testng.version>7.4.0</testng.version>
         <jacoco.version>0.8.7</jacoco.version>
