@@ -861,19 +861,14 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             UserStoreManager userStoreManager = userRealm.getUserStoreManager();
 
             // Avoid updating the claims if they are already zero.
-            String[] claimsToCheck = {TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM,
-                    TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM};
+            String[] claimsToCheck = {TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM};
             Map<String, String> userClaims = userStoreManager.getUserClaimValues(usernameWithDomain, claimsToCheck,
                     UserCoreConstants.DEFAULT_PROFILE);
             String failedTotpAttempts = userClaims.get(TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM);
-            String failedLoginLockoutCount =
-                    userClaims.get(TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM);
 
-            if (NumberUtils.isNumber(failedTotpAttempts) && Integer.parseInt(failedTotpAttempts) > 0 ||
-                    NumberUtils.isNumber(failedLoginLockoutCount) && Integer.parseInt(failedLoginLockoutCount) > 0) {
+            if (NumberUtils.isNumber(failedTotpAttempts) && Integer.parseInt(failedTotpAttempts) > 0) {
                 Map<String, String> updatedClaims = new HashMap<>();
                 updatedClaims.put(TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM, "0");
-                updatedClaims.put(TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM, "0");
                 userStoreManager
                         .setUserClaimValues(usernameWithDomain, updatedClaims, UserCoreConstants.DEFAULT_PROFILE);
             }
