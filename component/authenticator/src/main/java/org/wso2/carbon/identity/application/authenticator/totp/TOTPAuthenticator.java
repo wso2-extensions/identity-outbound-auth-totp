@@ -291,34 +291,28 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                             claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL));
                     String qrURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
                     TOTPUtil.redirectToEnableTOTPReqPage(request, response, context, qrURL, runtimeParams);
-                } else if (Boolean.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP))) {
+                } else if (Boolean.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)) ||
+                        isTOTPEnabledByAdmin) {
                     //if TOTP is not enabled for the user and user continued the enrollment.
                     context.setProperty(TOTPAuthenticatorConstants.ENABLE_TOTP, true);
-                    if (!showAuthFailureReason) {
+                    if (!showAuthFailureReason || isTOTPEnabledByAdmin) {
                         errorParam = StringUtils.EMPTY;
                     }
                     String totpLoginPageUrl = buildTOTPLoginPageURL(context, username, retryParam,
                             errorParam, multiOptionURI);
                     response.sendRedirect(totpLoginPageUrl);
                 } else {
-                    if (isTOTPEnabledByAdmin) {
-                        //if TOTP is not enabled for the user and admin enforces TOTP.
-                        String totpErrorPageUrl = buildTOTPErrorPageURL(context, username, retryParam, errorParam,
-                                multiOptionURI);
-                        response.sendRedirect(totpErrorPageUrl);
+                    //if admin does not enforce TOTP and TOTP is not enabled for the user.
+                    context.setSubject(authenticatingUser);
+                    StepConfig stepConfig = context.getSequenceConfig().getStepMap()
+                            .get(context.getCurrentStep() - 1);
+                    if (stepConfig.getAuthenticatedAutenticator()
+                            .getApplicationAuthenticator() instanceof LocalApplicationAuthenticator) {
+                        context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
+                                TOTPAuthenticatorConstants.BASIC);
                     } else {
-                        // If admin does not enforce TOTP and TOTP is not enabled for the user.
-                        context.setSubject(authenticatingUser);
-                        StepConfig stepConfig = context.getSequenceConfig().getStepMap()
-                                .get(context.getCurrentStep() - 1);
-                        if (stepConfig.getAuthenticatedAutenticator()
-                                .getApplicationAuthenticator() instanceof LocalApplicationAuthenticator) {
-                            context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
-                                    TOTPAuthenticatorConstants.BASIC);
-                        } else {
-                            context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
-                                    TOTPAuthenticatorConstants.FEDERETOR);
-                        }
+                        context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
+                                TOTPAuthenticatorConstants.FEDERETOR);
                     }
                 }
             }
@@ -523,7 +517,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             }
             IdentityErrorMsgContext customErrorMessageContext = new IdentityErrorMsgContext(
                     UserCoreConstants.ErrorCode.USER_IS_LOCKED +
-                    ":" + accountLockedReason);
+                            ":" + accountLockedReason);
             IdentityUtil.setIdentityErrorMsg(customErrorMessageContext);
             throw new AuthenticationFailedException(errorMessage);
         }
@@ -824,7 +818,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             String errorMessage = String.format("User account: %s is locked.", authenticatedUser.getUserName());
             IdentityErrorMsgContext customErrorMessageContext = new IdentityErrorMsgContext(
                     UserCoreConstants.ErrorCode.USER_IS_LOCKED +
-                    ":" + TOTPAuthenticatorConstants.MAX_TOTP_ATTEMPTS_EXCEEDED);
+                            ":" + TOTPAuthenticatorConstants.MAX_TOTP_ATTEMPTS_EXCEEDED);
             IdentityUtil.setIdentityErrorMsg(customErrorMessageContext);
             throw new AuthenticationFailedException(errorMessage);
         } else {
@@ -897,7 +891,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             UserRealm userRealm = TOTPUtil.getUserRealm(username);
             UserStoreManager userStoreManager = userRealm.getUserStoreManager();
             claimValues = userStoreManager.getUserClaimValues(IdentityUtil.addDomainToName(
-                    authenticatedUser.getUserName(), authenticatedUser.getUserStoreDomain()), new String[]{
+                            authenticatedUser.getUserName(), authenticatedUser.getUserStoreDomain()), new String[]{
                             TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM,
                             TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM},
                     UserCoreConstants.DEFAULT_PROFILE);
@@ -974,7 +968,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             if (idp == null) {
                 throw new AuthenticationFailedException(
                         String.format(
-                        ErrorMessages.ERROR_CODE_INVALID_FEDERATED_AUTHENTICATOR.getMessage(), idpName, tenantDomain));
+                                ErrorMessages.ERROR_CODE_INVALID_FEDERATED_AUTHENTICATOR.getMessage(), idpName, tenantDomain));
             }
             return idp;
         } catch (IdentityProviderManagementException e) {
