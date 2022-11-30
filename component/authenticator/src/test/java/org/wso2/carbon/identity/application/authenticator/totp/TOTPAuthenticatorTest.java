@@ -29,6 +29,7 @@ import org.powermock.reflect.Whitebox;
 import org.testng.Assert;
 import org.testng.IObjectFactory;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.ObjectFactory;
 import org.testng.annotations.Test;
 import org.wso2.carbon.context.CarbonContext;
@@ -85,6 +86,7 @@ import static org.powermock.api.mockito.PowerMockito.doNothing;
 import static org.powermock.api.mockito.PowerMockito.doReturn;
 import static org.powermock.api.mockito.PowerMockito.mock;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW;
 
 @PrepareForTest({TOTPUtil.class, TOTPTokenGenerator.class, ConfigurationFacade.class, TOTPTokenGenerator.class,
         FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, CarbonContext.class,
@@ -153,6 +155,9 @@ public class TOTPAuthenticatorTest {
 
     @Spy
     private AuthenticationContext mockedContext;
+
+    @Spy
+    private Map<String,String> mockedRuntimeParams;
 
     @Mock
     private FileBasedConfigurationBuilder fileBasedConfigurationBuilder;
@@ -567,7 +572,7 @@ public class TOTPAuthenticatorTest {
                 thenReturn(identityProvider);
         when(identityProvider.getJustInTimeProvisioningConfig()).thenReturn(justInTimeProvisioningConfig);
         when(justInTimeProvisioningConfig.isProvisioningEnabled()).thenReturn(true);
-        when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(mockedContext)).thenReturn(true);
+        when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any())).thenReturn(true);
         when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
         when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
@@ -664,7 +669,6 @@ public class TOTPAuthenticatorTest {
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
         verify(httpServletResponse).sendRedirect(captor.capture());
-
         // Assert everything related to the error scenario.
         Assert.assertTrue(captor.getValue().contains("totp_error.do"));
         Assert.assertTrue(captor.getValue().contains("sessionDataKey=" + context.getContextIdentifier()));
@@ -699,11 +703,36 @@ public class TOTPAuthenticatorTest {
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
         when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
-        when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context)).thenReturn(true);
+        when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any())).thenReturn(true);
         when(TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
         when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
+    }
+
+    @DataProvider(name = "isEnrollmentAllowedInRuntimeParams")
+    public Object[][] isEnrollmentAllowedInRuntimeParams(){
+        return new Object[][]{
+                {"true"},
+                {"false"},
+                {null}
+        };
+    }
+
+    @Test(dataProvider = "isEnrollmentAllowedInRuntimeParams", description = "Test whether " +
+            "isEnrolUserInAuthenticationFlowEnabled() returns true when ENROL_USER_IN_AUTHENTICATIONFLOW is set to " +
+            "\"true\" within the runtime parameters")
+    public void testIsEnrollmentAllowedInLoginFlowWithRuntimeParams(String isEnrolmentAllowedInRuntimeParams){
+
+        when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any())).thenCallRealMethod();
+        when(mockedRuntimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW)).thenReturn(isEnrolmentAllowedInRuntimeParams);
+
+        if (isEnrolmentAllowedInRuntimeParams != null) {
+            Assert.assertEquals(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, mockedRuntimeParams),
+                    Boolean.parseBoolean(isEnrolmentAllowedInRuntimeParams));
+        } else {
+            Assert.assertFalse(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, mockedRuntimeParams));
+        }
     }
 
     @ObjectFactory
@@ -711,5 +740,4 @@ public class TOTPAuthenticatorTest {
 
         return new PowerMockObjectFactory();
     }
-
 }

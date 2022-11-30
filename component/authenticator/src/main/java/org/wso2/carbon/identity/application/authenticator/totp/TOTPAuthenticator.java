@@ -168,6 +168,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             showAuthFailureReasonOnLoginPage = Boolean.parseBoolean(parameterMap.get(
                     TOTPAuthenticatorConstants.CONF_SHOW_AUTH_FAILURE_REASON_ON_LOGIN_PAGE));
         }
+
         AuthenticatedUser authenticatedUserFromContext = TOTPUtil.getAuthenticatedUser(context);
         if (authenticatedUserFromContext == null) {
             throw new AuthenticationFailedException(
@@ -195,7 +196,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         String mappedLocalUsername = getMappedLocalUsername(authenticatedUserFromContext, context);
 
         /*
-        If the mappedLocalUsername is blank, that means this is an initial login attempt by an non provisioned
+        If the mappedLocalUsername is blank, that means this is an initial login attempt by a non provisioned
         federated user.
          */
         boolean isInitialFederationAttempt = StringUtils.isBlank(mappedLocalUsername);
@@ -239,7 +240,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     }
                 }
             }
-            boolean isSecretKeyExistForUser =false;
+            boolean isSecretKeyExistForUser = false;
             // Not required to check the TOTP enable state for the initial login of the federated users.
             if (!isInitialFederationAttempt) {
                 isSecretKeyExistForUser = isSecretKeyExistForUser(UserCoreUtil.addDomainToName(username,
@@ -269,9 +270,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         errorParam, multiOptionURI);
                 response.sendRedirect(totpLoginPageUrl);
             } else {
-                if (TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context)
+                Map<String, String> runtimeParams = getRuntimeParams(context);
+
+                if (TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, runtimeParams)
                         && request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
-                    //if TOTP is not enabled for the user and he hasn't redirected to the enrolment page yet.
+                    // If TOTP is not enabled for the user and he hasn't redirected to the enrollment page yet.
                     if (log.isDebugEnabled()) {
                         log.debug("User has not enabled TOTP: " + username);
                     }
@@ -287,9 +290,9 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     context.setProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
                             claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL));
                     String qrURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
-                    TOTPUtil.redirectToEnableTOTPReqPage(request, response, context, qrURL);
+                    TOTPUtil.redirectToEnableTOTPReqPage(request, response, context, qrURL, runtimeParams);
                 } else if (Boolean.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP))) {
-                    //if TOTP is not enabled for the user and user continued the enrolment.
+                    //if TOTP is not enabled for the user and user continued the enrollment.
                     context.setProperty(TOTPAuthenticatorConstants.ENABLE_TOTP, true);
                     if (!showAuthFailureReason) {
                         errorParam = StringUtils.EMPTY;
@@ -304,7 +307,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                                 multiOptionURI);
                         response.sendRedirect(totpErrorPageUrl);
                     } else {
-                        //if admin does not enforce TOTP and TOTP is not enabled for the user.
+                        // If admin does not enforce TOTP and TOTP is not enabled for the user.
                         context.setSubject(authenticatingUser);
                         StepConfig stepConfig = context.getSequenceConfig().getStepMap()
                                 .get(context.getCurrentStep() - 1);
@@ -515,8 +518,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 if (claimValues != null) {
                     accountLockedReason = claimValues.get(TOTPAuthenticatorConstants.ACCOUNT_LOCKED_REASON_CLAIM_URI);
                 }
-            }
-            catch (UserStoreException e) {
+            } catch (UserStoreException e) {
                 throw new AuthenticationFailedException(errorMessage + " Could not get the account locked reason.");
             }
             IdentityErrorMsgContext customErrorMessageContext = new IdentityErrorMsgContext(
@@ -737,7 +739,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         TOTPAuthenticatorCredentials totpAuthenticator = getTotpAuthenticator(context, context.getTenantDomain());
         return totpAuthenticator.authorize(secretKey, token);
     }
-    
+
     /**
      * Execute account lock flow for TOTP verification failures.
      *
@@ -815,7 +817,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_UNLOCK_TIME_CLAIM, String.valueOf(unlockTime));
             updatedClaims.put(TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM,
                     String.valueOf(failedLoginLockoutCountValue + 1));
-			updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_LOCKED_REASON_CLAIM_URI,
+            updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_LOCKED_REASON_CLAIM_URI,
                     TOTPAuthenticatorConstants.MAX_TOTP_ATTEMPTS_EXCEEDED);
             IdentityUtil.threadLocalProperties.get().put(TOTPAuthenticatorConstants.ADMIN_INITIATED, false);
             setUserClaimValues(authenticatedUser, updatedClaims);

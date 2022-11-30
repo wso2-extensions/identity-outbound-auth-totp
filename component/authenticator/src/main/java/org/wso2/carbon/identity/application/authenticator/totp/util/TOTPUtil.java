@@ -89,6 +89,7 @@ import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthen
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOTP_HIDE_USERSTORE_FROM_USERNAME;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW;
 
 /**
  * TOTP Util class.
@@ -532,11 +533,28 @@ public class TOTPUtil {
                 TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN.equals(tenantDomain))) {
             return Boolean.parseBoolean(IdentityHelperUtil.getAuthenticatorParameters(
                     context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION).toString())
-                    .get(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW));
+                    .get(ENROL_USER_IN_AUTHENTICATIONFLOW));
         } else {
-            return Boolean.parseBoolean((context.getProperty(
-                    TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW).toString()));
+            return Boolean.parseBoolean((context.getProperty(ENROL_USER_IN_AUTHENTICATIONFLOW).toString()));
         }
+    }
+
+    /**
+     * Get EnrolUserInAuthenticationFlow.
+     *
+     * @return true, if EnrolUserInAuthenticationFlow is enabled
+     */
+    public static boolean isEnrolUserInAuthenticationFlowEnabled(AuthenticationContext context,
+                                                                 Map<String, String> runtimeParams) {
+
+        log.debug("Read the EnrolUserInAuthenticationFlow value from adaptive authentication script.");
+
+        if (runtimeParams != null) {
+            if (StringUtils.isNotBlank(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW))) {
+                return Boolean.parseBoolean(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW));
+            }
+        }
+        return isEnrolUserInAuthenticationFlowEnabled(context);
     }
 
     /**
@@ -549,12 +567,13 @@ public class TOTPUtil {
      */
     public static void redirectToEnableTOTPReqPage(HttpServletResponse response, AuthenticationContext context,
                                                    String skey) throws AuthenticationFailedException {
-
-        redirectToEnableTOTPReqPage(null, response, context, skey);
+        redirectToEnableTOTPReqPage(null, response, context, skey, null);
     }
 
     /**
      * Redirect the enableTOTP request page.
+     * @deprecated use {@link #redirectToEnableTOTPReqPage(HttpServletRequest, HttpServletResponse,
+     *                                                    AuthenticationContext, String, Map<String, String>)} instead.
      *
      * @param request  The HttpServletRequest
      * @param response The HttpServletResponse
@@ -562,6 +581,7 @@ public class TOTPUtil {
      * @param skey     QR code claim
      * @throws AuthenticationFailedException On error while getting value for enrolUserInAuthenticationFlow
      */
+    @Deprecated
     public static void redirectToEnableTOTPReqPage(HttpServletRequest request, HttpServletResponse response,
                                                    AuthenticationContext context, String skey)
             throws AuthenticationFailedException {
@@ -583,6 +603,39 @@ public class TOTPUtil {
             }
         } else {
             throw new AuthenticationFailedException("Error while getting value for EnrolUserInAuthenticationFlow");
+        }
+    }
+
+    /**
+     * Redirect the user to the enroll TOTP page if enabled.
+     *
+     * @param request  The HttpServletRequest
+     * @param response The HttpServletResponse
+     * @param context  The AuthenticationContext
+     * @param skey     QR code claim
+     * @param runtimeParams runtime parameters
+     * @throws AuthenticationFailedException On error while getting value for enrolUserInAuthenticationFlow
+     */
+    public static void redirectToEnableTOTPReqPage(HttpServletRequest request, HttpServletResponse response,
+                                                   AuthenticationContext context, String skey,
+                                                   Map<String, String> runtimeParams)
+            throws AuthenticationFailedException {
+
+        if (isEnrolUserInAuthenticationFlowEnabled(context, runtimeParams)) {
+            String multiOptionURI = getMultiOptionURIQueryParam(request);
+            String queryParams = "sessionDataKey=" + context.getContextIdentifier() + "&authenticators=" +
+                    TOTPAuthenticatorConstants.AUTHENTICATOR_NAME + "&type=totp" + "&ske=" + skey + multiOptionURI;
+            String enableTOTPReqPageUrl =
+                    FrameworkUtils.appendQueryParamsStringToUrl(getEnableTOTPPage(context), queryParams);
+
+            try {
+                response.sendRedirect(enableTOTPReqPageUrl);
+            } catch (IOException e) {
+                throw new AuthenticationFailedException(
+                        "Error while redirecting the request to get enableTOTP request page. ", e);
+            }
+        } else {
+            throw new AuthenticationFailedException("Error while getting value for configuration EnrolUserInAuthenticationFlow.");
         }
     }
 
