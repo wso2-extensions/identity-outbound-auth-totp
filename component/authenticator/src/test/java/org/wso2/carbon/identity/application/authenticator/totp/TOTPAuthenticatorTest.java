@@ -658,6 +658,8 @@ public class TOTPAuthenticatorTest {
         when(context.getSequenceConfig()).thenReturn(sequenceConfig);
         when(sequenceConfig.getStepMap()).thenReturn(mockedMap);
         when(mockedMap.get(anyObject())).thenReturn(stepConfig);
+        when(TOTPUtil.getTOTPLoginPage(any(AuthenticationContext.class))).
+                thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
         when(stepConfig.getAuthenticatedAutenticator()).thenReturn(authenticatorConfig);
         when(authenticatorConfig.getApplicationAuthenticator()).thenReturn(applicationAuthenticator);
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
@@ -670,10 +672,10 @@ public class TOTPAuthenticatorTest {
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
         verify(httpServletResponse).sendRedirect(captor.capture());
         // Assert everything related to the error scenario.
-        Assert.assertTrue(captor.getValue().contains("totp_error.do"));
+        Assert.assertTrue(captor.getValue().contains("authenticationendpoint/totp.do"));
         Assert.assertTrue(captor.getValue().contains("sessionDataKey=" + context.getContextIdentifier()));
         Assert.assertTrue(captor.getValue().contains("authenticators=totp"));
-        Assert.assertTrue(captor.getValue().contains("type=totp_error"));
+        Assert.assertTrue(captor.getValue().contains("type=totp"));
         Assert.assertTrue(captor.getValue().contains("username=" + username));
         Assert.assertTrue(captor.getValue().contains("multiOptionURI=" + URLEncoder.encode(multiOptionURL,
                 StandardCharsets.UTF_8.toString())));
