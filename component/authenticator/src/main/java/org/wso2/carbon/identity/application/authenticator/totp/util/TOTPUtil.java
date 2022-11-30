@@ -585,8 +585,7 @@ public class TOTPUtil {
     public static void redirectToEnableTOTPReqPage(HttpServletRequest request, HttpServletResponse response,
                                                    AuthenticationContext context, String skey)
             throws AuthenticationFailedException {
-        //TODO : call the new function here and pass runtime Params = null. This will ensure same functionality.
-        
+
         if (isEnrolUserInAuthenticationFlowEnabled(context)) {
             String multiOptionURI = getMultiOptionURIQueryParam(request);
             String queryParams = "t=" + context.getLoginTenantDomain() + "&sessionDataKey=" +
@@ -636,7 +635,7 @@ public class TOTPUtil {
                         "Error while redirecting the request to get enableTOTP request page. ", e);
             }
         } else {
-            throw new AuthenticationFailedException("Error while getting value for EnrolUserInAuthenticationFlow");
+            throw new AuthenticationFailedException("Error while getting value for configuration EnrolUserInAuthenticationFlow.");
         }
     }
 

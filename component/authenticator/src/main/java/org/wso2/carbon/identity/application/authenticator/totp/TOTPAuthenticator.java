@@ -274,7 +274,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
                 if (TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, runtimeParams)
                         && request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
-                    //if TOTP is not enabled for the user and he hasn't redirected to the enrollment page yet.
+                    // If TOTP is not enabled for the user and he hasn't redirected to the enrollment page yet.
                     if (log.isDebugEnabled()) {
                         log.debug("User has not enabled TOTP: " + username);
                     }
