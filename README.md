@@ -12,3 +12,9 @@ If you want to build **identity-outbound-auth-totp** from the source code:
 2. Install Apache Maven 3.x.x (https://maven.apache.org/download.cgi#)
 3. Get a clone or download the source from this repository (https://github.com/wso2-extensions/identity-outbound-auth-totp)
 4. Run the Maven command ``mvn clean install`` from the ``identity-outbound-auth-totp`` directory.
+
+###TOTP Authenticator Release Notes
+
+####v 3.3.0
+
+Previous implementations of the TOTP authenticator redirected users to an error page if they haven't enrolled in TOTP. From this release onwards, users will be redirected to the Enter TOTP page. Additionally the Enter TOTP page has been updated with a message that mentions the user needs to enroll in TOTP inorder to authenticate.
