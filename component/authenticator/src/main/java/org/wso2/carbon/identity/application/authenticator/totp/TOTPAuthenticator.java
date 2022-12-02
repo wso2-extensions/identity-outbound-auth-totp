@@ -517,7 +517,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             }
             IdentityErrorMsgContext customErrorMessageContext = new IdentityErrorMsgContext(
                     UserCoreConstants.ErrorCode.USER_IS_LOCKED +
-                            ":" + accountLockedReason);
+                    ":" + accountLockedReason);
             IdentityUtil.setIdentityErrorMsg(customErrorMessageContext);
             throw new AuthenticationFailedException(errorMessage);
         }
@@ -818,7 +818,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             String errorMessage = String.format("User account: %s is locked.", authenticatedUser.getUserName());
             IdentityErrorMsgContext customErrorMessageContext = new IdentityErrorMsgContext(
                     UserCoreConstants.ErrorCode.USER_IS_LOCKED +
-                            ":" + TOTPAuthenticatorConstants.MAX_TOTP_ATTEMPTS_EXCEEDED);
+                    ":" + TOTPAuthenticatorConstants.MAX_TOTP_ATTEMPTS_EXCEEDED);
             IdentityUtil.setIdentityErrorMsg(customErrorMessageContext);
             throw new AuthenticationFailedException(errorMessage);
         } else {
@@ -891,7 +891,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             UserRealm userRealm = TOTPUtil.getUserRealm(username);
             UserStoreManager userStoreManager = userRealm.getUserStoreManager();
             claimValues = userStoreManager.getUserClaimValues(IdentityUtil.addDomainToName(
-                            authenticatedUser.getUserName(), authenticatedUser.getUserStoreDomain()), new String[]{
+                    authenticatedUser.getUserName(), authenticatedUser.getUserStoreDomain()), new String[]{
                             TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM,
                             TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM},
                     UserCoreConstants.DEFAULT_PROFILE);
@@ -968,7 +968,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             if (idp == null) {
                 throw new AuthenticationFailedException(
                         String.format(
-                                ErrorMessages.ERROR_CODE_INVALID_FEDERATED_AUTHENTICATOR.getMessage(), idpName, tenantDomain));
+                        ErrorMessages.ERROR_CODE_INVALID_FEDERATED_AUTHENTICATOR.getMessage(), idpName, tenantDomain));
             }
             return idp;
         } catch (IdentityProviderManagementException e) {
