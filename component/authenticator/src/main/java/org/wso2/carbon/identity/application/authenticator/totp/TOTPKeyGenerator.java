@@ -196,11 +196,14 @@ public class TOTPKeyGenerator {
 
         String tenantAwareUsername = null;
         String qrCodeURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
+        claims.put(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL,
+                claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
         try {
             UserRealm userRealm = TOTPUtil.getUserRealm(username);
             if (userRealm != null) {
                 tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
                 claims.remove(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
+                claims.remove(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
                 userRealm.getUserStoreManager().setUserClaimValues(tenantAwareUsername, claims, null);
             }
         } catch (UserStoreException e) {

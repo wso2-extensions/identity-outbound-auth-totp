@@ -20,6 +20,12 @@ package org.wso2.carbon.identity.application.authenticator.totp.util;
 
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.codec.binary.Base64;
+import org.wso2.carbon.core.util.CryptoException;
+import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
+import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
+import org.wso2.carbon.user.api.UserRealm;
+import org.wso2.carbon.user.api.UserStoreException;
+import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -344,5 +350,46 @@ public final class TOTPAuthenticatorCredentials {
 		}
 		// Checking the validation code using the current UNIX time.
 		return checkCode(secretKey, verificationCode, time, this.config.getWindowSize());
+	}
+
+	/**
+	 * Validate verification code with the secret key and store the secret key in secret key claim.
+	 *
+	 * @param secretKey        Secret Key
+	 * @param verificationCode Verification code
+	 * @param username         Username
+	 * @return Whether the verification code is valid or not.
+	 */
+	public boolean authorizeAndStoreSecret(String secretKey, int verificationCode, String username) {
+
+		if (authorize(secretKey, verificationCode, new Date().getTime())) {
+			storeSecretKey(secretKey, username);
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	private void storeSecretKey(String secretKey, String username) {
+
+		Map<String, String> userClaims = new HashMap<>();
+		String tenantAwareUsername = null;
+		try {
+			UserRealm userRealm = TOTPUtil.getUserRealm(username);
+			if (userRealm != null) {
+				userClaims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(secretKey));
+				tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
+				userRealm.getUserStoreManager().setUserClaimValues(tenantAwareUsername, userClaims, null);
+				userRealm.getUserStoreManager().deleteUserClaimValue(tenantAwareUsername,
+						TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL, null);
+			}
+		} catch (UserStoreException e) {
+			throw new TOTPAuthenticatorException("TOTPKeyGenerator failed while trying to access user store manager " +
+					"for the user : " + tenantAwareUsername, e);
+		} catch (AuthenticationFailedException e) {
+			throw new TOTPAuthenticatorException("TOTPKeyGenerator cannot get the user realm for the user", e);
+		} catch (CryptoException e) {
+			throw new TOTPAuthenticatorException("TOTPAdminService failed while decrypt the stored SecretKey ", e);
+		}
 	}
 }
