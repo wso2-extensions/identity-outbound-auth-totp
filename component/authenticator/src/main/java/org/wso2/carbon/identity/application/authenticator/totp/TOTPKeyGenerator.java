@@ -229,27 +229,6 @@ public class TOTPKeyGenerator {
         return qrCodeURL;
     }
 
-    private static String addVerifySecretKeyAndRetrievingQRCodeURL(Map<String, String> claims, String username)
-            throws TOTPException {
-
-        String tenantAwareUsername = null;
-        String qrCodeURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
-        try {
-            UserRealm userRealm = TOTPUtil.getUserRealm(username);
-            if (userRealm != null) {
-                tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
-                claims.remove(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
-                userRealm.getUserStoreManager().setUserClaimValues(tenantAwareUsername, claims, null);
-            }
-        } catch (UserStoreException e) {
-            throw new TOTPException("TOTPKeyGenerator failed while trying to access user store manager for the user : "
-                    + tenantAwareUsername, e);
-        } catch (AuthenticationFailedException e) {
-            throw new TOTPException("TOTPKeyGenerator cannot get the user realm for the user", e);
-        }
-        return qrCodeURL;
-    }
-
     /**
      * Add TOTP secret key, encoding method and retrieve QR Code url for user.
      *
@@ -261,7 +240,7 @@ public class TOTPKeyGenerator {
     public static String addTOTPClaimsAndRetrievingQRCodeURL(Map<String, String> claims, String username)
             throws TOTPException {
 
-        return addVerifySecretKeyAndRetrievingQRCodeURL(claims, username);
+        return addTOTPClaimsAndRetrievingQRCodeURL(claims, username, null);
     }
 
     /**

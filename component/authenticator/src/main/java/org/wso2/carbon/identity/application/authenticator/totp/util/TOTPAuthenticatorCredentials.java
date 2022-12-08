@@ -353,20 +353,20 @@ public final class TOTPAuthenticatorCredentials {
 	}
 
 	/**
-	 * Check whether the verification code is valid..
+	 * Check whether the verification code is valid and if so store the secret key in secretKey claim.
 	 *
 	 * @param verificationCode Verification code.
 	 * @param username         Username.
 	 * @return whether the verification code is valid or not.
 	 */
-	public boolean isValidVerificationCode(int verificationCode, String username) {
+	public boolean authorizeAndStoreSecret(int verificationCode, String username) {
 
 		String secretKey = null;
 		String tenantAwareUsername = null;
 		try {
 			UserRealm userRealm = TOTPUtil.getUserRealm(username);
+			tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
 			if (userRealm != null) {
-				tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
 				Map<String, String> userClaimValues = userRealm.getUserStoreManager().
 						getUserClaimValues(tenantAwareUsername,
 								new String[]{TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL}, null);
@@ -374,14 +374,14 @@ public final class TOTPAuthenticatorCredentials {
 						get(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL));
 			}
 			if (authorize(secretKey, verificationCode, new Date().getTime())) {
-				storeSecretKey(secretKey, username);
+				storeSecretKey(secretKey, tenantAwareUsername);
 				return true;
 			} else {
 				return false;
 			}
 		} catch (UserStoreException e) {
 			throw new TOTPAuthenticatorException("Verification code validation failed while trying to access user " +
-					"store manager for the user : " + tenantAwareUsername, e);
+					"store manager for the user: " + tenantAwareUsername, e);
 		} catch (AuthenticationFailedException e) {
 			throw new TOTPAuthenticatorException("Verification code validation cannot get the user " +
 					"realm for the user: " + tenantAwareUsername, e);
@@ -394,17 +394,15 @@ public final class TOTPAuthenticatorCredentials {
 	private void storeSecretKey(String secretKey, String username) {
 
 		Map<String, String> userClaims = new HashMap<>();
-		String tenantAwareUsername = null;
 		try {
 			UserRealm userRealm = TOTPUtil.getUserRealm(username);
 			if (userRealm != null) {
 				userClaims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(secretKey));
-				tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
-				userRealm.getUserStoreManager().setUserClaimValues(tenantAwareUsername, userClaims, null);
+				userRealm.getUserStoreManager().setUserClaimValues(username, userClaims, null);
 			}
 		} catch (UserStoreException e) {
 			throw new TOTPAuthenticatorException("TOTPKeyGenerator failed while trying to access user store manager " +
-					"for the user : " + tenantAwareUsername, e);
+					"for the user: " + username, e);
 		} catch (AuthenticationFailedException e) {
 			throw new TOTPAuthenticatorException("TOTPKeyGenerator cannot get the user realm for the user", e);
 		} catch (CryptoException e) {
