@@ -576,7 +576,7 @@ public class TOTPUtil {
     /**
      * Redirect the enableTOTP request page.
      * @deprecated use {@link #redirectToEnableTOTPReqPage(HttpServletRequest, HttpServletResponse,
-     *                                                    AuthenticationContext, String, Map<String, String>)} instead.
+     *                                                    AuthenticationContext, String, Map)} instead.
      *
      * @param request  The HttpServletRequest
      * @param response The HttpServletResponse
