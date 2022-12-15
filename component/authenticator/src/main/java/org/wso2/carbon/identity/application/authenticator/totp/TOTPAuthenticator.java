@@ -291,34 +291,28 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                             claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL));
                     String qrURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
                     TOTPUtil.redirectToEnableTOTPReqPage(request, response, context, qrURL, runtimeParams);
-                } else if (Boolean.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP))) {
+                } else if (Boolean.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)) ||
+                        isTOTPEnabledByAdmin) {
                     //if TOTP is not enabled for the user and user continued the enrollment.
                     context.setProperty(TOTPAuthenticatorConstants.ENABLE_TOTP, true);
-                    if (!showAuthFailureReason) {
+                    if (!showAuthFailureReason || isTOTPEnabledByAdmin) {
                         errorParam = StringUtils.EMPTY;
                     }
                     String totpLoginPageUrl = buildTOTPLoginPageURL(context, username, retryParam,
                             errorParam, multiOptionURI);
                     response.sendRedirect(totpLoginPageUrl);
                 } else {
-                    if (isTOTPEnabledByAdmin) {
-                        //if TOTP is not enabled for the user and admin enforces TOTP.
-                        String totpErrorPageUrl = buildTOTPErrorPageURL(context, username, retryParam, errorParam,
-                                multiOptionURI);
-                        response.sendRedirect(totpErrorPageUrl);
+                    //if admin does not enforce TOTP and TOTP is not enabled for the user.
+                    context.setSubject(authenticatingUser);
+                    StepConfig stepConfig = context.getSequenceConfig().getStepMap()
+                            .get(context.getCurrentStep() - 1);
+                    if (stepConfig.getAuthenticatedAutenticator()
+                            .getApplicationAuthenticator() instanceof LocalApplicationAuthenticator) {
+                        context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
+                                TOTPAuthenticatorConstants.BASIC);
                     } else {
-                        // If admin does not enforce TOTP and TOTP is not enabled for the user.
-                        context.setSubject(authenticatingUser);
-                        StepConfig stepConfig = context.getSequenceConfig().getStepMap()
-                                .get(context.getCurrentStep() - 1);
-                        if (stepConfig.getAuthenticatedAutenticator()
-                                .getApplicationAuthenticator() instanceof LocalApplicationAuthenticator) {
-                            context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
-                                    TOTPAuthenticatorConstants.BASIC);
-                        } else {
-                            context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
-                                    TOTPAuthenticatorConstants.FEDERETOR);
-                        }
+                        context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
+                                TOTPAuthenticatorConstants.FEDERETOR);
                     }
                 }
             }

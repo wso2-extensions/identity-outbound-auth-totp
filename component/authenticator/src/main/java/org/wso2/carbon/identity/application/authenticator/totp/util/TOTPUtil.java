@@ -542,6 +542,9 @@ public class TOTPUtil {
     /**
      * Get EnrolUserInAuthenticationFlow.
      *
+     * @param context  The AuthenticationContext
+     * @param runtimeParams The Runtime Parameters for the authenticator
+     *
      * @return true, if EnrolUserInAuthenticationFlow is enabled
      */
     public static boolean isEnrolUserInAuthenticationFlowEnabled(AuthenticationContext context,
