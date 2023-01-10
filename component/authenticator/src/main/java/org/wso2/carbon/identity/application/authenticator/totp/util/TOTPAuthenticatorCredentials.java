@@ -374,7 +374,7 @@ public final class TOTPAuthenticatorCredentials {
 						get(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL));
 			}
 			if (authorize(secretKey, verificationCode, new Date().getTime())) {
-				storeSecretKey(secretKey, tenantAwareUsername);
+				storeSecretKey(secretKey, username);
 				return true;
 			} else {
 				return false;
@@ -398,7 +398,8 @@ public final class TOTPAuthenticatorCredentials {
 			UserRealm userRealm = TOTPUtil.getUserRealm(username);
 			if (userRealm != null) {
 				userClaims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(secretKey));
-				userRealm.getUserStoreManager().setUserClaimValues(username, userClaims, null);
+				userRealm.getUserStoreManager().setUserClaimValues(MultitenantUtils.getTenantAwareUsername(username),
+						userClaims, null);
 			}
 		} catch (UserStoreException e) {
 			throw new TOTPAuthenticatorException("TOTPKeyGenerator failed while trying to access user store manager " +
