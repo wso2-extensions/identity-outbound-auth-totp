@@ -390,15 +390,15 @@ public final class TOTPAuthenticatorCredentials {
 		}
 	}
 
-	private void storeSecretKey(String secretKey, String username, UserRealm userRealm) {
+	private void storeSecretKey(String secretKey, String tenantAwareUsername, UserRealm userRealm) {
 
 		Map<String, String> userClaims = new HashMap<>();
 		try {
 			userClaims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(secretKey));
-			userRealm.getUserStoreManager().setUserClaimValues(username, userClaims, null);
+			userRealm.getUserStoreManager().setUserClaimValues(tenantAwareUsername, userClaims, null);
 		} catch (UserStoreException e) {
 			throw new TOTPAuthenticatorException("TOTPKeyGenerator failed while trying to access user store manager " +
-					"for the user: " + username, e);
+					"for the user: " + tenantAwareUsername, e);
 		} catch (CryptoException e) {
 			throw new TOTPAuthenticatorException("TOTPAdminService failed while decrypt the stored SecretKey ", e);
 		}
