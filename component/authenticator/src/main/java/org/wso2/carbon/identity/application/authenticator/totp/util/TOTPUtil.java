@@ -655,8 +655,8 @@ public class TOTPUtil {
     /**
      * Get the user realm of the logged in user.
      *
-     * @param username the Username
-     * @return the userRealm
+     * @param username Fully qualified username.
+     * @return The userRealm.
      * @throws AuthenticationFailedException
      */
     public static UserRealm getUserRealm(String username) throws AuthenticationFailedException {
