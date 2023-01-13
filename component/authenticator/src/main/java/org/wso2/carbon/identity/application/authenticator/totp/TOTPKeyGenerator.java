@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.application.authenticator.totp;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
@@ -77,8 +78,8 @@ public class TOTPKeyGenerator {
 
         String storedSecretKey;
         char[] secretKey;
-        String decryptedSecretKey = null;
-        String generatedSecretKey = null;
+        char[] decryptedSecretKey = null;
+        char[] generatedSecretKey = null;
         String encodedQRCodeURL;
         String tenantAwareUsername = null;
         Map<String, String> claims = new HashMap<>();
@@ -93,16 +94,17 @@ public class TOTPKeyGenerator {
                 storedSecretKey = userClaimValues.get(secretKeyClaim);
                 if (StringUtils.isBlank(storedSecretKey) || refresh) {
                     TOTPAuthenticatorKey key = generateKey(tenantDomain, context);
-                    generatedSecretKey = key.getKey();
-                    claims.put(secretKeyClaim, TOTPUtil.encrypt(generatedSecretKey));
+                    generatedSecretKey = key.getKey().toCharArray();
+                    claims.put(secretKeyClaim, TOTPUtil.encrypt(String.valueOf(generatedSecretKey)));
                     claims.put(TOTPAuthenticatorConstants.TOTP_ENABLED_CLAIM_URI, "true");
                 } else {
-                    decryptedSecretKey = TOTPUtil.decrypt(storedSecretKey);
+                    decryptedSecretKey = StringUtils.isBlank(TOTPUtil.decrypt(storedSecretKey)) ? new char[0]
+                            : TOTPUtil.decrypt(storedSecretKey).toCharArray();
                 }
-                if (StringUtils.isNotEmpty(generatedSecretKey)) {
-                    secretKey = generatedSecretKey.toCharArray();
+                if (ArrayUtils.isNotEmpty(generatedSecretKey)) {
+                    secretKey = generatedSecretKey;
                 } else {
-                    secretKey = StringUtils.isBlank(decryptedSecretKey) ? new char[0] : decryptedSecretKey.toCharArray();
+                    secretKey = decryptedSecretKey;
                 }
 
                 String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
