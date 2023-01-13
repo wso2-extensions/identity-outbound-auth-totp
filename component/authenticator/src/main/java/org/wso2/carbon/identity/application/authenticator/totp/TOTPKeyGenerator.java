@@ -75,7 +75,8 @@ public class TOTPKeyGenerator {
     private static Map<String, String> generateClaims(String username, boolean refresh, AuthenticationContext context,
                                                       String secretKeyClaim) throws TOTPException {
 
-        String storedSecretKey, secretKey;
+        String storedSecretKey;
+        char[] secretKey;
         String decryptedSecretKey = null;
         String generatedSecretKey = null;
         String encodedQRCodeURL;
@@ -99,9 +100,9 @@ public class TOTPKeyGenerator {
                     decryptedSecretKey = TOTPUtil.decrypt(storedSecretKey);
                 }
                 if (StringUtils.isNotEmpty(generatedSecretKey)) {
-                    secretKey = generatedSecretKey;
+                    secretKey = generatedSecretKey.toCharArray();
                 } else {
-                    secretKey = decryptedSecretKey;
+                    secretKey = StringUtils.isBlank(decryptedSecretKey) ? new char[0] : decryptedSecretKey.toCharArray();
                 }
 
                 String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
@@ -110,7 +111,7 @@ public class TOTPKeyGenerator {
                     displayUsername = getTOTPIssuerDisplayNameForFederatedUser(context, displayUsername);
                 }
                 String qrCodeURL =
-                        "otpauth://totp/" + issuer + ":" + displayUsername + "?secret=" + secretKey + "&issuer=" +
+                        "otpauth://totp/" + issuer + ":" + displayUsername + "?secret=" + String.valueOf(secretKey) + "&issuer=" +
                                 issuer + "&period=" + timeStep;
                 encodedQRCodeURL = Base64.encodeBase64String(qrCodeURL.getBytes());
                 claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, encodedQRCodeURL);
