@@ -90,7 +90,7 @@ public class TOTPKeyGenerator {
                 Map<String, String> userClaimValues = userRealm.getUserStoreManager().
                         getUserClaimValues(tenantAwareUsername, new String[]{secretKeyClaim}, null);
                 storedSecretKey = userClaimValues.get(secretKeyClaim);
-                if (StringUtils.isEmpty(storedSecretKey) || refresh) {
+                if (StringUtils.isBlank(storedSecretKey) || refresh) {
                     TOTPAuthenticatorKey key = generateKey(tenantDomain, context);
                     generatedSecretKey = key.getKey();
                     claims.put(secretKeyClaim, TOTPUtil.encrypt(generatedSecretKey));
@@ -258,6 +258,7 @@ public class TOTPKeyGenerator {
             UserRealm userRealm = TOTPUtil.getUserRealm(username);
             Map<String, String> claims = new HashMap<>();
             if (userRealm != null) {
+                claims.put(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL, "");
                 claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "");
                 claims.put(TOTPAuthenticatorConstants.TOTP_ENABLED_CLAIM_URI, "false");
                 userRealm.getUserStoreManager()

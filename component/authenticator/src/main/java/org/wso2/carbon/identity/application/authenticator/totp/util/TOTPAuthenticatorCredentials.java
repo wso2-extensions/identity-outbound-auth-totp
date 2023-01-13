@@ -395,6 +395,7 @@ public final class TOTPAuthenticatorCredentials {
 		Map<String, String> userClaims = new HashMap<>();
 		try {
 			userClaims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(secretKey));
+			userClaims.put(TOTPAuthenticatorConstants.TOTP_ENABLED_CLAIM_URI, "true");
 			userRealm.getUserStoreManager().setUserClaimValues(tenantAwareUsername, userClaims, null);
 		} catch (UserStoreException e) {
 			throw new TOTPAuthenticatorException("TOTPKeyGenerator failed while trying to access user store manager " +
