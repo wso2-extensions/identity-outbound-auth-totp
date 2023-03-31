@@ -220,27 +220,25 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
             String errorParam = StringUtils.EMPTY;
             if (showAuthFailureReason) {
-                if (errorContext != null && errorContext.getErrorCode() != null) {
+                if (errorContext != null && StringUtils.isNotBlank(errorContext.getErrorCode())) {
                     log.debug("Identity error message context is not null.");
                     String errorCode = errorContext.getErrorCode();
-                    if (errorCode != null) {
-                        String reason = null;
-                        if (errorCode.contains(":")) {
-                            String[] errorCodeWithReason = errorCode.split(":", 2);
-                            errorCode = errorCodeWithReason[0];
-                            if (errorCodeWithReason.length > 1) {
-                                reason = errorCodeWithReason[1];
-                            }
+                    String reason = null;
+                    if (errorCode.contains(":")) {
+                        String[] errorCodeWithReason = errorCode.split(":", 2);
+                        errorCode = errorCodeWithReason[0];
+                        if (errorCodeWithReason.length > 1) {
+                            reason = errorCodeWithReason[1];
                         }
-                        //Only adds error code if it is locked error code.
-                        if (errorCode.equals(UserCoreConstants.ErrorCode.USER_IS_LOCKED)) {
-                            Map<String, String> paramMap = new HashMap<>();
-                            paramMap.put(TOTPAuthenticatorConstants.ERROR_CODE, errorCode);
-                            if (StringUtils.isNotBlank(reason)) {
-                                paramMap.put(TOTPAuthenticatorConstants.LOCKED_REASON, reason);
-                            }
-                            errorParam = buildErrorParamString(paramMap);
+                    }
+                    // Only adds error code if it is locked error code.
+                    if (errorCode.equals(UserCoreConstants.ErrorCode.USER_IS_LOCKED)) {
+                        Map<String, String> paramMap = new HashMap<>();
+                        paramMap.put(TOTPAuthenticatorConstants.ERROR_CODE, errorCode);
+                        if (StringUtils.isNotBlank(reason)) {
+                            paramMap.put(TOTPAuthenticatorConstants.LOCKED_REASON, reason);
                         }
+                        errorParam = buildErrorParamString(paramMap);
                     }
                 }
             }
@@ -266,11 +264,10 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             if (isSecretKeyExistForUser &&
                     request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
                 //if TOTP is enabled for the user.
-                String totpLoginPageUrl;
                 if (!showAuthFailureReasonOnLoginPage) {
                     errorParam = StringUtils.EMPTY;
                 }
-                totpLoginPageUrl = buildTOTPLoginPageURL(context, username, retryParam,
+                String totpLoginPageUrl = buildTOTPLoginPageURL(context, username, retryParam,
                         errorParam, multiOptionURI);
                 response.sendRedirect(totpLoginPageUrl);
             } else {
@@ -514,7 +511,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 Map<String, String> claimValues = userStoreManager.getUserClaimValues(
                         IdentityUtil.addDomainToName(authenticatedUserObject.getUserName(),
                                 authenticatedUserObject.getUserStoreDomain()),
-                        new String[]{ TOTPAuthenticatorConstants.ACCOUNT_LOCKED_REASON_CLAIM_URI},
+                        new String[]{TOTPAuthenticatorConstants.ACCOUNT_LOCKED_REASON_CLAIM_URI},
                         UserCoreConstants.DEFAULT_PROFILE);
                 if (claimValues != null) {
                     accountLockedReason = claimValues.get(TOTPAuthenticatorConstants.ACCOUNT_LOCKED_REASON_CLAIM_URI);
@@ -523,8 +520,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 throw new AuthenticationFailedException(errorMessage + " Could not get the account locked reason.");
             }
             IdentityErrorMsgContext customErrorMessageContext = new IdentityErrorMsgContext(
-                    UserCoreConstants.ErrorCode.USER_IS_LOCKED +
-                    ":" + accountLockedReason);
+                    UserCoreConstants.ErrorCode.USER_IS_LOCKED + ":" + accountLockedReason);
             IdentityUtil.setIdentityErrorMsg(customErrorMessageContext);
             throw new AuthenticationFailedException(errorMessage);
         }
@@ -827,8 +823,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             String errorMessage = String.format("User account: %s is locked.", (LoggerUtils.isLogMaskingEnable ?
                     LoggerUtils.getMaskedContent(authenticatedUser.getUserName()) : authenticatedUser.getUserName()));
             IdentityErrorMsgContext customErrorMessageContext = new IdentityErrorMsgContext(
-                    UserCoreConstants.ErrorCode.USER_IS_LOCKED +
-                    ":" + TOTPAuthenticatorConstants.MAX_TOTP_ATTEMPTS_EXCEEDED);
+                    UserCoreConstants.ErrorCode.USER_IS_LOCKED + ":" +
+                            TOTPAuthenticatorConstants.MAX_TOTP_ATTEMPTS_EXCEEDED);
             IdentityUtil.setIdentityErrorMsg(customErrorMessageContext);
             throw new AuthenticationFailedException(errorMessage);
         } else {
