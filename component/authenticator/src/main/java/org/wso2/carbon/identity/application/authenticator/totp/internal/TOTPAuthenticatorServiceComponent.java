@@ -39,189 +39,189 @@ import org.wso2.carbon.utils.ConfigurationContextService;
 import java.util.Hashtable;
 
 @Component(
-        name = "identity.application.authenticator.totp.component",
-        immediate = true
+		name = "identity.application.authenticator.totp.component",
+		immediate = true
 )
 public class TOTPAuthenticatorServiceComponent {
 
-    private static final Log log = LogFactory.getLog(TOTPAuthenticatorServiceComponent.class);
+	private static final Log log = LogFactory.getLog(TOTPAuthenticatorServiceComponent.class);
 
-    /**
-     * This method is to register the TOTP authenticator service.
-     *
-     * @param ctxt The Component Context
-     */
-    protected void activate(ComponentContext ctxt) {
-        TOTPAuthenticator totpAuth = new TOTPAuthenticator();
-        Hashtable<String, String> props = new Hashtable<String, String>();
+	/**
+	 * This method is to register the TOTP authenticator service.
+	 *
+	 * @param ctxt The Component Context
+	 */
+	protected void activate(ComponentContext ctxt) {
+		TOTPAuthenticator totpAuth = new TOTPAuthenticator();
+		Hashtable<String, String> props = new Hashtable<String, String>();
 
-        ctxt.getBundleContext()
-                .registerService(ApplicationAuthenticator.class.getName(), totpAuth, props);
+		ctxt.getBundleContext()
+		    .registerService(ApplicationAuthenticator.class.getName(), totpAuth, props);
 
-        if (log.isDebugEnabled()) {
-            log.debug("TOTPAuthenticator bundle is activated");
-        }
-    }
+		if (log.isDebugEnabled()) {
+			log.debug("TOTPAuthenticator bundle is activated");
+		}
+	}
 
-    /**
-     * This method is to deactivate the TOTP authenticator the service.
-     *
-     * @param ctxt The Component Context
-     */
-    @Deactivate
-    protected void deactivate(ComponentContext ctxt) {
-        if (log.isDebugEnabled()) {
-            log.debug("TOTPAuthenticator bundle is deactivated");
-        }
-    }
+	/**
+	 * This method is to deactivate the TOTP authenticator the service.
+	 *
+	 * @param ctxt The Component Context
+	 */
+	@Deactivate
+	protected void deactivate(ComponentContext ctxt) {
+		if (log.isDebugEnabled()) {
+			log.debug("TOTPAuthenticator bundle is deactivated");
+		}
+	}
 
-    /**
-     * This method is used to set the Configuration Context Service.
-     *
-     * @param configurationContextService The Configuration Context which needs to set
-     */
-    @Reference(
-            name = "ConfigurationContextService",
-            service = org.wso2.carbon.utils.ConfigurationContextService.class,
-            cardinality = ReferenceCardinality.MANDATORY,
-            policy = ReferencePolicy.DYNAMIC,
-            unbind = "unsetConfigurationContextService"
-    )
-    protected void setConfigurationContextService(
-            ConfigurationContextService configurationContextService) {
-        TOTPDataHolder.getInstance().setConfigurationContextService(configurationContextService);
-    }
+	/**
+	 * This method is used to set the Configuration Context Service.
+	 *
+	 * @param configurationContextService The Configuration Context which needs to set
+	 */
+	@Reference(
+			name = "ConfigurationContextService",
+			service = org.wso2.carbon.utils.ConfigurationContextService.class,
+			cardinality = ReferenceCardinality.MANDATORY,
+			policy = ReferencePolicy.DYNAMIC,
+			unbind = "unsetConfigurationContextService"
+	)
+	protected void setConfigurationContextService(
+			ConfigurationContextService configurationContextService) {
+		TOTPDataHolder.getInstance().setConfigurationContextService(configurationContextService);
+	}
 
-    /**
-     * This method is used to unset the Configuration Context Service.
-     *
-     * @param configurationContextService The Configuration Context which needs to unset
-     */
-    protected void unsetConfigurationContextService(
-            ConfigurationContextService configurationContextService) {
-        TOTPDataHolder.getInstance().setConfigurationContextService(null);
-    }
+	/**
+	 * This method is used to unset the Configuration Context Service.
+	 *
+	 * @param configurationContextService The Configuration Context which needs to unset
+	 */
+	protected void unsetConfigurationContextService(
+			ConfigurationContextService configurationContextService) {
+		TOTPDataHolder.getInstance().setConfigurationContextService(null);
+	}
 
-    /**
-     * This method is used to set the Realm Service.
-     *
-     * @param realmService The Realm Service which needs to set
-     */
-    @Reference(
-            name = "RealmService",
-            service = org.wso2.carbon.user.core.service.RealmService.class,
-            cardinality = ReferenceCardinality.MANDATORY,
-            policy = ReferencePolicy.DYNAMIC,
-            unbind = "unsetRealmService"
-    )
-    protected void setRealmService(RealmService realmService) {
-        TOTPDataHolder.getInstance().setRealmService(realmService);
-    }
+	/**
+	 * This method is used to set the Realm Service.
+	 *
+	 * @param realmService The Realm Service which needs to set
+	 */
+	@Reference(
+			name = "RealmService",
+			service = org.wso2.carbon.user.core.service.RealmService.class,
+			cardinality = ReferenceCardinality.MANDATORY,
+			policy = ReferencePolicy.DYNAMIC,
+			unbind = "unsetRealmService"
+	)
+	protected void setRealmService(RealmService realmService) {
+		TOTPDataHolder.getInstance().setRealmService(realmService);
+	}
 
-    /**
-     * This method is used to unset the Realm Service.
-     *
-     * @param realmService The Realm Service which needs to unset
-     */
-    protected void unsetRealmService(RealmService realmService) {
-        TOTPDataHolder.getInstance().setRealmService(null);
-    }
+	/**
+	 * This method is used to unset the Realm Service.
+	 *
+	 * @param realmService The Realm Service which needs to unset
+	 */
+	protected void unsetRealmService(RealmService realmService) {
+		TOTPDataHolder.getInstance().setRealmService(null);
+	}
 
-    protected void unsetIdentityEventService(IdentityEventService eventService) {
+	protected void unsetIdentityEventService(IdentityEventService eventService) {
 
-        TOTPDataHolder.getInstance().setIdentityEventService(null);
-    }
+		TOTPDataHolder.getInstance().setIdentityEventService(null);
+	}
 
-    @Reference(
-            name = "EventMgtService",
-            service = org.wso2.carbon.identity.event.services.IdentityEventService.class,
-            cardinality = ReferenceCardinality.MANDATORY,
-            policy = ReferencePolicy.DYNAMIC,
-            unbind = "unsetIdentityEventService"
-    )
-    protected void setIdentityEventService(IdentityEventService eventService) {
+	@Reference(
+			name = "EventMgtService",
+			service = org.wso2.carbon.identity.event.services.IdentityEventService.class,
+			cardinality = ReferenceCardinality.MANDATORY,
+			policy = ReferencePolicy.DYNAMIC,
+			unbind = "unsetIdentityEventService"
+	)
+	protected void setIdentityEventService(IdentityEventService eventService) {
 
-        TOTPDataHolder.getInstance().setIdentityEventService(eventService);
-    }
+		TOTPDataHolder.getInstance().setIdentityEventService(eventService);
+	}
 
-    @Reference(
-            name = "IdentityGovernanceService",
-            service = org.wso2.carbon.identity.governance.IdentityGovernanceService.class,
-            cardinality = ReferenceCardinality.MANDATORY,
-            policy = ReferencePolicy.DYNAMIC,
-            unbind = "unsetIdentityGovernanceService"
-    )
-    protected void setIdentityGovernanceService(IdentityGovernanceService idpManager) {
+	@Reference(
+			name = "IdentityGovernanceService",
+			service = org.wso2.carbon.identity.governance.IdentityGovernanceService.class,
+			cardinality = ReferenceCardinality.MANDATORY,
+			policy = ReferencePolicy.DYNAMIC,
+			unbind = "unsetIdentityGovernanceService"
+	)
+	protected void setIdentityGovernanceService(IdentityGovernanceService idpManager) {
 
-        TOTPDataHolder.getInstance().setIdentityGovernanceService(idpManager);
-    }
+		TOTPDataHolder.getInstance().setIdentityGovernanceService(idpManager);
+	}
 
-    protected void unsetIdentityGovernanceService(IdentityGovernanceService idpManager) {
+	protected void unsetIdentityGovernanceService(IdentityGovernanceService idpManager) {
 
-        TOTPDataHolder.getInstance().setIdentityGovernanceService(null);
-    }
+		TOTPDataHolder.getInstance().setIdentityGovernanceService(null);
+	}
 
-    @Reference(
-            name = "AccountLockService",
-            service = org.wso2.carbon.identity.handler.event.account.lock.service.AccountLockService.class,
-            cardinality = ReferenceCardinality.MANDATORY,
-            policy = ReferencePolicy.DYNAMIC,
-            unbind = "unsetAccountLockService"
-    )
-    protected void setAccountLockService(AccountLockService accountLockService) {
+	@Reference(
+			name = "AccountLockService",
+			service = org.wso2.carbon.identity.handler.event.account.lock.service.AccountLockService.class,
+			cardinality = ReferenceCardinality.MANDATORY,
+			policy = ReferencePolicy.DYNAMIC,
+			unbind = "unsetAccountLockService"
+	)
+	protected void setAccountLockService(AccountLockService accountLockService) {
 
-        TOTPDataHolder.getInstance().setAccountLockService(accountLockService);
-    }
+		TOTPDataHolder.getInstance().setAccountLockService(accountLockService);
+	}
 
-    protected void unsetAccountLockService(AccountLockService accountLockService) {
+	protected void unsetAccountLockService(AccountLockService accountLockService) {
 
-        TOTPDataHolder.getInstance().setAccountLockService(null);
-    }
+		TOTPDataHolder.getInstance().setAccountLockService(null);
+	}
 
-    @Reference(
-            name = "org.wso2.carbon.idp.mgt.IdpManager",
-            service = IdpManager.class,
-            cardinality = ReferenceCardinality.MANDATORY,
-            policy = ReferencePolicy.DYNAMIC,
-            unbind = "unsetIdentityProviderManagementService"
-    )
-    protected void setIdentityProviderManagementService(IdpManager idpManager) {
+	@Reference(
+			name = "org.wso2.carbon.idp.mgt.IdpManager",
+			service = IdpManager.class,
+			cardinality = ReferenceCardinality.MANDATORY,
+			policy = ReferencePolicy.DYNAMIC,
+			unbind = "unsetIdentityProviderManagementService"
+	)
+	protected void setIdentityProviderManagementService(IdpManager idpManager) {
 
-        TOTPDataHolder.getInstance().setIdpManager(idpManager);
-    }
+		TOTPDataHolder.getInstance().setIdpManager(idpManager);
+	}
 
-    protected void unsetIdentityProviderManagementService(IdpManager idpManager) {
+	protected void unsetIdentityProviderManagementService(IdpManager idpManager) {
 
-        TOTPDataHolder.getInstance().setIdpManager(null);
-    }
+		TOTPDataHolder.getInstance().setIdpManager(null);
+	}
 
-    /**
-     * Set claim metadata management service implementation.
-     *
-     * @param claimManagementService ClaimManagementService
-     */
-    @Reference(
-            name = "claimManagementService",
-            service = org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataManagementService.class,
-            cardinality = ReferenceCardinality.MANDATORY,
-            policy = ReferencePolicy.DYNAMIC,
-            unbind = "unsetClaimMetadataManagementService")
-    protected void setClaimMetadataManagementService(ClaimMetadataManagementService claimManagementService) {
+	/**
+	 * Set claim metadata management service implementation.
+	 *
+	 * @param claimManagementService ClaimManagementService
+	 */
+	@Reference(
+			name = "claimManagementService",
+			service = org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataManagementService.class,
+			cardinality = ReferenceCardinality.MANDATORY,
+			policy = ReferencePolicy.DYNAMIC,
+			unbind = "unsetClaimMetadataManagementService")
+	protected void setClaimMetadataManagementService(ClaimMetadataManagementService claimManagementService) {
 
-        if (log.isDebugEnabled()) {
-            log.debug("claimManagementService set in IdentityMgtServiceComponent bundle");
-        }
-        TOTPDataHolder.setClaimManagementService(claimManagementService);
-    }
+		if (log.isDebugEnabled()) {
+			log.debug("claimManagementService set in IdentityMgtServiceComponent bundle");
+		}
+		TOTPDataHolder.setClaimManagementService(claimManagementService);
+	}
 
-    /**
-     * Unset claim metadata management service implementation.
-     */
-    protected void unsetClaimMetadataManagementService(ClaimMetadataManagementService claimManagementService) {
+	/**
+	 * Unset claim metadata management service implementation.
+	 */
+	protected void unsetClaimMetadataManagementService(ClaimMetadataManagementService claimManagementService) {
 
-        if (log.isDebugEnabled()) {
-            log.debug("claimManagementService unset in IdentityMgtServiceComponent bundle");
-        }
-        TOTPDataHolder.setClaimManagementService(null);
-    }
+		if (log.isDebugEnabled()) {
+			log.debug("claimManagementService unset in IdentityMgtServiceComponent bundle");
+		}
+		TOTPDataHolder.setClaimManagementService(null);
+	}
 }
