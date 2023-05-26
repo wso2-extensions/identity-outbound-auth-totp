@@ -362,8 +362,10 @@ public final class TOTPAuthenticatorCredentials {
 	public boolean authorizeAndStoreSecret(int verificationCode, String username) {
 
 		String tenantAwareUsername = null;
+		String tenantDomain = null;
 		try {
 			UserRealm userRealm = TOTPUtil.getUserRealm(username);
+			tenantDomain = MultitenantUtils.getTenantDomain(username);
 			tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
 			if (userRealm == null) {
 				return false;
@@ -374,7 +376,7 @@ public final class TOTPAuthenticatorCredentials {
 			String secretKey = TOTPUtil.decrypt(userClaimValues.
 					get(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL));
 			if (authorize(secretKey, verificationCode, new Date().getTime())) {
-				storeSecretKey(secretKey, tenantAwareUsername, userRealm);
+				storeSecretKey(secretKey, tenantAwareUsername, tenantDomain, userRealm);
 				return true;
 			}
 			return false;
@@ -390,16 +392,24 @@ public final class TOTPAuthenticatorCredentials {
 		}
 	}
 
-	private void storeSecretKey(String secretKey, String tenantAwareUsername, UserRealm userRealm) {
+	private void storeSecretKey(String secretKey, String tenantAwareUsername, String tenantDomain, UserRealm userRealm) {
 
 		Map<String, String> userClaims = new HashMap<>();
 		try {
-			userClaims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, secretKey);
+			Map<String, String> claimProperties = TOTPUtil.getClaimProperties(tenantDomain,
+					TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
+			if (claimProperties.get("EnableEncryption") != null ) {
+				userClaims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, secretKey);
+			} else {
+				userClaims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(secretKey));
+			}
 			userClaims.put(TOTPAuthenticatorConstants.TOTP_ENABLED_CLAIM_URI, "true");
 			userRealm.getUserStoreManager().setUserClaimValues(tenantAwareUsername, userClaims, null);
 		} catch (UserStoreException e) {
 			throw new TOTPAuthenticatorException("TOTPKeyGenerator failed while trying to access user store manager " +
 					"for the user: " + tenantAwareUsername, e);
+		} catch (CryptoException e) {
+			throw new TOTPAuthenticatorException("TOTPAdminService failed while decrypt the stored SecretKey ", e);
 		}
 	}
 }
