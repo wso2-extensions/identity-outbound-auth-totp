@@ -94,7 +94,12 @@ public class TOTPKeyGenerator {
                 if (StringUtils.isBlank(storedSecretKey) || refresh) {
                     TOTPAuthenticatorKey key = generateKey(tenantDomain, context);
                     generatedSecretKey = key.getKey().toCharArray();
-                    claims.put(secretKeyClaim, TOTPUtil.encrypt(String.valueOf(generatedSecretKey)));
+                    Map<String, String> claimProperties = TOTPUtil.getClaimProperties(tenantDomain,secretKeyClaim);
+                    if (claimProperties.get("EnableEncryption") != null) {
+                        claims.put(secretKeyClaim, String.valueOf(generatedSecretKey));
+                    } else {
+                        claims.put(secretKeyClaim, TOTPUtil.encrypt(String.valueOf(generatedSecretKey)));
+                    }
                     claims.put(TOTPAuthenticatorConstants.TOTP_ENABLED_CLAIM_URI, "true");
                     secretKey = ArrayUtils.isNotEmpty(generatedSecretKey) ? generatedSecretKey : new char[0];
                 } else {
@@ -146,9 +151,13 @@ public class TOTPKeyGenerator {
         try {
             TOTPAuthenticatorKey key = generateKey(tenantDomain, context);
             secretKey = key.getKey();
-            claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
-                    TOTPUtil.encrypt(secretKey));
-
+            Map<String, String> claimProperties = TOTPUtil.getClaimProperties(tenantDomain,
+                    TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
+            if (claimProperties.get("EnableEncryption") != null) {
+                claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, secretKey);
+            } else {
+                claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(secretKey));
+            }
             String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
             String displayUsername = TOTPUtil.getTOTPDisplayUsername(tenantAwareUsername);
             if (isFederatedUser(context)) {

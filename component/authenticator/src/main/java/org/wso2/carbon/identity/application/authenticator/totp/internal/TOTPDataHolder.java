@@ -18,6 +18,7 @@
  */
 package org.wso2.carbon.identity.application.authenticator.totp.internal;
 
+import org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataManagementService;
 import org.wso2.carbon.identity.event.services.IdentityEventService;
 import org.wso2.carbon.identity.governance.IdentityGovernanceService;
 import org.wso2.carbon.identity.handler.event.account.lock.service.AccountLockService;
@@ -38,6 +39,8 @@ public class TOTPDataHolder {
 	private AccountLockService accountLockService;
 	private IdentityGovernanceService identityGovernanceService;
 	private IdpManager idpManager;
+
+	private static ClaimMetadataManagementService claimManagementService;
 
 	/**
 	 * Returns the DataHolder instance.
@@ -161,4 +164,22 @@ public class TOTPDataHolder {
 		return idpManager;
 	}
 
+	/**
+	 * Get claim metadata management service.
+	 * @return
+	 */
+	public static ClaimMetadataManagementService getClaimManagementService() {
+
+		return claimManagementService;
+	}
+
+	/**
+	 * Set claim metadata management service.
+	 *
+	 * @param claimManagementService
+	 */
+	public static void setClaimManagementService(ClaimMetadataManagementService claimManagementService) {
+
+		TOTPDataHolder.claimManagementService = claimManagementService;
+	}
 }

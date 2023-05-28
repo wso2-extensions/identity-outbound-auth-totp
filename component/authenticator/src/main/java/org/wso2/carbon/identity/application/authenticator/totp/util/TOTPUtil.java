@@ -18,7 +18,6 @@
 
 package org.wso2.carbon.identity.application.authenticator.totp.util;
 
-import org.apache.commons.collections.MapUtils;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -54,6 +53,7 @@ import org.wso2.carbon.identity.application.common.model.ClaimMapping;
 import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataHandler;
 import org.wso2.carbon.identity.claim.metadata.mgt.exception.ClaimMetadataException;
+import org.wso2.carbon.identity.claim.metadata.mgt.model.LocalClaim;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
@@ -74,7 +74,9 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -86,7 +88,6 @@ import javax.xml.parsers.ParserConfigurationException;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ERROR_PAGE;
-import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOTP_HIDE_USERSTORE_FROM_USERNAME;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW;
@@ -97,6 +98,7 @@ import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthen
 public class TOTPUtil {
 
     private static final Log log = LogFactory.getLog(TOTPUtil.class);
+    private String ENABLE_SECRET_KEY_ENCRYPTION_FROM_SERVICE = "UserClaimUpdate.EnableSecretKeyEncryptionFromService";
 
     /**
      * Encrypt the given plain text.
@@ -386,7 +388,7 @@ public class TOTPUtil {
         if ((getPropertiesFromIdentityConfig != null || tenantDomain
                 .equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN))) {
             return Long.parseLong(IdentityHelperUtil.getAuthenticatorParameters(
-                    context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION).toString())
+                            context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION).toString())
                     .get(TOTPAuthenticatorConstants.TIME_STEP_SIZE));
         } else {
             return Long.parseLong(context.getProperty(TOTPAuthenticatorConstants.TIME_STEP_SIZE).toString());
@@ -445,7 +447,7 @@ public class TOTPUtil {
         if ((getPropertiesFromIdentityConfig != null || tenantDomain
                 .equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN))) {
             return Integer.parseInt(IdentityHelperUtil.getAuthenticatorParameters(
-                    context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION).toString())
+                            context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION).toString())
                     .get(TOTPAuthenticatorConstants.WINDOW_SIZE));
         } else {
             return Integer.parseInt(context.getProperty(TOTPAuthenticatorConstants.WINDOW_SIZE).toString());
@@ -532,7 +534,7 @@ public class TOTPUtil {
         if ((getPropertiesFromIdentityConfig != null ||
                 TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN.equals(tenantDomain))) {
             return Boolean.parseBoolean(IdentityHelperUtil.getAuthenticatorParameters(
-                    context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION).toString())
+                            context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION).toString())
                     .get(ENROL_USER_IN_AUTHENTICATIONFLOW));
         } else {
             return Boolean.parseBoolean((context.getProperty(ENROL_USER_IN_AUTHENTICATIONFLOW).toString()));
@@ -1099,4 +1101,32 @@ public class TOTPUtil {
         return localClaimValues;
     }
 
+    /**
+     * Get claim properties of a claim in a given tenant.
+     *
+     * @param tenantDomain The tenant domain.
+     * @param claimURI     Claim URI.
+     * @return Properties of the claim.
+     */
+    public static Map<String, String> getClaimProperties(String tenantDomain, String claimURI) {
+
+        try {
+            List<LocalClaim> localClaims =
+                    TOTPDataHolder.getClaimManagementService().getLocalClaims(tenantDomain);
+            if (localClaims == null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Returned claim list from ClaimManagementService is null");
+                }
+                return Collections.emptyMap();
+            }
+            for (LocalClaim localClaim : localClaims) {
+                if (StringUtils.equalsIgnoreCase(claimURI, localClaim.getClaimURI())) {
+                    return localClaim.getClaimProperties();
+                }
+            }
+        } catch (ClaimMetadataException e) {
+            log.error("Error while retrieving local claim meta data.", e);
+        }
+        return Collections.emptyMap();
+    }
 }
