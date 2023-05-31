@@ -718,8 +718,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     /**
      * Verify whether a given token is valid for the federated user.
      *
-     * @param token        TOTP Token which needs to be validated
-     * @param context      Authentication context
+     * @param token   TOTP Token which needs to be validated
+     * @param context Authentication context
      * @return true if token is valid otherwise false
      * @throws TOTPException If an error occurred while validating token.
      */
@@ -728,9 +728,15 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
         String secretKey = null;
         if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
+            Map<String, String> claimProperties = TOTPUtil.getClaimProperties(context.getTenantDomain(),
+                    TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
             try {
-                secretKey = TOTPUtil.decrypt(context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).
-                        toString());
+                if (claimProperties.get("EnableEncryption") != null) {
+                    secretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
+                } else {
+                    secretKey = TOTPUtil.decrypt(context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL)
+                            .toString());
+                }
             } catch (CryptoException e) {
                 throw new TOTPException("Error while decrypting the secret key", e);
             }
@@ -893,7 +899,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             UserRealm userRealm = TOTPUtil.getUserRealm(username);
             UserStoreManager userStoreManager = userRealm.getUserStoreManager();
             claimValues = userStoreManager.getUserClaimValues(IdentityUtil.addDomainToName(
-                    authenticatedUser.getUserName(), authenticatedUser.getUserStoreDomain()), new String[]{
+                            authenticatedUser.getUserName(), authenticatedUser.getUserStoreDomain()), new String[]{
                             TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM,
                             TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM},
                     UserCoreConstants.DEFAULT_PROFILE);
@@ -972,7 +978,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             if (idp == null) {
                 throw new AuthenticationFailedException(
                         String.format(
-                        ErrorMessages.ERROR_CODE_INVALID_FEDERATED_AUTHENTICATOR.getMessage(), idpName, tenantDomain));
+                                ErrorMessages.ERROR_CODE_INVALID_FEDERATED_AUTHENTICATOR.getMessage(), idpName, tenantDomain));
             }
             return idp;
         } catch (IdentityProviderManagementException e) {
