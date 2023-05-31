@@ -728,7 +728,18 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
         String secretKey = null;
         if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
-            secretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
+            Map<String, String> claimProperties = TOTPUtil.getClaimProperties(context.getTenantDomain(),
+                    TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
+            try {
+                if (claimProperties.get("EnableEncryption") != null) {
+                    secretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
+                } else {
+                    secretKey = TOTPUtil.decrypt(context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL)
+                            .toString());
+                }
+            } catch (CryptoException e) {
+                throw new TOTPException("Error while decrypting the secret key", e);
+            }
         }
         TOTPAuthenticatorCredentials totpAuthenticator = getTotpAuthenticator(context, context.getTenantDomain());
         return totpAuthenticator.authorize(secretKey, token);
