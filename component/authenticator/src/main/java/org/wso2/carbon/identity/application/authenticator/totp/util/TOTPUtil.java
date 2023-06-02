@@ -1148,6 +1148,9 @@ public class TOTPUtil {
             if (claimProperties.containsKey(IdentityMgtConstants.ENABLE_ENCRYPTION)) {
                 return claimValue;
             }
+            if (StringUtils.isBlank(claimValue)) {
+                return claimValue;
+            }
             return TOTPUtil.encrypt(claimValue);
         } catch (CryptoException e) {
             throw new TOTPAuthenticatorException("Error occurred while encrypting claim value of: " + claimURI, e);
