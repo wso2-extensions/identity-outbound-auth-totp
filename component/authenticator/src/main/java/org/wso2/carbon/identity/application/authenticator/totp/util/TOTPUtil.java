@@ -59,6 +59,7 @@ import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.governance.IdentityGovernanceException;
 import org.wso2.carbon.identity.handler.event.account.lock.exception.AccountLockServiceException;
+import org.wso2.carbon.identity.mgt.constants.IdentityMgtConstants;
 import org.wso2.carbon.idp.mgt.IdentityProviderManagementException;
 import org.wso2.carbon.registry.core.Registry;
 import org.wso2.carbon.registry.core.Resource;
@@ -1128,5 +1129,28 @@ public class TOTPUtil {
             log.error("Error while retrieving local claim meta data.", e);
         }
         return Collections.emptyMap();
+    }
+
+    /**
+     * Returns the encrypted claim value if EnableEncryption property is available for the claim. Otherwise, return the
+     * plain text.
+     *
+     * @param claimURI     Claim URI.
+     * @param claimValue   Claim value.
+     * @param tenantDomain Tenant domain.
+     * @return Encrypted or plain claim value based on the EnableEncryption claim property.
+     * @throws TOTPAuthenticatorException When errors occurs while encrypting the claim value.
+     */
+    public static String getProcessedClaimValue(String claimURI, String claimValue, String tenantDomain) {
+
+        Map<String, String> claimProperties = getClaimProperties(tenantDomain, claimURI);
+        try {
+            if (claimProperties.containsKey(IdentityMgtConstants.ENABLE_ENCRYPTION)) {
+                return claimValue;
+            }
+            return TOTPUtil.encrypt(claimValue);
+        } catch (CryptoException e) {
+            throw new TOTPAuthenticatorException("Error occurred while encrypting claim value of: " + claimURI, e);
+        }
     }
 }

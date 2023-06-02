@@ -195,33 +195,33 @@ public class TOTPAuthenticatorServiceComponent {
 		TOTPDataHolder.getInstance().setIdpManager(null);
 	}
 
-	/**
-	 * Set claim metadata management service implementation.
-	 *
-	 * @param claimManagementService ClaimManagementService
-	 */
-	@Reference(
+    /**
+     * Set claim metadata management service implementation.
+     *
+     * @param claimManagementService ClaimManagementService
+     */
+    @Reference(
 			name = "claimManagementService",
-			service = org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataManagementService.class,
-			cardinality = ReferenceCardinality.MANDATORY,
-			policy = ReferencePolicy.DYNAMIC,
-			unbind = "unsetClaimMetadataManagementService")
-	protected void setClaimMetadataManagementService(ClaimMetadataManagementService claimManagementService) {
+            service = org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataManagementService.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetClaimMetadataManagementService")
+    protected void setClaimMetadataManagementService(ClaimMetadataManagementService claimManagementService) {
 
-		if (log.isDebugEnabled()) {
+        if (log.isDebugEnabled()) {
 			log.debug("claimManagementService set in IdentityMgtServiceComponent bundle");
-		}
-		TOTPDataHolder.setClaimManagementService(claimManagementService);
-	}
+        }
+        TOTPDataHolder.setClaimManagementService(claimManagementService);
+    }
 
-	/**
-	 * Unset claim metadata management service implementation.
-	 */
-	protected void unsetClaimMetadataManagementService(ClaimMetadataManagementService claimManagementService) {
+    /**
+     * Unset claim metadata management service implementation.
+     */
+    protected void unsetClaimMetadataManagementService(ClaimMetadataManagementService claimManagementService) {
 
-		if (log.isDebugEnabled()) {
-			log.debug("claimManagementService unset in IdentityMgtServiceComponent bundle");
-		}
-		TOTPDataHolder.setClaimManagementService(null);
-	}
+        if (log.isDebugEnabled()) {
+            log.debug("claimManagementService unset in IdentityMgtServiceComponent bundle");
+        }
+        TOTPDataHolder.setClaimManagementService(null);
+    }
 }
