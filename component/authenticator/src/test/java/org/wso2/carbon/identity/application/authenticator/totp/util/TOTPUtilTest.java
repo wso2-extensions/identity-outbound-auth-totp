@@ -601,4 +601,33 @@ public class TOTPUtilTest {
 
         return new PowerMockObjectFactory();
     }
+
+    @Test(description = "Test case for getProcessedClaimValue()", dataProvider = "processedClaimValueTestDataProvider")
+    public void testGetProcessedClaimValue(String claimURI, Map<String, String> claimProperties, String claimValue,
+                                           String expectedClaimValue) throws Exception {
+
+        when(TOTPUtil.getClaimProperties(anyString(),anyString())).thenReturn(claimProperties);
+        assertEquals(TOTPUtil.getProcessedClaimValue(claimURI, claimValue,"testDomain"), expectedClaimValue);
+    }
+
+    @DataProvider(name = "processedClaimValueTestDataProvider")
+    public static Object[][] getProcessedClaimValueTestData() {
+
+        HashMap<String, String> claimProperties_1 = new HashMap<>();
+        claimProperties_1.put("EnableEncryption", "true");
+
+        HashMap<String, String> claimProperties_2 = new HashMap<>();
+        claimProperties_2.put("EnableEncryption", "false");
+
+        HashMap<String, String> claimProperties_3 = new HashMap<>();
+
+        return new Object[][]{
+                {"http://wso2.org/claims/identity/secretkey", claimProperties_1, "AER2BRI0LK4XCSC1", "AER2BRI0LK4XCSC1"},
+                {"http://wso2.org/claims/identity/secretkey", claimProperties_1, "", ""},
+                {"http://wso2.org/claims/identity/secretkey", claimProperties_2, "AER2BRI0LK4XCSC1", "AER2BRI0LK4XCSC1"},
+                {"http://wso2.org/claims/identity/secretkey", claimProperties_2, "", ""},
+//                {"http://wso2.org/claims/identity/secretkey", claimProperties_3, "AER2BRI0LK4XCSC1", null},
+//                {"http://wso2.org/claims/identity/secretkey", claimProperties_3, "", ""},
+        };
+    }
 }
