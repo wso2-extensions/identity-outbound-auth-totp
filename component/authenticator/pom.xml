@@ -90,6 +90,12 @@
         <dependency>
             <groupId>org.wso2.carbon.identity.framework</groupId>
             <artifactId>org.wso2.carbon.identity.mgt</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>uddi</groupId>
+                    <artifactId>uddi4j</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!--Test Dependencies-->
