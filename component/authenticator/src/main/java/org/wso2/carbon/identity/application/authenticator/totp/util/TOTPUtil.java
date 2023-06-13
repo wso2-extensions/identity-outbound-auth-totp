@@ -1145,7 +1145,7 @@ public class TOTPUtil {
 
         Map<String, String> claimProperties = getClaimProperties(tenantDomain, claimURI);
         try {
-            if (claimProperties.containsKey(IdentityMgtConstants.ENABLE_ENCRYPTION)) {
+            if (claimProperties.containsKey(TOTPAuthenticatorConstants.ENABLE_ENCRYPTION)) {
                 return claimValue;
             }
             if (StringUtils.isBlank(claimValue)) {

@@ -448,7 +448,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     String tenantDomain = context.getTenantDomain();
                     Map<String, String> claimProperties = TOTPUtil.getClaimProperties(tenantDomain,
                             TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
-                    if (claimProperties.get("EnableEncryption") != null) {
+                    if (claimProperties.get(TOTPAuthenticatorConstants.ENABLE_ENCRYPTION) != null) {
                         claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, secretKey);
                     } else {
                         claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(secretKey));
@@ -742,7 +742,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             Map<String, String> claimProperties = TOTPUtil.getClaimProperties(context.getTenantDomain(),
                     TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
             try {
-                if (claimProperties.get("EnableEncryption") != null) {
+                if (claimProperties.get(TOTPAuthenticatorConstants.ENABLE_ENCRYPTION) != null) {
                     secretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
                 } else {
                     secretKey = TOTPUtil.decrypt(context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL)
