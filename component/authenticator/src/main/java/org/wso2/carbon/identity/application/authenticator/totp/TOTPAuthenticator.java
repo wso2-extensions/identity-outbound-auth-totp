@@ -438,23 +438,34 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
         if (context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP) != null && Boolean
                 .valueOf(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString())) {
-            checkForUpdatedSecretKey(context, username);
-            //adds the claims to the profile if the user enrol and continued.
-            Map<String, String> claims = new HashMap<>();
-            if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
-                claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
-                        context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString());
-                // When secret key is available, have to make TOTP_ENABLED_CLAIM_URI true.
-                claims.put(TOTPAuthenticatorConstants.TOTP_ENABLED_CLAIM_URI, "true");
-            }
-            if (context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL) != null) {
-                claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
-                        context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL).toString());
-            }
             try {
+                checkForUpdatedSecretKey(context, username);
+                //adds the claims to the profile if the user enrol and continued.
+                Map<String, String> claims = new HashMap<>();
+                if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null &&
+                        !isSecretKeyExistForUser(username)) {
+                    String secretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
+                    String tenantDomain = context.getTenantDomain();
+                    Map<String, String> claimProperties = TOTPUtil.getClaimProperties(tenantDomain,
+                            TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
+                    if (claimProperties.get("EnableEncryption") != null) {
+                        claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, secretKey);
+                    } else {
+                        claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(secretKey));
+                    }
+                    // When secret key is available, have to make TOTP_ENABLED_CLAIM_URI true.
+                    claims.put(TOTPAuthenticatorConstants.TOTP_ENABLED_CLAIM_URI, "true");
+                }
+                if (context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL) != null) {
+                    claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
+                            context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL).toString());
+                }
                 TOTPKeyGenerator.addTOTPClaimsAndRetrievingQRCodeURL(claims, username, context);
             } catch (TOTPException e) {
                 throw new AuthenticationFailedException("Error while adding TOTP claims to the user : " +
+                        (LoggerUtils.isLogMaskingEnable ? LoggerUtils.getMaskedContent(username) : username), e);
+            } catch (CryptoException e) {
+                throw new AuthenticationFailedException("Error while encrypting the secret key for user : " +
                         (LoggerUtils.isLogMaskingEnable ? LoggerUtils.getMaskedContent(username) : username), e);
             }
         }
