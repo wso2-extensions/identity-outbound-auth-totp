@@ -618,11 +618,10 @@ public class TOTPUtilTest {
                                            String expectedClaimValue) throws Exception {
 
         mockStatic(TOTPDataHolder.class);
-        mockStatic(ClaimMetadataManagementService.class);
         when(totpDataHolder.getInstance()).thenReturn(totpDataHolder);
         when(totpDataHolder.getClaimManagementService()).thenReturn(claimMetadataManagementService);
-        when(claimMetadataManagementService.getLocalClaims("testDomain")).thenReturn(localClaims);
-        assertEquals(TOTPUtil.getProcessedClaimValue(claimURI, claimValue,"testDomain"), expectedClaimValue);
+        when(claimMetadataManagementService.getLocalClaims(anyString())).thenReturn(localClaims);
+        assertEquals(TOTPUtil.getProcessedClaimValue(claimURI, claimValue,anyString()), expectedClaimValue);
     }
 
     @DataProvider(name = "processedClaimValueTestDataProvider")
