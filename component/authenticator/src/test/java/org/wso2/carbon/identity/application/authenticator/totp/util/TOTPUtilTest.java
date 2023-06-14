@@ -45,7 +45,6 @@ import org.wso2.carbon.identity.core.ServiceURL;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
-import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import java.io.IOException;
@@ -67,12 +66,12 @@ import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.testng.Assert.assertEquals;
 
 @PrepareForTest({FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, ConfigurationFacade.class,
-        IdentityTenantUtil.class, ServiceURLBuilder.class, TOTPDataHolder.class, ClaimMetadataManagementService.class})
+        IdentityTenantUtil.class, ServiceURLBuilder.class, TOTPDataHolder.class})
 @PowerMockIgnore({"org.mockito.*","org.powermock.api.mockito.invocation.*"})
 public class TOTPUtilTest {
 
     private TOTPUtil totpUtil;
-    AuthenticationContext authenticationContext;
+
     @Mock
     private FileBasedConfigurationBuilder fileBasedConfigurationBuilder;
 
@@ -87,12 +86,6 @@ public class TOTPUtilTest {
 
     @Mock
     private AuthenticationContext context;
-
-    @Mock
-    private RealmService realmService;
-
-    @Mock
-    private IdentityHelperUtil identityHelperUtil;
 
     @Mock
     private TOTPDataHolder totpDataHolder;
@@ -619,7 +612,7 @@ public class TOTPUtilTest {
 
         mockStatic(TOTPDataHolder.class);
         when(totpDataHolder.getInstance()).thenReturn(totpDataHolder);
-        when(totpDataHolder.getClaimManagementService()).thenReturn(claimMetadataManagementService);
+        when(totpDataHolder.getClaimMetadataManagementService()).thenReturn(claimMetadataManagementService);
         when(claimMetadataManagementService.getLocalClaims("testDomain")).thenReturn(localClaims);
         assertEquals(TOTPUtil.getProcessedClaimValue(claimURI, claimValue,"testDomain"), expectedClaimValue);
     }

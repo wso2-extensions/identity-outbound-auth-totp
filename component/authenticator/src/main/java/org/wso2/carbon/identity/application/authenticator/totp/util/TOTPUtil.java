@@ -1112,7 +1112,7 @@ public class TOTPUtil {
 
         try {
             List<LocalClaim> localClaims =
-                    TOTPDataHolder.getClaimManagementService().getLocalClaims(tenantDomain);
+                    TOTPDataHolder.getClaimMetadataManagementService().getLocalClaims(tenantDomain);
             if (localClaims == null) {
                 if (log.isDebugEnabled()) {
                     log.debug("Returned claim list from ClaimManagementService is null");

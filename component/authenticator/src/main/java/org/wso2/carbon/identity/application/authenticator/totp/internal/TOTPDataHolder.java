@@ -40,7 +40,7 @@ public class TOTPDataHolder {
 	private IdentityGovernanceService identityGovernanceService;
 	private IdpManager idpManager;
 
-	private static ClaimMetadataManagementService claimManagementService;
+	private static ClaimMetadataManagementService claimMetadataManagementService;
 
 	/**
 	 * Returns the DataHolder instance.
@@ -168,18 +168,18 @@ public class TOTPDataHolder {
 	 * Get claim metadata management service.
 	 * @return
 	 */
-	public static ClaimMetadataManagementService getClaimManagementService() {
+	public static ClaimMetadataManagementService getClaimMetadataManagementService() {
 
-		return claimManagementService;
+		return claimMetadataManagementService;
 	}
 
 	/**
 	 * Set claim metadata management service.
 	 *
-	 * @param claimManagementService
+	 * @param claimMetadataManagementService
 	 */
-	public static void setClaimManagementService(ClaimMetadataManagementService claimManagementService) {
+	public static void setClaimMetadataManagementService(ClaimMetadataManagementService claimMetadataManagementService) {
 
-		TOTPDataHolder.claimManagementService = claimManagementService;
+		TOTPDataHolder.claimMetadataManagementService = claimMetadataManagementService;
 	}
 }

@@ -209,9 +209,9 @@ public class TOTPAuthenticatorServiceComponent {
     protected void setClaimMetadataManagementService(ClaimMetadataManagementService claimManagementService) {
 
         if (log.isDebugEnabled()) {
-			log.debug("claimManagementService set in IdentityMgtServiceComponent bundle");
+			log.debug("claimMetadataManagementService set in IdentityMgtServiceComponent bundle");
         }
-        TOTPDataHolder.setClaimManagementService(claimManagementService);
+        TOTPDataHolder.setClaimMetadataManagementService(claimManagementService);
     }
 
     /**
@@ -220,8 +220,8 @@ public class TOTPAuthenticatorServiceComponent {
     protected void unsetClaimMetadataManagementService(ClaimMetadataManagementService claimManagementService) {
 
         if (log.isDebugEnabled()) {
-            log.debug("claimManagementService unset in IdentityMgtServiceComponent bundle");
+            log.debug("claimMetadataManagementService unset in IdentityMgtServiceComponent bundle");
         }
-        TOTPDataHolder.setClaimManagementService(null);
+        TOTPDataHolder.setClaimMetadataManagementService(null);
     }
 }
