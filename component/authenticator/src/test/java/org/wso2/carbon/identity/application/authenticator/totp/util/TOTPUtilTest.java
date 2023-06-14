@@ -38,6 +38,9 @@ import org.wso2.carbon.identity.application.authentication.framework.config.mode
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
+import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
+import org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataManagementService;
+import org.wso2.carbon.identity.claim.metadata.mgt.model.LocalClaim;
 import org.wso2.carbon.identity.core.ServiceURL;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
@@ -46,8 +49,10 @@ import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -62,7 +67,7 @@ import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.testng.Assert.assertEquals;
 
 @PrepareForTest({FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, ConfigurationFacade.class,
-        IdentityTenantUtil.class, ServiceURLBuilder.class})
+        IdentityTenantUtil.class, ServiceURLBuilder.class, TOTPDataHolder.class, ClaimMetadataManagementService.class})
 @PowerMockIgnore({"org.mockito.*","org.powermock.api.mockito.invocation.*"})
 public class TOTPUtilTest {
 
@@ -88,6 +93,12 @@ public class TOTPUtilTest {
 
     @Mock
     private IdentityHelperUtil identityHelperUtil;
+
+    @Mock
+    private TOTPDataHolder totpDataHolder;
+
+    @Mock
+    private ClaimMetadataManagementService claimMetadataManagementService;
 
     @BeforeMethod
     public void setUp() {
@@ -603,10 +614,14 @@ public class TOTPUtilTest {
     }
 
     @Test(description = "Test case for getProcessedClaimValue()", dataProvider = "processedClaimValueTestDataProvider")
-    public void testGetProcessedClaimValue(String claimURI, Map<String, String> claimProperties, String claimValue,
+    public void testGetProcessedClaimValue(String claimURI, List<LocalClaim> localClaims, String claimValue,
                                            String expectedClaimValue) throws Exception {
 
-        when(TOTPUtil.getClaimProperties(anyString(),anyString())).thenReturn(claimProperties);
+        mockStatic(TOTPDataHolder.class);
+        mockStatic(ClaimMetadataManagementService.class);
+        when(totpDataHolder.getInstance()).thenReturn(totpDataHolder);
+        when(totpDataHolder.getClaimManagementService()).thenReturn(claimMetadataManagementService);
+        when(claimMetadataManagementService.getLocalClaims("testDomain")).thenReturn(localClaims);
         assertEquals(TOTPUtil.getProcessedClaimValue(claimURI, claimValue,"testDomain"), expectedClaimValue);
     }
 
@@ -615,19 +630,31 @@ public class TOTPUtilTest {
 
         HashMap<String, String> claimProperties_1 = new HashMap<>();
         claimProperties_1.put("EnableEncryption", "true");
+        List<LocalClaim> localClaims1 = new ArrayList<>();
+        LocalClaim localClaim1 = new LocalClaim("http://wso2.org/claims/identity/secretkey", null,
+                claimProperties_1);
+        localClaims1.add(localClaim1);
 
         HashMap<String, String> claimProperties_2 = new HashMap<>();
         claimProperties_2.put("EnableEncryption", "false");
+        List<LocalClaim> localClaims2 = new ArrayList<>();
+        LocalClaim localClaim2 = new LocalClaim("http://wso2.org/claims/identity/secretkey", null,
+                claimProperties_2);
+        localClaims2.add(localClaim2);
 
         HashMap<String, String> claimProperties_3 = new HashMap<>();
+        List<LocalClaim> localClaims3 = new ArrayList<>();
+        LocalClaim localClaim3 = new LocalClaim("http://wso2.org/claims/identity/secretkey", null,
+                claimProperties_3);
+        localClaims3.add(localClaim3);
 
         return new Object[][]{
-                {"http://wso2.org/claims/identity/secretkey", claimProperties_1, "AER2BRI0LK4XCSC1", "AER2BRI0LK4XCSC1"},
-                {"http://wso2.org/claims/identity/secretkey", claimProperties_1, "", ""},
-                {"http://wso2.org/claims/identity/secretkey", claimProperties_2, "AER2BRI0LK4XCSC1", "AER2BRI0LK4XCSC1"},
-                {"http://wso2.org/claims/identity/secretkey", claimProperties_2, "", ""},
-//                {"http://wso2.org/claims/identity/secretkey", claimProperties_3, "AER2BRI0LK4XCSC1", null},
-//                {"http://wso2.org/claims/identity/secretkey", claimProperties_3, "", ""},
+                {"http://wso2.org/claims/identity/secretkey", localClaims1, "AER2BRI0LK4XCSC1", "AER2BRI0LK4XCSC1"},
+                {"http://wso2.org/claims/identity/secretkey", localClaims1, "", ""},
+                {"http://wso2.org/claims/identity/secretkey", localClaims2, "AER2BRI0LK4XCSC1", "AER2BRI0LK4XCSC1"},
+                {"http://wso2.org/claims/identity/secretkey", localClaims2, "", ""},
+//                {"http://wso2.org/claims/identity/secretkey", localClaims3, "AER2BRI0LK4XCSC1", null},
+//                {"http://wso2.org/claims/identity/secretkey", localClaims3, "", ""},
         };
     }
 }
