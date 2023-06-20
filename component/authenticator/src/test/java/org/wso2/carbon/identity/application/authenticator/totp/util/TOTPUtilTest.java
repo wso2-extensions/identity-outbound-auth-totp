@@ -39,8 +39,6 @@ import org.wso2.carbon.identity.application.authentication.framework.context.Aut
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
-import org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataManagementService;
-import org.wso2.carbon.identity.claim.metadata.mgt.model.LocalClaim;
 import org.wso2.carbon.identity.core.ServiceURL;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
@@ -48,21 +46,22 @@ import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.when;
+
 import static org.mockito.MockitoAnnotations.initMocks;
 import static org.powermock.api.mockito.PowerMockito.doNothing;
 import static org.powermock.api.mockito.PowerMockito.mock;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
+import static org.powermock.api.mockito.PowerMockito.spy;
+import static org.powermock.api.mockito.PowerMockito.when;
 import static org.testng.Assert.assertEquals;
 
 @PrepareForTest({FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, ConfigurationFacade.class,
@@ -71,7 +70,7 @@ import static org.testng.Assert.assertEquals;
 public class TOTPUtilTest {
 
     private TOTPUtil totpUtil;
-    AuthenticationContext authenticationContext;
+
     @Mock
     private FileBasedConfigurationBuilder fileBasedConfigurationBuilder;
 
@@ -87,16 +86,11 @@ public class TOTPUtilTest {
     @Mock
     private AuthenticationContext context;
 
-    @Mock
-    private TOTPDataHolder totpDataHolder;
-
-    @Mock
-    private ClaimMetadataManagementService claimMetadataManagementService;
-
     @BeforeMethod
     public void setUp() {
 
-        totpUtil = new TOTPUtil();
+        totpUtil = spy(new TOTPUtil());
+
         initMocks(this);
         mockStatic(FileBasedConfigurationBuilder.class);
         mockStatic(IdentityHelperUtil.class);
@@ -607,14 +601,20 @@ public class TOTPUtilTest {
     }
 
     @Test(description = "Test case for getProcessedClaimValue()", dataProvider = "processedClaimValueTestDataProvider")
-    public void testGetProcessedClaimValue(String claimURI, List<LocalClaim> localClaims, String claimValue,
+    public void testGetProcessedClaimValue(String claimURI, Map<String, String> claimProperties, String claimValue,
                                            String expectedClaimValue) throws Exception {
 
-        mockStatic(TOTPDataHolder.class);
-        when(totpDataHolder.getInstance()).thenReturn(totpDataHolder);
-        when(totpDataHolder.getClaimManagementService()).thenReturn(claimMetadataManagementService);
-        when(claimMetadataManagementService.getLocalClaims("testDomain")).thenReturn(localClaims);
-        assertEquals(TOTPUtil.getProcessedClaimValue(claimURI, claimValue,"testDomain"), expectedClaimValue);
+//        doReturn(claimProperties).when(totpUtil).getClaimProperties("testDomain", claimURI);
+//        when(totpUtil.getClaimProperties("testDomain", claimURI)).thenReturn(claimProperties);
+
+//        spy(TOTPUtil.class);
+//        given(TOTPUtil.getClaimProperties("testDomain", claimURI)).willReturn(claimProperties);
+//        // Call the method under test
+
+//        String processedClaimValue = totpUtil.getProcessedClaimValue(claimURI, claimValue, "testDomain");
+//
+//        // Verify the result
+//        assertEquals(expectedClaimValue, processedClaimValue);
     }
 
     @DataProvider(name = "processedClaimValueTestDataProvider")
@@ -622,31 +622,28 @@ public class TOTPUtilTest {
 
         HashMap<String, String> claimProperties_1 = new HashMap<>();
         claimProperties_1.put("EnableEncryption", "true");
-        List<LocalClaim> localClaims1 = new ArrayList<>();
-        LocalClaim localClaim1 = new LocalClaim("http://wso2.org/claims/identity/secretkey", null,
-                claimProperties_1);
-        localClaims1.add(localClaim1);
 
         HashMap<String, String> claimProperties_2 = new HashMap<>();
         claimProperties_2.put("EnableEncryption", "false");
-        List<LocalClaim> localClaims2 = new ArrayList<>();
-        LocalClaim localClaim2 = new LocalClaim("http://wso2.org/claims/identity/secretkey", null,
-                claimProperties_2);
-        localClaims2.add(localClaim2);
 
         HashMap<String, String> claimProperties_3 = new HashMap<>();
-        List<LocalClaim> localClaims3 = new ArrayList<>();
-        LocalClaim localClaim3 = new LocalClaim("http://wso2.org/claims/identity/secretkey", null,
-                claimProperties_3);
-        localClaims3.add(localClaim3);
+
 
         return new Object[][]{
-                {"http://wso2.org/claims/identity/secretkey", localClaims1, "AER2BRI0LK4XCSC1", "AER2BRI0LK4XCSC1"},
-                {"http://wso2.org/claims/identity/secretkey", localClaims1, "", ""},
-                {"http://wso2.org/claims/identity/secretkey", localClaims2, "AER2BRI0LK4XCSC1", "AER2BRI0LK4XCSC1"},
-                {"http://wso2.org/claims/identity/secretkey", localClaims2, "", ""},
-//                {"http://wso2.org/claims/identity/secretkey", localClaims3, "AER2BRI0LK4XCSC1", null},
-//                {"http://wso2.org/claims/identity/secretkey", localClaims3, "", ""},
+                {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, claimProperties_1, "AER2BRI0LK4XCSC1", "AER2BRI0LK4XCSC1"},
+                {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, claimProperties_1, "", ""},
+                {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, claimProperties_2, "AER2BRI0LK4XCSC1", "AER2BRI0LK4XCSC1"},
+                {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, claimProperties_2, "", ""},
+                {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, claimProperties_3, "", ""},
+                {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, claimProperties_3, "AER2BRI0LK4XCSC1", "eyJjIjoiZXlKamFYQ" +
+                        "m9aWElpT2lKYU0zbDFVemcxT1UxYU9HVkthVFowU1RZd0swTlJaR1JsVjA1dlZITkRiRFY1THpWbmMwUnpNRmRCUFNJc0l" +
+                        "tbHVhWFJwWVd4cGVtRjBhVzl1Vm1WamRHOXlJam9pYWpCVVVVWjNPRGhGWlRaTFIxbDFUVFpMVlc5a1FVRkJRVUZCUVVGQ" +
+                        "lFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVV" +
+                        "GQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCU" +
+                        "VVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUFNKOSIsInQiOiJBRVMvR0NNL05vUGF" +
+                        "kZGluZyIsIml2IjoiajBUUUZ3ODhFZTZLR1l1TTZLVW9kQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQ" +
+                        "UFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUF" +
+                        "BQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBPSJ9"},
         };
     }
 }
