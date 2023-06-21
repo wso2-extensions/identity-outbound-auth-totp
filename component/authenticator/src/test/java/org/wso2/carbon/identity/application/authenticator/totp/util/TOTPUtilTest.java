@@ -66,7 +66,7 @@ import static org.testng.Assert.assertEquals;
 
 @PrepareForTest({FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, ConfigurationFacade.class,
         IdentityTenantUtil.class, ServiceURLBuilder.class, TOTPDataHolder.class})
-@PowerMockIgnore({"org.mockito.*","org.powermock.api.mockito.invocation.*"})
+@PowerMockIgnore({"org.mockito.*", "org.powermock.api.mockito.invocation.*"})
 public class TOTPUtilTest {
 
     private TOTPUtil totpUtil;
@@ -459,7 +459,7 @@ public class TOTPUtilTest {
 
     @Test(description = "Test case for getEnableTOTPPage()", dataProvider = "enableTOTPPageTestDataProvider")
     public void testGetTOTPEnablePage(String tenantDomain, String urlFromConfig,
-                                             String expectedURL) throws Exception {
+                                      String expectedURL) throws Exception {
 
         mockStatic(IdentityTenantUtil.class);
         when(IdentityTenantUtil.isTenantQualifiedUrlsEnabled()).thenReturn(true);
@@ -493,7 +493,7 @@ public class TOTPUtilTest {
 
     @Test(description = "Test case for getTOTPLoginPage()", dataProvider = "loginPageTestDataProvider")
     public void testGetTOTPLoginPage(String tenantDomain, String urlFromConfig,
-                                            String expectedURL) throws Exception {
+                                     String expectedURL) throws Exception {
 
         mockStatic(IdentityTenantUtil.class);
         when(IdentityTenantUtil.isTenantQualifiedUrlsEnabled()).thenReturn(true);
@@ -527,7 +527,7 @@ public class TOTPUtilTest {
 
     @Test(description = "Test case for getTOTPErrorPage()", dataProvider = "errorPageTestDataProvider")
     public void testGetTOTPErrorPage(String tenantDomain, String urlFromConfig,
-                                            String expectedURL) throws Exception {
+                                     String expectedURL) throws Exception {
 
         mockStatic(IdentityTenantUtil.class);
         when(IdentityTenantUtil.isTenantQualifiedUrlsEnabled()).thenReturn(true);
@@ -604,12 +604,19 @@ public class TOTPUtilTest {
     public void testGetProcessedClaimValue(String claimURI, Map<String, String> claimProperties, String claimValue,
                                            String expectedClaimValue) throws Exception {
 
+//        1st approach
+//        spy(TOTPUtil.class);
+//        given(TOTPUtil.getClaimProperties("testDomain", claimURI)).willReturn(claimProperties);
+
+//        2nd approach
 //        doReturn(claimProperties).when(totpUtil).getClaimProperties("testDomain", claimURI);
 //        when(totpUtil.getClaimProperties("testDomain", claimURI)).thenReturn(claimProperties);
 
-//        spy(TOTPUtil.class);
-//        given(TOTPUtil.getClaimProperties("testDomain", claimURI)).willReturn(claimProperties);
-//        // Call the method under test
+//        3rd approach
+//        mockStatic(TOTPUtil.class);
+//        TOTPUtil totpUtilSpy = spy(new TOTPUtil());
+//        when(TOTPUtil.getClaimProperties("testDomain", "claimURI")).thenReturn(claimProperties);
+//        String processedClaimValue = totpUtilSpy.getProcessedClaimValue(claimURI, claimValue, "testDomain");
 
 //        String processedClaimValue = totpUtil.getProcessedClaimValue(claimURI, claimValue, "testDomain");
 //
