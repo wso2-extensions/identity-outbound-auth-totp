@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.application.authenticator.totp.util;
 
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
@@ -617,6 +618,9 @@ public class TOTPUtilTest {
 //        TOTPUtil totpUtilSpy = spy(new TOTPUtil());
 //        when(TOTPUtil.getClaimProperties("testDomain", "claimURI")).thenReturn(claimProperties);
 //        String processedClaimValue = totpUtilSpy.getProcessedClaimValue(claimURI, claimValue, "testDomain");
+
+//        4th approach
+//        TOTPUtil totpUtilMocked = Mockito.mock(TOTPUtil.class, Mockito.CALLS_REAL_METHODS);
 
 //        String processedClaimValue = totpUtil.getProcessedClaimValue(claimURI, claimValue, "testDomain");
 //
