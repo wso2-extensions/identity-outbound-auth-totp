@@ -1156,4 +1156,3 @@ public class TOTPUtil {
         }
     }
 }
-

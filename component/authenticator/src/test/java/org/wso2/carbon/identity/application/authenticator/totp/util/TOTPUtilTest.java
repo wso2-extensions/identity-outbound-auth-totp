@@ -66,7 +66,7 @@ import static org.powermock.api.mockito.PowerMockito.when;
 import static org.testng.Assert.assertEquals;
 
 @PrepareForTest({FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, ConfigurationFacade.class,
-        IdentityTenantUtil.class, ServiceURLBuilder.class, TOTPDataHolder.class})
+        IdentityTenantUtil.class, ServiceURLBuilder.class})
 @PowerMockIgnore({"org.mockito.*", "org.powermock.api.mockito.invocation.*"})
 public class TOTPUtilTest {
 
@@ -601,31 +601,31 @@ public class TOTPUtilTest {
         return new PowerMockObjectFactory();
     }
 
-    @Test(description = "Test case for getProcessedClaimValue()", dataProvider = "processedClaimValueTestDataProvider")
+   /* @Test(description = "Test case for getProcessedClaimValue()", dataProvider = "processedClaimValueTestDataProvider")
     public void testGetProcessedClaimValue(String claimURI, Map<String, String> claimProperties, String claimValue,
                                            String expectedClaimValue) throws Exception {
 
-//        1st approach
-//        spy(TOTPUtil.class);
-//        given(TOTPUtil.getClaimProperties("testDomain", claimURI)).willReturn(claimProperties);
+        1st approach
+        spy(TOTPUtil.class);
+        given(TOTPUtil.getClaimProperties("testDomain", claimURI)).willReturn(claimProperties);
 
-//        2nd approach
-//        doReturn(claimProperties).when(totpUtil).getClaimProperties("testDomain", claimURI);
-//        when(totpUtil.getClaimProperties("testDomain", claimURI)).thenReturn(claimProperties);
+        2nd approach
+        doReturn(claimProperties).when(totpUtil).getClaimProperties("testDomain", claimURI);
+        when(totpUtil.getClaimProperties("testDomain", claimURI)).thenReturn(claimProperties);
 
-//        3rd approach
-//        mockStatic(TOTPUtil.class);
-//        TOTPUtil totpUtilSpy = spy(new TOTPUtil());
-//        when(TOTPUtil.getClaimProperties("testDomain", "claimURI")).thenReturn(claimProperties);
-//        String processedClaimValue = totpUtilSpy.getProcessedClaimValue(claimURI, claimValue, "testDomain");
+        3rd approach
+        mockStatic(TOTPUtil.class);
+        TOTPUtil totpUtilSpy = spy(new TOTPUtil());
+        when(TOTPUtil.getClaimProperties("testDomain", "claimURI")).thenReturn(claimProperties);
+        String processedClaimValue = totpUtilSpy.getProcessedClaimValue(claimURI, claimValue, "testDomain");
 
-//        4th approach
-//        TOTPUtil totpUtilMocked = Mockito.mock(TOTPUtil.class, Mockito.CALLS_REAL_METHODS);
+        4th approach
+        TOTPUtil totpUtilMocked = Mockito.mock(TOTPUtil.class, Mockito.CALLS_REAL_METHODS);
 
-//        String processedClaimValue = totpUtil.getProcessedClaimValue(claimURI, claimValue, "testDomain");
-//
-//        // Verify the result
-//        assertEquals(expectedClaimValue, processedClaimValue);
+        String processedClaimValue = totpUtil.getProcessedClaimValue(claimURI, claimValue, "testDomain");
+
+        // Verify the result
+        assertEquals(expectedClaimValue, processedClaimValue);
     }
 
     @DataProvider(name = "processedClaimValueTestDataProvider")
@@ -646,15 +646,6 @@ public class TOTPUtilTest {
                 {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, claimProperties_2, "AER2BRI0LK4XCSC1", "AER2BRI0LK4XCSC1"},
                 {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, claimProperties_2, "", ""},
                 {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, claimProperties_3, "", ""},
-                {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, claimProperties_3, "AER2BRI0LK4XCSC1", "eyJjIjoiZXlKamFYQ" +
-                        "m9aWElpT2lKYU0zbDFVemcxT1UxYU9HVkthVFowU1RZd0swTlJaR1JsVjA1dlZITkRiRFY1THpWbmMwUnpNRmRCUFNJc0l" +
-                        "tbHVhWFJwWVd4cGVtRjBhVzl1Vm1WamRHOXlJam9pYWpCVVVVWjNPRGhGWlRaTFIxbDFUVFpMVlc5a1FVRkJRVUZCUVVGQ" +
-                        "lFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVV" +
-                        "GQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCU" +
-                        "VVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUVVGQlFVRkJRVUZCUFNKOSIsInQiOiJBRVMvR0NNL05vUGF" +
-                        "kZGluZyIsIml2IjoiajBUUUZ3ODhFZTZLR1l1TTZLVW9kQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQ" +
-                        "UFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUF" +
-                        "BQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBPSJ9"},
         };
-    }
+    }*/
 }
