@@ -396,20 +396,13 @@ public final class TOTPAuthenticatorCredentials {
 
 		Map<String, String> userClaims = new HashMap<>();
 		try {
-			Map<String, String> claimProperties = TOTPUtil.getClaimProperties(tenantDomain,
-					TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
-			if (claimProperties.get("EnableEncryption") != null ) {
-				userClaims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, secretKey);
-			} else {
-				userClaims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(secretKey));
-			}
+			userClaims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.getProcessedClaimValue(
+					TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, secretKey, tenantDomain));
 			userClaims.put(TOTPAuthenticatorConstants.TOTP_ENABLED_CLAIM_URI, "true");
 			userRealm.getUserStoreManager().setUserClaimValues(tenantAwareUsername, userClaims, null);
 		} catch (UserStoreException e) {
 			throw new TOTPAuthenticatorException("TOTPKeyGenerator failed while trying to access user store manager " +
 					"for the user: " + tenantAwareUsername, e);
-		} catch (CryptoException e) {
-			throw new TOTPAuthenticatorException("TOTPAdminService failed while decrypt the stored SecretKey ", e);
 		}
 	}
 }

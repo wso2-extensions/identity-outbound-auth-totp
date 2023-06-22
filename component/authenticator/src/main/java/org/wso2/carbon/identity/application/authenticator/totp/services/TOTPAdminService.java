@@ -213,13 +213,8 @@ public class TOTPAdminService {
                     } else {
                         encoding = TOTPUtil.getEncodingMethod(tenantDomain, context);
                     }
-                    Map<String, String> claimProperties = TOTPUtil.getClaimProperties(tenantDomain,
-                            TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
-                    if (claimProperties.get("EnableEncryption") != null) {
-                        claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, secretKey);
-                    } else {
-                        claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(secretKey));
-                    }
+                    claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.getProcessedClaimValue(
+                            TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, secretKey, tenantDomain));
                     claims.put(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL, encoding);
                     TOTPKeyGenerator.addTOTPClaimsAndRetrievingQRCodeURL(claims, username, context);
                 } else {

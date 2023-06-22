@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.application.authenticator.totp.util;
 
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
@@ -38,11 +39,11 @@ import org.wso2.carbon.identity.application.authentication.framework.config.mode
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
+import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
 import org.wso2.carbon.identity.core.ServiceURL;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
-import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import java.io.IOException;
@@ -53,21 +54,24 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.when;
+
 import static org.mockito.MockitoAnnotations.initMocks;
 import static org.powermock.api.mockito.PowerMockito.doNothing;
 import static org.powermock.api.mockito.PowerMockito.mock;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
+import static org.powermock.api.mockito.PowerMockito.spy;
+import static org.powermock.api.mockito.PowerMockito.when;
 import static org.testng.Assert.assertEquals;
 
 @PrepareForTest({FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, ConfigurationFacade.class,
         IdentityTenantUtil.class, ServiceURLBuilder.class})
-@PowerMockIgnore({"org.mockito.*","org.powermock.api.mockito.invocation.*"})
+@PowerMockIgnore({"org.mockito.*", "org.powermock.api.mockito.invocation.*"})
 public class TOTPUtilTest {
 
     private TOTPUtil totpUtil;
-    AuthenticationContext authenticationContext;
+
     @Mock
     private FileBasedConfigurationBuilder fileBasedConfigurationBuilder;
 
@@ -83,16 +87,11 @@ public class TOTPUtilTest {
     @Mock
     private AuthenticationContext context;
 
-    @Mock
-    private RealmService realmService;
-
-    @Mock
-    private IdentityHelperUtil identityHelperUtil;
-
     @BeforeMethod
     public void setUp() {
 
-        totpUtil = new TOTPUtil();
+        totpUtil = spy(new TOTPUtil());
+
         initMocks(this);
         mockStatic(FileBasedConfigurationBuilder.class);
         mockStatic(IdentityHelperUtil.class);
@@ -461,7 +460,7 @@ public class TOTPUtilTest {
 
     @Test(description = "Test case for getEnableTOTPPage()", dataProvider = "enableTOTPPageTestDataProvider")
     public void testGetTOTPEnablePage(String tenantDomain, String urlFromConfig,
-                                             String expectedURL) throws Exception {
+                                      String expectedURL) throws Exception {
 
         mockStatic(IdentityTenantUtil.class);
         when(IdentityTenantUtil.isTenantQualifiedUrlsEnabled()).thenReturn(true);
@@ -495,7 +494,7 @@ public class TOTPUtilTest {
 
     @Test(description = "Test case for getTOTPLoginPage()", dataProvider = "loginPageTestDataProvider")
     public void testGetTOTPLoginPage(String tenantDomain, String urlFromConfig,
-                                            String expectedURL) throws Exception {
+                                     String expectedURL) throws Exception {
 
         mockStatic(IdentityTenantUtil.class);
         when(IdentityTenantUtil.isTenantQualifiedUrlsEnabled()).thenReturn(true);
@@ -529,7 +528,7 @@ public class TOTPUtilTest {
 
     @Test(description = "Test case for getTOTPErrorPage()", dataProvider = "errorPageTestDataProvider")
     public void testGetTOTPErrorPage(String tenantDomain, String urlFromConfig,
-                                            String expectedURL) throws Exception {
+                                     String expectedURL) throws Exception {
 
         mockStatic(IdentityTenantUtil.class);
         when(IdentityTenantUtil.isTenantQualifiedUrlsEnabled()).thenReturn(true);
@@ -601,4 +600,52 @@ public class TOTPUtilTest {
 
         return new PowerMockObjectFactory();
     }
+
+   /* @Test(description = "Test case for getProcessedClaimValue()", dataProvider = "processedClaimValueTestDataProvider")
+    public void testGetProcessedClaimValue(String claimURI, Map<String, String> claimProperties, String claimValue,
+                                           String expectedClaimValue) throws Exception {
+
+        1st approach
+        spy(TOTPUtil.class);
+        given(TOTPUtil.getClaimProperties("testDomain", claimURI)).willReturn(claimProperties);
+
+        2nd approach
+        doReturn(claimProperties).when(totpUtil).getClaimProperties("testDomain", claimURI);
+        when(totpUtil.getClaimProperties("testDomain", claimURI)).thenReturn(claimProperties);
+
+        3rd approach
+        mockStatic(TOTPUtil.class);
+        TOTPUtil totpUtilSpy = spy(new TOTPUtil());
+        when(TOTPUtil.getClaimProperties("testDomain", "claimURI")).thenReturn(claimProperties);
+        String processedClaimValue = totpUtilSpy.getProcessedClaimValue(claimURI, claimValue, "testDomain");
+
+        4th approach
+        TOTPUtil totpUtilMocked = Mockito.mock(TOTPUtil.class, Mockito.CALLS_REAL_METHODS);
+
+        String processedClaimValue = totpUtil.getProcessedClaimValue(claimURI, claimValue, "testDomain");
+
+        // Verify the result
+        assertEquals(expectedClaimValue, processedClaimValue);
+    }
+
+    @DataProvider(name = "processedClaimValueTestDataProvider")
+    public static Object[][] getProcessedClaimValueTestData() {
+
+        HashMap<String, String> claimProperties_1 = new HashMap<>();
+        claimProperties_1.put("EnableEncryption", "true");
+
+        HashMap<String, String> claimProperties_2 = new HashMap<>();
+        claimProperties_2.put("EnableEncryption", "false");
+
+        HashMap<String, String> claimProperties_3 = new HashMap<>();
+
+
+        return new Object[][]{
+                {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, claimProperties_1, "AER2BRI0LK4XCSC1", "AER2BRI0LK4XCSC1"},
+                {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, claimProperties_1, "", ""},
+                {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, claimProperties_2, "AER2BRI0LK4XCSC1", "AER2BRI0LK4XCSC1"},
+                {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, claimProperties_2, "", ""},
+                {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, claimProperties_3, "", ""},
+        };
+    }*/
 }

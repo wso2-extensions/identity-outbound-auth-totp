@@ -286,8 +286,16 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         claims = TOTPKeyGenerator.generateClaims(UserCoreUtil.addDomainToName(username,
                                 authenticatingUser.getUserStoreDomain()), false, context);
                     }
-                    context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
-                            claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
+                    Map<String, String> claimProperties = TOTPUtil.getClaimProperties(tenantDomain,
+                            TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
+                    // Context will have the decrypted secret key all the time.
+                    if (claimProperties.containsKey(TOTPAuthenticatorConstants.ENABLE_ENCRYPTION)) {
+                        context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
+                                claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
+                    } else {
+                        context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
+                                TOTPUtil.decrypt(claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL)));
+                    }
                     context.setProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
                             claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL));
                     String qrURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
@@ -328,6 +336,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     "Authentication failed!. Cannot get the username from first step.", e);
         } catch (URLBuilderException | URISyntaxException e) {
             throw new AuthenticationFailedException("Error while building TOTP page URL.", e);
+        } catch (CryptoException e) {
+            throw new AuthenticationFailedException("Error while decrypting the secret key.", e);
         }
     }
 
@@ -446,13 +456,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         !isSecretKeyExistForUser(username)) {
                     String secretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
                     String tenantDomain = context.getTenantDomain();
-                    Map<String, String> claimProperties = TOTPUtil.getClaimProperties(tenantDomain,
-                            TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
-                    if (claimProperties.get("EnableEncryption") != null) {
-                        claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, secretKey);
-                    } else {
-                        claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(secretKey));
-                    }
+                    claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.getProcessedClaimValue(
+                            TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,secretKey,tenantDomain));
                     // When secret key is available, have to make TOTP_ENABLED_CLAIM_URI true.
                     claims.put(TOTPAuthenticatorConstants.TOTP_ENABLED_CLAIM_URI, "true");
                 }
@@ -463,9 +468,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 TOTPKeyGenerator.addTOTPClaimsAndRetrievingQRCodeURL(claims, username, context);
             } catch (TOTPException e) {
                 throw new AuthenticationFailedException("Error while adding TOTP claims to the user : " +
-                        (LoggerUtils.isLogMaskingEnable ? LoggerUtils.getMaskedContent(username) : username), e);
-            } catch (CryptoException e) {
-                throw new AuthenticationFailedException("Error while encrypting the secret key for user : " +
                         (LoggerUtils.isLogMaskingEnable ? LoggerUtils.getMaskedContent(username) : username), e);
             }
         }
@@ -489,12 +491,16 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         .getUserClaimValues(tenantAwareUsername,
                                 new String[]{TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL}, null);
                 String secretKey = userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
+                // Context will have the decrypted secret key all the time.
                 if (StringUtils.isNotEmpty(secretKey)) {
-                    context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, secretKey);
+                    context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.decrypt(secretKey));
                 }
             }
         } catch (UserStoreException e) {
             throw new AuthenticationFailedException("Error while getting TOTP secret key of the user: " +
+                    (LoggerUtils.isLogMaskingEnable ? LoggerUtils.getMaskedContent(username) : username), e);
+        } catch (CryptoException e) {
+            throw new AuthenticationFailedException("Error while decrypting the secret key for user : " +
                     (LoggerUtils.isLogMaskingEnable ? LoggerUtils.getMaskedContent(username) : username), e);
         }
     }
@@ -739,18 +745,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
         String secretKey = null;
         if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
-            Map<String, String> claimProperties = TOTPUtil.getClaimProperties(context.getTenantDomain(),
-                    TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
-            try {
-                if (claimProperties.get("EnableEncryption") != null) {
-                    secretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
-                } else {
-                    secretKey = TOTPUtil.decrypt(context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL)
-                            .toString());
-                }
-            } catch (CryptoException e) {
-                throw new TOTPException("Error while decrypting the secret key", e);
-            }
+            secretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
         }
         TOTPAuthenticatorCredentials totpAuthenticator = getTotpAuthenticator(context, context.getTenantDomain());
         return totpAuthenticator.authorize(secretKey, token);

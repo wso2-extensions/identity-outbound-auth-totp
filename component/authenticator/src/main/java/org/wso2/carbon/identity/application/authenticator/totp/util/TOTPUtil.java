@@ -1129,4 +1129,30 @@ public class TOTPUtil {
         }
         return Collections.emptyMap();
     }
+
+    /**
+     * Returns the encrypted claim value if EnableEncryption property is available for the claim. Otherwise, return the
+     * plain text.
+     *
+     * @param claimURI     Claim URI.
+     * @param claimValue   Claim value.
+     * @param tenantDomain Tenant domain.
+     * @return Encrypted or plain claim value based on the EnableEncryption claim property.
+     * @throws TOTPAuthenticatorException When errors occurs while encrypting the claim value.
+     */
+    public static String getProcessedClaimValue(String claimURI, String claimValue, String tenantDomain) {
+
+        Map<String, String> claimProperties = getClaimProperties(tenantDomain, claimURI);
+        try {
+            if (claimProperties.containsKey(TOTPAuthenticatorConstants.ENABLE_ENCRYPTION)) {
+                return claimValue;
+            }
+            if (StringUtils.isBlank(claimValue)) {
+                return claimValue;
+            }
+            return TOTPUtil.encrypt(claimValue);
+        } catch (CryptoException e) {
+            throw new TOTPAuthenticatorException("Error occurred while encrypting claim value of: " + claimURI, e);
+        }
+    }
 }

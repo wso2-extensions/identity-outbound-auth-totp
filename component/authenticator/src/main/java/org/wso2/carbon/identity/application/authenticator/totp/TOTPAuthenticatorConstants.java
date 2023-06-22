@@ -105,6 +105,10 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String ERROR_CODE = "errorCode";
 	public static final String LOCKED_REASON = "lockedReason";
 
+	// This constant has been defined in FrameworkConstants class in framework repo as well. Hence, when changing this
+	// value make sure to change it there as well.
+	public static final String ENABLE_ENCRYPTION = "EnableEncryption";
+
 	/**
 	 * Enum which contains the error codes and corresponding error messages.
 	 */
