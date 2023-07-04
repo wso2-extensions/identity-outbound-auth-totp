@@ -98,7 +98,6 @@ import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthen
 public class TOTPUtil {
 
     private static final Log log = LogFactory.getLog(TOTPUtil.class);
-    private String ENABLE_SECRET_KEY_ENCRYPTION_FROM_SERVICE = "UserClaimUpdate.EnableSecretKeyEncryptionFromService";
 
     /**
      * Encrypt the given plain text.
