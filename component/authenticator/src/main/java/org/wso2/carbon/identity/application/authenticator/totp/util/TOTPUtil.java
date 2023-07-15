@@ -110,13 +110,12 @@ public class TOTPUtil {
 
         String tenantDomain = CarbonContext.getThreadLocalCarbonContext().getTenantDomain();
         // Get custom key from server configuration.
-        String customKey =
-                ServerConfiguration.getInstance().getFirstProperty(TOTP_KEY);
-        if (SUPER_TENANT_DOMAIN.equals(tenantDomain) && StringUtils.isNotBlank(customKey)) {
-            return CryptoUtil.getDefaultCryptoUtil().encryptWithCustomKeyAndBase64Encode(
-                    plainText.getBytes(StandardCharsets.UTF_8), customKey);
+        String customKey = null;
+        if (SUPER_TENANT_DOMAIN.equals(tenantDomain)) {
+            customKey = ServerConfiguration.getInstance().getFirstProperty(TOTP_KEY);
         }
-        return CryptoUtil.getDefaultCryptoUtil().encryptAndBase64Encode(plainText.getBytes(Charsets.UTF_8));
+        return CryptoUtil.getDefaultCryptoUtil().encryptAndBase64Encode(
+                    plainText.getBytes(StandardCharsets.UTF_8), customKey);
     }
 
     /**
@@ -130,9 +129,9 @@ public class TOTPUtil {
 
         String tenantDomain = CarbonContext.getThreadLocalCarbonContext().getTenantDomain();
         // Get custom key from server configuration.
-        String customKey =
-                ServerConfiguration.getInstance().getFirstProperty(TOTP_KEY);
-        if (SUPER_TENANT_DOMAIN.equals(tenantDomain) && StringUtils.isNotBlank(customKey)) {
+        if (SUPER_TENANT_DOMAIN.equals(tenantDomain)) {
+            String customKey =
+                    ServerConfiguration.getInstance().getFirstProperty(TOTP_KEY);
             return new String(CryptoUtil.getDefaultCryptoUtil().base64DecodeAndDecryptWithCustomKey(cipherText, customKey),
                     Charsets.UTF_8);
         }
