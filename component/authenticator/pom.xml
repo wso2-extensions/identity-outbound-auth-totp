@@ -75,6 +75,11 @@
             <artifactId>org.wso2.carbon.identity.handler.event.account.lock</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.wso2.carbon</groupId>
+            <artifactId>org.wso2.carbon.core</artifactId>
+            <version>${carbon.kernel.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.wso2.orbit.org.owasp.encoder</groupId>
             <artifactId>encoder</artifactId>
             <version>${encoder.wso2.version}</version>
@@ -130,8 +135,8 @@
                         <Bundle-Name>${project.artifactId}</Bundle-Name>
                         <Private-Package>org.wso2.carbon.identity.application.authenticator.totp.internal</Private-Package>
                         <Import-Package>
-                            org.wso2.carbon.core.utils.*,
-                            org.wso2.carbon.core.*,
+                            org.wso2.carbon.core.utils.*; version="${carbon.kernel.package.import.version.range}",
+                            org.wso2.carbon.core.*; version="${carbon.kernel.package.import.version.range}",
                             org.osgi.framework,
                             org.osgi.service.component; version="${osgi.service.import.version.range}",
                             org.wso2.carbon.registry.core.*,
