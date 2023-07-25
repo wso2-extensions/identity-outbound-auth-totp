@@ -28,6 +28,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.wso2.carbon.base.ServerConfiguration;
+import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.context.RegistryType;
 import org.wso2.carbon.core.util.CryptoException;
@@ -74,6 +76,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -88,6 +91,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ERROR_PAGE;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOTP_HIDE_USERSTORE_FROM_USERNAME;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW;
@@ -98,6 +102,7 @@ import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthen
 public class TOTPUtil {
 
     private static final Log log = LogFactory.getLog(TOTPUtil.class);
+    private static final String TOTP_KEY = "CryptoService.TotpSecret";
 
     /**
      * Encrypt the given plain text.
@@ -108,7 +113,14 @@ public class TOTPUtil {
      */
     public static String encrypt(String plainText) throws CryptoException {
 
-        return CryptoUtil.getDefaultCryptoUtil().encryptAndBase64Encode(plainText.getBytes(Charsets.UTF_8));
+        String tenantDomain = CarbonContext.getThreadLocalCarbonContext().getTenantDomain();
+        // Get custom key from server configuration.
+        String customKey = null;
+        if (SUPER_TENANT_DOMAIN.equals(tenantDomain)) {
+            customKey = ServerConfiguration.getInstance().getFirstProperty(TOTP_KEY);
+        }
+        return CryptoUtil.getDefaultCryptoUtil().encryptAndBase64Encode(
+                    plainText.getBytes(StandardCharsets.UTF_8), customKey);
     }
 
     /**
@@ -120,6 +132,14 @@ public class TOTPUtil {
      */
     public static String decrypt(String cipherText) throws CryptoException {
 
+        String tenantDomain = CarbonContext.getThreadLocalCarbonContext().getTenantDomain();
+        // Get custom key from server configuration.
+        if (SUPER_TENANT_DOMAIN.equals(tenantDomain)) {
+            String customKey =
+                    ServerConfiguration.getInstance().getFirstProperty(TOTP_KEY);
+            return new String(CryptoUtil.getDefaultCryptoUtil().base64DecodeAndDecryptWithCustomKey(cipherText, customKey),
+                    Charsets.UTF_8);
+        }
         return new String(CryptoUtil.getDefaultCryptoUtil().base64DecodeAndDecrypt(cipherText), Charsets.UTF_8);
     }
 
