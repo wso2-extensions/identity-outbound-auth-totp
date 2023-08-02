@@ -110,6 +110,23 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String ENABLE_ENCRYPTION = "EnableEncryption";
 
 	/**
+	 * Constants related to log management.
+	 */
+	public static class LogConstants {
+
+		public static final String TOTP_AUTH_SERVICE = "local-auth-totp";
+
+		/**
+		 * Define action IDs for diagnostic logs.
+		 */
+		public static class ActionIDs {
+
+			public static final String PROCESS_AUTHENTICATION_RESPONSE = "process-totp-authentication-response";
+			public static final String VALIDATE_TOTP_REQUEST = "validate-totp-authentication-request";
+		}
+	}
+
+	/**
 	 * Enum which contains the error codes and corresponding error messages.
 	 */
 	public enum ErrorMessages {

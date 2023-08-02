@@ -45,7 +45,6 @@ import org.wso2.carbon.identity.application.authentication.framework.config.mode
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.exception.LogoutFailedException;
-import org.wso2.carbon.identity.application.authentication.framework.exception.UserSessionException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authentication.framework.store.UserSessionStore;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
@@ -53,6 +52,7 @@ import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPData
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.application.common.model.IdentityProvider;
 import org.wso2.carbon.identity.application.common.model.JustInTimeProvisioningConfig;
+import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
 import org.wso2.carbon.identity.core.ServiceURL;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
@@ -92,7 +92,7 @@ import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthen
         FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, CarbonContext.class,
         FederatedAuthenticatorUtil.class, IdentityUtil.class, ServiceURLBuilder.class, IdentityTenantUtil.class,
         UserSessionStore.class, TOTPDataHolder.class, IdpManager.class, IdentityProvider.class,
-        JustInTimeProvisioningConfig.class})
+        JustInTimeProvisioningConfig.class, LoggerUtils.class})
 @PowerMockIgnore({"javax.crypto.*","org.mockito.*","org.powermock.api.mockito.invocation.*"})
 public class TOTPAuthenticatorTest {
 
@@ -186,6 +186,8 @@ public class TOTPAuthenticatorTest {
         mockStatic(IdentityUtil.class);
         mockStatic(IdentityTenantUtil.class);
         when(IdentityTenantUtil.getTenantId(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)).thenReturn(1);
+        mockStatic(LoggerUtils.class);
+        when(LoggerUtils.isDiagnosticLogsEnabled()).thenReturn(true);
     }
 
     private void mockServiceURLBuilder() throws URLBuilderException {
@@ -557,6 +559,7 @@ public class TOTPAuthenticatorTest {
         authenticatedUser.setFederatedUser(true);
         authenticatedUser.setUserName(username);
         authenticatedUser.setFederatedIdPName("Google");
+        authenticatedUser.setUserId("dummyUserId");
         when(mockedContext.getTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
 
         when(TOTPUtil.isLocalUser(mockedContext)).thenReturn(false);
