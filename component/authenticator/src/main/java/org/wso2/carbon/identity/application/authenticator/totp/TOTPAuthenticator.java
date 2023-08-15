@@ -323,8 +323,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 boolean enrolUserInAuthenticationFlowEnabled = TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(
                         context, runtimeParams);
                 if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
-                    diagnosticLogBuilder.inputParam("enroll user in authentication flow enabled",
-                            enrolUserInAuthenticationFlowEnabled);
+                    diagnosticLogBuilder.inputParam("user enrollment enabled", enrolUserInAuthenticationFlowEnabled);
                 }
                 if (enrolUserInAuthenticationFlowEnabled &&
                         request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
@@ -781,13 +780,13 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         .getUserStoreManager().getUserClaimValues
                                 (tenantAwareUsername, new String[]
                                         {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL}, null);
-                String secretKeyClaim = userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
-                if (secretKeyClaim == null) {
+                String secretKeyClaimValue = userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
+                if (secretKeyClaimValue == null) {
                     throw new TOTPException("Secret key claim is null for the user : " +
                             (LoggerUtils.isLogMaskingEnable ? LoggerUtils.getMaskedContent(tenantAwareUsername) :
                                     tenantAwareUsername));
                 }
-                String secretKey = TOTPUtil.decrypt(secretKeyClaim);
+                String secretKey = TOTPUtil.decrypt(secretKeyClaimValue);
                 return totpAuthenticator.authorize(secretKey, token);
             } else {
                 throw new TOTPException(
@@ -1174,7 +1173,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         return false;
     }
 
-    /** Add application details to a map.
+    /**
+     * Add application details to a map.
      *
      * @param context AuthenticationContext.
      * @return Map with application details.
@@ -1206,9 +1206,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 return Optional.ofNullable(authenticatedUser.getUserId());
             }
         } catch (UserIdNotFoundException e) {
-            if (log.isDebugEnabled()) {
-                log.debug("Error while getting the user id from the authenticated user.", e);
-            }
+            log.debug("Error while getting the user id from the authenticated user.", e);
         }
         return Optional.empty();
     }
