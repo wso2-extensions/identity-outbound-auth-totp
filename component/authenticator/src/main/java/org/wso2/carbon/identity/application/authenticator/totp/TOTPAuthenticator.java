@@ -34,7 +34,9 @@ import org.wso2.carbon.identity.application.authentication.framework.config.mode
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.exception.LogoutFailedException;
+import org.wso2.carbon.identity.application.authentication.framework.exception.UserIdNotFoundException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
+import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
@@ -45,6 +47,7 @@ import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.application.common.model.IdentityProvider;
 import org.wso2.carbon.identity.application.common.model.JustInTimeProvisioningConfig;
 import org.wso2.carbon.identity.application.common.model.Property;
+import org.wso2.carbon.identity.central.log.mgt.utils.LogConstants;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
@@ -56,6 +59,7 @@ import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.api.UserStoreManager;
 import org.wso2.carbon.user.core.UserCoreConstants;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
+import org.wso2.carbon.utils.DiagnosticLog;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.io.IOException;
@@ -63,12 +67,16 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ErrorMessages;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.LogConstants.ActionIDs.PROCESS_AUTHENTICATION_RESPONSE;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.LogConstants.ActionIDs.INITIATE_TOTP_REQUEST;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.LogConstants.TOTP_AUTH_SERVICE;
 import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getMultiOptionURIQueryParam;
 import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getTOTPErrorPage;
 import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getTOTPLoginPage;
@@ -96,7 +104,16 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
         String action = request.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN);
         String enableTOTP = request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP);
-        return (token != null || action != null || enableTOTP != null);
+        boolean canHandle = token != null || action != null || enableTOTP != null;
+        if (LoggerUtils.isDiagnosticLogsEnabled() && canHandle) {
+            DiagnosticLog.DiagnosticLogBuilder diagnosticLogBuilder = new DiagnosticLog.DiagnosticLogBuilder(
+                    TOTP_AUTH_SERVICE, FrameworkConstants.LogConstants.ActionIDs.HANDLE_AUTH_STEP);
+            diagnosticLogBuilder.resultMessage("TOTP Authenticator handling the authentication.")
+                    .logDetailLevel(DiagnosticLog.LogDetailLevel.INTERNAL_SYSTEM)
+                    .resultStatus(DiagnosticLog.ResultStatus.SUCCESS);
+            LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
+        }
+        return canHandle;
     }
 
     /**
@@ -160,6 +177,16 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                                                  AuthenticationContext context)
             throws AuthenticationFailedException {
 
+        if (LoggerUtils.isDiagnosticLogsEnabled()) {
+            DiagnosticLog.DiagnosticLogBuilder diagnosticLogBuilder = new DiagnosticLog.DiagnosticLogBuilder(
+                    TOTP_AUTH_SERVICE, INITIATE_TOTP_REQUEST);
+            diagnosticLogBuilder.resultMessage("Initiating TOTP authentication request.")
+                    .logDetailLevel(DiagnosticLog.LogDetailLevel.APPLICATION)
+                    .resultStatus(DiagnosticLog.ResultStatus.SUCCESS)
+                    .inputParam(LogConstants.InputKeys.STEP, context.getCurrentStep())
+                    .inputParams(getApplicationDetails(context));
+            LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
+        }
         String username = null;
         Map<String, String> parameterMap = getAuthenticatorConfig().getParameterMap();
         boolean showAuthFailureReason = Boolean.parseBoolean(parameterMap.get(
@@ -202,6 +229,15 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
          */
         boolean isInitialFederationAttempt = StringUtils.isBlank(mappedLocalUsername);
         String loggableUsername = null;
+        DiagnosticLog.DiagnosticLogBuilder diagnosticLogBuilder = null;
+        if (LoggerUtils.isDiagnosticLogsEnabled()) {
+            diagnosticLogBuilder = new DiagnosticLog.DiagnosticLogBuilder(
+                    TOTP_AUTH_SERVICE, INITIATE_TOTP_REQUEST);
+            diagnosticLogBuilder.logDetailLevel(DiagnosticLog.LogDetailLevel.APPLICATION)
+                    .resultStatus(DiagnosticLog.ResultStatus.SUCCESS)
+                    .inputParam(LogConstants.InputKeys.STEP, context.getCurrentStep())
+                    .inputParams(getApplicationDetails(context));
+        }
 
         try {
             AuthenticatedUser authenticatingUser = resolveAuthenticatingUser(context, authenticatedUserFromContext,
@@ -210,7 +246,13 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             loggableUsername = LoggerUtils.isLogMaskingEnable ? LoggerUtils.getMaskedContent(username) :
                     username;
             context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER, authenticatingUser);
-
+            if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
+                Map<String, String> userParams = new HashMap<>();
+                userParams.put(LogConstants.InputKeys.USER, loggableUsername);
+                Optional<String> optionalUserId = getUserId(authenticatedUserFromContext);
+                optionalUserId.ifPresent(userId -> userParams.put(LogConstants.InputKeys.USER_ID, userId));
+                diagnosticLogBuilder.inputParams(userParams);
+            }
             String retryParam = "";
             if (context.isRetrying()) {
                 retryParam = "&authFailure=true&authFailureMsg=login.fail.message";
@@ -270,11 +312,20 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 String totpLoginPageUrl = buildTOTPLoginPageURL(context, username, retryParam,
                         errorParam, multiOptionURI);
                 response.sendRedirect(totpLoginPageUrl);
+                if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
+                    diagnosticLogBuilder.resultMessage("Redirecting to TOTP login page.");
+                    LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
+                }
             } else {
                 Map<String, String> runtimeParams = getRuntimeParams(context);
 
-                if (TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, runtimeParams)
-                        && request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
+                boolean enrolUserInAuthenticationFlowEnabled = TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(
+                        context, runtimeParams);
+                if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
+                    diagnosticLogBuilder.inputParam("user enrollment enabled", enrolUserInAuthenticationFlowEnabled);
+                }
+                if (enrolUserInAuthenticationFlowEnabled &&
+                        request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
                     // If TOTP is not enabled for the user and he hasn't redirected to the enrollment page yet.
                     if (log.isDebugEnabled()) {
                         log.debug("User has not enabled TOTP: " + username);
@@ -300,6 +351,10 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                             claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL));
                     String qrURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
                     TOTPUtil.redirectToEnableTOTPReqPage(request, response, context, qrURL, runtimeParams);
+                    if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
+                        diagnosticLogBuilder.resultMessage("Redirecting user to the TOTP enable page.");
+                        LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
+                    }
                 } else if (Boolean.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)) ||
                         isTOTPEnabledByAdmin) {
                     //if TOTP is not enabled for the user and user continued the enrollment.
@@ -310,6 +365,10 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     String totpLoginPageUrl = buildTOTPLoginPageURL(context, username, retryParam,
                             errorParam, multiOptionURI);
                     response.sendRedirect(totpLoginPageUrl);
+                    if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
+                        diagnosticLogBuilder.resultMessage("Redirecting to TOTP login page.");
+                        LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
+                    }
                 } else {
                     //if admin does not enforce TOTP and TOTP is not enabled for the user.
                     context.setSubject(authenticatingUser);
@@ -322,6 +381,10 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     } else {
                         context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
                                 TOTPAuthenticatorConstants.FEDERETOR);
+                    }
+                    if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
+                        diagnosticLogBuilder.resultMessage("TOTP is not enabled for the user.");
+                        LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
                     }
                 }
             }
@@ -396,6 +459,16 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                                                  AuthenticationContext context)
             throws AuthenticationFailedException {
 
+        if (LoggerUtils.isDiagnosticLogsEnabled()) {
+            DiagnosticLog.DiagnosticLogBuilder diagnosticLogBuilder = new DiagnosticLog.DiagnosticLogBuilder(
+                    TOTP_AUTH_SERVICE, PROCESS_AUTHENTICATION_RESPONSE);
+            diagnosticLogBuilder.resultMessage("Processing TOTP authentication response.")
+                    .logDetailLevel(DiagnosticLog.LogDetailLevel.APPLICATION)
+                    .resultStatus(DiagnosticLog.ResultStatus.SUCCESS)
+                    .inputParam(LogConstants.InputKeys.STEP, context.getCurrentStep())
+                    .inputParams(getApplicationDetails(context));
+            LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
+        }
         String token = request.getParameter(TOTPAuthenticatorConstants.TOKEN);
         AuthenticatedUser authenticatingUser =
                 (AuthenticatedUser) context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
@@ -442,6 +515,19 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         }
         // It reached here means the authentication was successful.
         resetTotpFailedAttempts(context);
+        if (LoggerUtils.isDiagnosticLogsEnabled()) {
+            DiagnosticLog.DiagnosticLogBuilder diagnosticLogBuilder = new DiagnosticLog.DiagnosticLogBuilder(
+                    TOTP_AUTH_SERVICE, PROCESS_AUTHENTICATION_RESPONSE);
+            diagnosticLogBuilder.resultMessage("Successfully processed TOTP authentication response.")
+                    .logDetailLevel(DiagnosticLog.LogDetailLevel.APPLICATION)
+                    .resultStatus(DiagnosticLog.ResultStatus.SUCCESS)
+                    .inputParam(LogConstants.InputKeys.STEP, context.getCurrentStep())
+                    .inputParam(LogConstants.InputKeys.USER, loggableUsername)
+                    .inputParams(getApplicationDetails(context));
+            Optional<String> optionalUserId = getUserId(context.getSubject());
+            optionalUserId.ifPresent(userId -> diagnosticLogBuilder.inputParam(LogConstants.InputKeys.USER_ID, userId));
+            LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
+        }
     }
 
     private void checkTotpEnabled(AuthenticationContext context, String username) throws AuthenticationFailedException {
@@ -693,8 +779,13 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         .getUserStoreManager().getUserClaimValues
                                 (tenantAwareUsername, new String[]
                                         {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL}, null);
-                String secretKey = TOTPUtil.decrypt(
-                        userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
+                String secretKeyClaimValue = userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
+                if (secretKeyClaimValue == null) {
+                    throw new TOTPException("Secret key claim is null for the user : " +
+                            (LoggerUtils.isLogMaskingEnable ? LoggerUtils.getMaskedContent(tenantAwareUsername) :
+                                    tenantAwareUsername));
+                }
+                String secretKey = TOTPUtil.decrypt(secretKeyClaimValue);
                 return totpAuthenticator.authorize(secretKey, token);
             } else {
                 throw new TOTPException(
@@ -1079,5 +1170,43 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     getProperty(TOTPAuthenticatorConstants.IS_INITIAL_FEDERATED_USER_ATTEMPT).toString());
         }
         return false;
+    }
+
+    /**
+     * Add application details to a map.
+     *
+     * @param context AuthenticationContext.
+     * @return Map with application details.
+     */
+    private Map<String, String> getApplicationDetails(AuthenticationContext context) {
+
+        Map<String, String> applicationDetailsMap = new HashMap<>();
+        FrameworkUtils.getApplicationResourceId(context).ifPresent(applicationId ->
+                applicationDetailsMap.put(LogConstants.InputKeys.APPLICATION_ID, applicationId));
+        FrameworkUtils.getApplicationName(context).ifPresent(applicationName ->
+                applicationDetailsMap.put(LogConstants.InputKeys.APPLICATION_NAME,
+                        applicationName));
+        return applicationDetailsMap;
+    }
+
+    /**
+     * Get the user id from the authenticated user.
+     *
+     * @param authenticatedUser AuthenticationContext.
+     * @return User id.
+     */
+    private Optional<String> getUserId(AuthenticatedUser authenticatedUser) {
+
+        if (authenticatedUser == null) {
+            return Optional.empty();
+        }
+        try {
+            if (authenticatedUser.getUserId() != null) {
+                return Optional.ofNullable(authenticatedUser.getUserId());
+            }
+        } catch (UserIdNotFoundException e) {
+            log.debug("Error while getting the user id from the authenticated user.", e);
+        }
+        return Optional.empty();
     }
 }
