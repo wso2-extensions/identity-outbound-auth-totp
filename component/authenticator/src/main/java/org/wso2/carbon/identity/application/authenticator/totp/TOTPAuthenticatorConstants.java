@@ -122,7 +122,7 @@ public abstract class TOTPAuthenticatorConstants {
 		public static class ActionIDs {
 
 			public static final String PROCESS_AUTHENTICATION_RESPONSE = "process-totp-authentication-response";
-			public static final String VALIDATE_TOTP_REQUEST = "validate-totp-authentication-request";
+			public static final String INITIATE_TOTP_REQUEST = "initiate-totp-authentication-request";
 		}
 	}
 

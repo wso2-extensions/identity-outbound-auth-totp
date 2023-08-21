@@ -69,14 +69,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ErrorMessages;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.LogConstants.ActionIDs.PROCESS_AUTHENTICATION_RESPONSE;
-import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.LogConstants.ActionIDs.VALIDATE_TOTP_REQUEST;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.LogConstants.ActionIDs.INITIATE_TOTP_REQUEST;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.LogConstants.TOTP_AUTH_SERVICE;
 import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getMultiOptionURIQueryParam;
 import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getTOTPErrorPage;
@@ -180,8 +179,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
         if (LoggerUtils.isDiagnosticLogsEnabled()) {
             DiagnosticLog.DiagnosticLogBuilder diagnosticLogBuilder = new DiagnosticLog.DiagnosticLogBuilder(
-                    TOTP_AUTH_SERVICE, VALIDATE_TOTP_REQUEST);
-            diagnosticLogBuilder.resultMessage("Validate TOTP authentication request.")
+                    TOTP_AUTH_SERVICE, INITIATE_TOTP_REQUEST);
+            diagnosticLogBuilder.resultMessage("Initiating TOTP authentication request.")
                     .logDetailLevel(DiagnosticLog.LogDetailLevel.APPLICATION)
                     .resultStatus(DiagnosticLog.ResultStatus.SUCCESS)
                     .inputParam(LogConstants.InputKeys.STEP, context.getCurrentStep())
@@ -233,7 +232,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         DiagnosticLog.DiagnosticLogBuilder diagnosticLogBuilder = null;
         if (LoggerUtils.isDiagnosticLogsEnabled()) {
             diagnosticLogBuilder = new DiagnosticLog.DiagnosticLogBuilder(
-                    TOTP_AUTH_SERVICE, VALIDATE_TOTP_REQUEST);
+                    TOTP_AUTH_SERVICE, INITIATE_TOTP_REQUEST);
             diagnosticLogBuilder.logDetailLevel(DiagnosticLog.LogDetailLevel.APPLICATION)
                     .resultStatus(DiagnosticLog.ResultStatus.SUCCESS)
                     .inputParam(LogConstants.InputKeys.STEP, context.getCurrentStep())
