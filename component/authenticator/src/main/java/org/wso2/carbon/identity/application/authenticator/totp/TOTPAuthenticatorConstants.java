@@ -103,6 +103,7 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String CONF_SHOW_AUTH_FAILURE_REASON = "showAuthFailureReason";
 	public static final String CONF_SHOW_AUTH_FAILURE_REASON_ON_LOGIN_PAGE = "showAuthFailureReasonOnLoginPage";
 	public static final String ERROR_CODE = "errorCode";
+	public static final String UNLOCK_TIME = "unlockTime";
 	public static final String LOCKED_REASON = "lockedReason";
 
 	// This constant has been defined in FrameworkConstants class in framework repo as well. Hence, when changing this
