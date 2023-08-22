@@ -199,7 +199,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         }
         // Auth failure message if account is locked.
         String accLockAuthFailureMsg = parameterMap.get(TOTPAuthenticatorConstants.CONF_ACC_LOCK_AUTH_FAILURE_MSG);
-        if (StringUtils.isEmpty(accLockAuthFailureMsg)) {
+        if (StringUtils.isBlank(accLockAuthFailureMsg)) {
             accLockAuthFailureMsg = LOGIN_FAIL_MESSAGE;
         }
 
@@ -280,7 +280,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         }
                     }
                     // Only adds error code if it is locked error code.
-                    if (errorCode.equals(UserCoreConstants.ErrorCode.USER_IS_LOCKED)) {
+                    if (UserCoreConstants.ErrorCode.USER_IS_LOCKED.equals(errorCode)) {
                         // Change auth failure message if the error code is locked.
                         if (context.isRetrying()) {
                             retryParam = "&authFailure=true&authFailureMsg=" + accLockAuthFailureMsg;
