@@ -74,6 +74,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ErrorMessages;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.LOGIN_FAIL_MESSAGE;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.LogConstants.ActionIDs.PROCESS_AUTHENTICATION_RESPONSE;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.LogConstants.ActionIDs.INITIATE_TOTP_REQUEST;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.LogConstants.TOTP_AUTH_SERVICE;
@@ -196,6 +197,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             showAuthFailureReasonOnLoginPage = Boolean.parseBoolean(parameterMap.get(
                     TOTPAuthenticatorConstants.CONF_SHOW_AUTH_FAILURE_REASON_ON_LOGIN_PAGE));
         }
+        // Auth failure message if account is locked.
+        String accLockAuthFailureMsg = parameterMap.get(TOTPAuthenticatorConstants.CONF_ACC_LOCK_AUTH_FAILURE_MSG);
+        if (StringUtils.isEmpty(accLockAuthFailureMsg)) {
+            accLockAuthFailureMsg = LOGIN_FAIL_MESSAGE;
+        }
 
         AuthenticatedUser authenticatedUserFromContext = TOTPUtil.getAuthenticatedUser(context);
         if (authenticatedUserFromContext == null) {
@@ -275,6 +281,10 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     }
                     // Only adds error code if it is locked error code.
                     if (errorCode.equals(UserCoreConstants.ErrorCode.USER_IS_LOCKED)) {
+                        // Change auth failure message if the error code is locked.
+                        if (context.isRetrying()) {
+                            retryParam = "&authFailure=true&authFailureMsg=" + accLockAuthFailureMsg;
+                        }
                         Map<String, String> paramMap = new HashMap<>();
                         paramMap.put(TOTPAuthenticatorConstants.ERROR_CODE, errorCode);
                         if (StringUtils.isNotBlank(reason)) {
