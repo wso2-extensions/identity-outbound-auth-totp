@@ -348,6 +348,8 @@ public class TOTPAuthenticatorTest {
             expectedExceptions = {AuthenticationFailedException.class})
     public void testInitiateAuthenticationRequestWithNullUser() throws AuthenticationFailedException {
         context.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
     }
 
@@ -373,6 +375,8 @@ public class TOTPAuthenticatorTest {
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
         when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
+        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
 
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, authenticationContext);
     }
@@ -402,6 +406,8 @@ public class TOTPAuthenticatorTest {
         when(mockedMap.get(anyObject())).thenReturn(stepConfig);
         when(stepConfig.getAuthenticatedAutenticator()).thenReturn(authenticatorConfig);
         when(authenticatorConfig.getApplicationAuthenticator()).thenReturn(applicationAuthenticator);
+        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, mockedContext);
         Assert.assertEquals(mockedContext.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION),
                 TOTPAuthenticatorConstants.FEDERETOR);
@@ -433,6 +439,8 @@ public class TOTPAuthenticatorTest {
         when(stepConfig.getAuthenticatedAutenticator()).thenReturn(authenticatorConfig);
         when(authenticatorConfig.getApplicationAuthenticator()).thenReturn(applicationAuthenticator);
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
         verify(httpServletResponse).sendRedirect(captor.capture());
         Assert.assertTrue(captor.getValue().contains(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME));
@@ -457,6 +465,8 @@ public class TOTPAuthenticatorTest {
         when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
         when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context)).thenReturn(true);
+        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
     }
 
