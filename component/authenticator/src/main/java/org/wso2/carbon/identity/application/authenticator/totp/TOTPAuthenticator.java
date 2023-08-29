@@ -44,6 +44,7 @@ import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
+import org.wso2.carbon.identity.core.model.IdentityErrorMsgContext;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
@@ -145,7 +146,17 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 	                                             HttpServletResponse response,
 	                                             AuthenticationContext context)
 			throws AuthenticationFailedException {
+
 		String username = null;
+		Map<String, String> parameterMap = getAuthenticatorConfig().getParameterMap();
+		boolean showAuthFailureReason = Boolean.parseBoolean(parameterMap.get(
+				TOTPAuthenticatorConstants.CONF_SHOW_AUTH_FAILURE_REASON));
+		boolean showAuthFailureReasonOnLoginPage = false;
+		if (showAuthFailureReason) {
+			showAuthFailureReasonOnLoginPage = Boolean.parseBoolean(parameterMap.get(
+					TOTPAuthenticatorConstants.CONF_SHOW_AUTH_FAILURE_REASON_ON_LOGIN_PAGE));
+		}
+
 		AuthenticatedUser authenticatedUser;
 		String tenantDomain = context.getTenantDomain();
 		context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
@@ -167,6 +178,41 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			if (context.isRetrying()) {
 				retryParam = "&authFailure=true&authFailureMsg=login.fail.message";
 			}
+			IdentityErrorMsgContext errorContext = IdentityUtil.getIdentityErrorMsg();
+			IdentityUtil.clearIdentityErrorMsg();
+
+			String errorParam = StringUtils.EMPTY;
+			if (showAuthFailureReason) {
+				if (errorContext != null && StringUtils.isNotBlank(errorContext.getErrorCode())) {
+					log.debug("Identity error message context is not null.");
+					String errorCode = errorContext.getErrorCode();
+					String reason = null;
+					if (errorCode.contains(":")) {
+						String[] errorCodeWithReason = errorCode.split(":", 2);
+						errorCode = errorCodeWithReason[0];
+						if (errorCodeWithReason.length > 1) {
+							reason = errorCodeWithReason[1];
+						}
+					}
+					// Only adds error code if it is locked error code.
+					if (UserCoreConstants.ErrorCode.USER_IS_LOCKED.equals(errorCode)) {
+						Map<String, String> paramMap = new HashMap<>();
+						paramMap.put(TOTPAuthenticatorConstants.ERROR_CODE, errorCode);
+						if (StringUtils.isNotBlank(reason)) {
+							paramMap.put(TOTPAuthenticatorConstants.LOCKED_REASON, reason);
+						}
+						// Unlocking time in minutes.
+						long unlockTime = getUnlockTimeInMilliSeconds(authenticatedUser);
+						long timeToUnlock = unlockTime - System.currentTimeMillis();
+						if (timeToUnlock > 0) {
+							paramMap.put(TOTPAuthenticatorConstants.UNLOCK_TIME,
+									String.valueOf(Math.round((double) timeToUnlock / 1000 / 60)));
+						}
+						errorParam = buildErrorParamString(paramMap);
+					}
+				}
+			}
+
 			boolean isTOTPEnabled = isTOTPEnabledForLocalUser(username);
 			if (log.isDebugEnabled()) {
 				log.debug("TOTP is enabled by user: " + isTOTPEnabled);
@@ -177,16 +223,17 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			}
 			String multiOptionURI = request.getParameter("multiOptionURI");
 			multiOptionURI = multiOptionURI != null ? "&multiOptionURI=" + Encode.forUriComponent(multiOptionURI) : "";
-			String totpLoginPageUrl =
-					getLoginPage(context) + ("?sessionDataKey=" + context.getContextIdentifier()) +
-					"&authenticators=" + getName() + "&type=totp" + retryParam + "&username=" +
-					username + multiOptionURI;
 			String totpErrorPageUrl =
 					getErrorPage(context) + ("?sessionDataKey=" + context.getContextIdentifier()) +
-					"&authenticators=" + getName() + "&type=totp_error" + retryParam +
-					"&username=" + username + multiOptionURI;
+							"&authenticators=" + getName() + "&type=totp_error" + retryParam +
+							"&username=" + username + errorParam + multiOptionURI;
 			if (isTOTPEnabled && request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
 				//if TOTP is enabled for the user.
+				if (!showAuthFailureReasonOnLoginPage) {
+					errorParam = StringUtils.EMPTY;
+				}
+				String totpLoginPageUrl =
+						buildTOTPLoginPageURL(context, username, retryParam, errorParam, multiOptionURI);
 				response.sendRedirect(buildAbsoluteURL(totpLoginPageUrl));
 			} else {
 				if (TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context)
@@ -205,6 +252,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 				} else if (Boolean.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP))) {
 					//if TOTP is not enabled for the user and user continued the enrolment.
 					context.setProperty(TOTPAuthenticatorConstants.ENABLE_TOTP, true);
+					if (!showAuthFailureReasonOnLoginPage) {
+						errorParam = StringUtils.EMPTY;
+					}
+					String totpLoginPageUrl =
+							buildTOTPLoginPageURL(context, username, retryParam, errorParam, multiOptionURI);
 					response.sendRedirect(totpLoginPageUrl);
 				} else {
 					if (isTOTPEnabledByAdmin) {
@@ -238,6 +290,46 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 		} catch (URISyntaxException | URLBuilderException e) {
 			throw new AuthenticationFailedException("Error while building TOTP page URL.", e);
 		}
+	}
+
+	/**
+	 * Get user account unlock time in milliseconds. If no value configured for unlock time user claim, return 0.
+	 *
+	 * @param authenticatedUser The authenticated user.
+	 * @return User account unlock time in milliseconds. If no value is configured return 0.
+	 * @throws AuthenticationFailedException If an error occurred while getting the user unlock time.
+	 */
+	private long getUnlockTimeInMilliSeconds(AuthenticatedUser authenticatedUser) throws AuthenticationFailedException {
+
+		String username = authenticatedUser.toFullQualifiedUsername();
+		Map<String, String> claimValues = getUserClaimValues(authenticatedUser,
+				new String[]{TOTPAuthenticatorConstants.ACCOUNT_UNLOCK_TIME_CLAIM});
+		if (claimValues.get(TOTPAuthenticatorConstants.ACCOUNT_UNLOCK_TIME_CLAIM) == null) {
+			if (log.isDebugEnabled()) {
+				log.debug(String.format("No value configured for claim: %s, of user: %s",
+						TOTPAuthenticatorConstants.ACCOUNT_UNLOCK_TIME_CLAIM, username));
+			}
+			return 0;
+		}
+		return Long.parseLong(claimValues.get(TOTPAuthenticatorConstants.ACCOUNT_UNLOCK_TIME_CLAIM));
+	}
+
+	private String buildErrorParamString(Map<String, String> paramMap) {
+
+		StringBuilder params = new StringBuilder();
+		for (Map.Entry<String, String> entry : paramMap.entrySet()) {
+			params.append("&").append(entry.getKey()).append("=").append(entry.getValue());
+		}
+		return params.toString();
+	}
+
+	private String buildTOTPLoginPageURL(AuthenticationContext context, String username, String retryParam,
+										 String errorParam, String multiOptionURI)
+			throws AuthenticationFailedException, URISyntaxException, URLBuilderException {
+
+		return getLoginPage(context) + ("?sessionDataKey=" + context.getContextIdentifier()) +
+				"&authenticators=" + getName() + "&type=totp" + retryParam + "&username=" +
+				username + errorParam + multiOptionURI;
 	}
 
 	/**
@@ -365,6 +457,15 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			if (log.isDebugEnabled()) {
 				log.debug(errorMessage);
 			}
+			String accountLockedReason = StringUtils.EMPTY;
+			Map<String, String> claimValues = getUserClaimValues(authenticatedUserObject,
+					new String[]{TOTPAuthenticatorConstants.ACCOUNT_LOCKED_REASON_CLAIM_URI});
+			if (claimValues != null) {
+				accountLockedReason = claimValues.get(TOTPAuthenticatorConstants.ACCOUNT_LOCKED_REASON_CLAIM_URI);
+			}
+			IdentityErrorMsgContext customErrorMessageContext = new IdentityErrorMsgContext(
+					UserCoreConstants.ErrorCode.USER_IS_LOCKED + ":" + accountLockedReason);
+			IdentityUtil.setIdentityErrorMsg(customErrorMessageContext);
 			throw new AuthenticationFailedException(errorMessage);
 		}
 	}
@@ -596,7 +697,9 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			}
 		}
 		String username = context.getProperty("username").toString();
-		Map<String, String> claimValues = getUserClaimValues(authenticatedUser, username);
+		Map<String, String> claimValues = getUserClaimValues(authenticatedUser, new String[]{
+				TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM,
+				TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM});
 		if (claimValues == null) {
 			claimValues = new HashMap<>();
 		}
@@ -627,6 +730,10 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			IdentityUtil.threadLocalProperties.get().put(TOTPAuthenticatorConstants.ADMIN_INITIATED, false);
 			setUserClaimValues(authenticatedUser, username, updatedClaims);
 			String errorMessage = String.format("User account: %s is locked.", authenticatedUser.getUserName());
+			IdentityErrorMsgContext customErrorMessageContext = new IdentityErrorMsgContext(
+					UserCoreConstants.ErrorCode.USER_IS_LOCKED +
+							":" + TOTPAuthenticatorConstants.MAX_TOTP_ATTEMPTS_EXCEEDED);
+			IdentityUtil.setIdentityErrorMsg(customErrorMessageContext);
 			throw new AuthenticationFailedException(errorMessage);
 		} else {
 			updatedClaims
@@ -684,17 +791,16 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 		}
 	}
 
-	private Map<String, String> getUserClaimValues(AuthenticatedUser authenticatedUser, String username)
+	private Map<String, String> getUserClaimValues(AuthenticatedUser authenticatedUser, String[] claims)
 			throws AuthenticationFailedException {
 
 		Map<String, String> claimValues;
 		try {
+			String username = authenticatedUser.toFullQualifiedUsername();
 			UserRealm userRealm = TOTPUtil.getUserRealm(username);
 			UserStoreManager userStoreManager = userRealm.getUserStoreManager();
 			claimValues = userStoreManager.getUserClaimValues(IdentityUtil.addDomainToName(
-					authenticatedUser.getUserName(), authenticatedUser.getUserStoreDomain()), new String[]{
-							TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM,
-							TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM},
+					authenticatedUser.getUserName(), authenticatedUser.getUserStoreDomain()), claims,
 					UserCoreConstants.DEFAULT_PROFILE);
 		} catch (UserStoreException e) {
 			if (log.isDebugEnabled()) {
