@@ -20,15 +20,45 @@
 <%@page import="java.util.Arrays" %>
 <%@ page import="java.util.List" %>
 <%@ page import="java.util.Map" %>
+<%@ page import="org.wso2.carbon.identity.application.authentication.endpoint.util.AuthContextAPIClient" %>
 <%@page import="org.wso2.carbon.identity.application.authentication.endpoint.util.Constants" %>
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ page import="org.wso2.carbon.identity.application.authentication.endpoint.util.TenantDataManager" %>
+<%@ page import="org.wso2.carbon.identity.core.util.IdentityTenantUtil" %>
+<%@ page import="org.wso2.carbon.identity.core.util.IdentityUtil" %>
+<%@ page import="org.apache.commons.lang.StringUtils" %>
 <%@ page import="org.owasp.encoder.Encode" %>
+<%@ page import="com.google.gson.Gson" %>
 
 <fmt:bundle basename="org.wso2.carbon.identity.application.authentication.endpoint.i18n.Resources">
 
+<%!
+    private static final String SERVER_AUTH_URL = "/api/identity/auth/v1.1/";
+    private static final String SKEY = "ske";
+%>
+
     <%
+        String ske = null;
+        if (request.getParameter(SKEY) != null) {
+            ske = request.getParameter(SKEY);
+        } else {
+            String authAPIURL = application.getInitParameter(Constants.AUTHENTICATION_REST_ENDPOINT_URL);
+            if (StringUtils.isBlank(authAPIURL)) {
+                authAPIURL = IdentityUtil.getServerURL(SERVER_AUTH_URL, true, true);
+            }
+            if (!authAPIURL.endsWith("/")) {
+                authAPIURL += "/";
+            }
+            authAPIURL += "context/" + request.getParameter(Constants.SESSION_DATA_KEY);
+            String contextProperties = AuthContextAPIClient.getContextProperties(authAPIURL);
+            Gson gson = new Gson();
+            Map<String, Object> parameters = gson.fromJson(contextProperties, Map.class);
+            if (parameters != null) {
+                ske = (String) parameters.get(SKEY);
+            }
+        }
+
         request.getSession().invalidate();
         String queryString = request.getQueryString();
         Map<String, String> idpAuthenticatorMapping = null;
@@ -117,7 +147,7 @@
                                                 <p>You have not enabled TOTP authentication. Please enable it.</p>
                                                 <a onclick="validateCheckBox();">Show QR code to scan and enrol the user</a>
                                                 <input type="hidden" id="ENABLE_TOTP" name="ENABLE_TOTP" value="false"/>
-                                                <input type='hidden' name='ske' id='ske' value='<%=Encode.forHtmlAttribute(request.getParameter("ske"))%>'/>
+                                                <input type='hidden' name='ske' id='ske' value='<%=Encode.forHtmlAttribute(ske)%>'/>
                                                  <div class="container" style="width:90% !important; padding-left:0px; padding-right:0px; display:none;" id="qrContainer">
                                                     <div class="panel-group">
                                                         <div class="panel panel-default">
