@@ -19,11 +19,11 @@
     <parent>
         <groupId>org.wso2.carbon.extension.identity.authenticator.outbound.totp</groupId>
         <artifactId>identity-outbound-auth-totp</artifactId>
-        <version>2.1.1512-SNAPSHOT</version>
+        <version>2.1.1512</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <artifactId>org.wso2.carbon.extension.identity.authenticator.totp.endpoint</artifactId>
-    <version>2.1.1512-SNAPSHOT</version>
+    <version>2.1.1512</version>
     <packaging>war</packaging>
     <name>WSO2 Carbon - Identity Application Authentication TOTP Endpoint</name>
     <description>Identity Application Authentication TOTP Endpoint</description>
