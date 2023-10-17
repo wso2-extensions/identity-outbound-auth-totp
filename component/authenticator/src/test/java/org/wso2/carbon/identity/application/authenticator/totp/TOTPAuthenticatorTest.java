@@ -40,13 +40,17 @@ import org.wso2.carbon.identity.application.authentication.framework.Authenticat
 import org.wso2.carbon.identity.application.authentication.framework.config.ConfigurationFacade;
 import org.wso2.carbon.identity.application.authentication.framework.config.builder.FileBasedConfigurationBuilder;
 import org.wso2.carbon.identity.application.authentication.framework.config.model.AuthenticatorConfig;
+import org.wso2.carbon.identity.application.authentication.framework.config.model.ExternalIdPConfig;
 import org.wso2.carbon.identity.application.authentication.framework.config.model.SequenceConfig;
 import org.wso2.carbon.identity.application.authentication.framework.config.model.StepConfig;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.exception.LogoutFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
+import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatorData;
+import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatorParamMetadata;
 import org.wso2.carbon.identity.application.authentication.framework.store.UserSessionStore;
+import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
@@ -68,9 +72,12 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
@@ -135,9 +142,6 @@ public class TOTPAuthenticatorTest {
     @Mock
     private UserStoreManager userStoreManager;
 
-    @Spy
-    private FederatedAuthenticatorUtil federatedAuthenticatorUtil;
-
     @Mock
     private SequenceConfig sequenceConfig;
 
@@ -163,13 +167,7 @@ public class TOTPAuthenticatorTest {
     private FileBasedConfigurationBuilder fileBasedConfigurationBuilder;
 
     @Mock
-    private ServiceURLBuilder serviceURLBuilder;
-
-    @Mock
-    private ServiceURL serviceURL;
-
-    @Mock
-    UserSessionStore userSessionStore;
+    ExternalIdPConfig externalIdPConfig;
 
     @BeforeMethod
     public void setUp() {
@@ -744,5 +742,45 @@ public class TOTPAuthenticatorTest {
     public IObjectFactory getObjectFactory() {
 
         return new PowerMockObjectFactory();
+    }
+
+    @Test
+    public void testIsAPIBasedAuthenticationSupported() {
+
+        boolean isAPIBasedAuthenticationSupported = totpAuthenticator.isAPIBasedAuthenticationSupported();
+        Assert.assertTrue(isAPIBasedAuthenticationSupported);
+    }
+
+    @Test
+    public void testGetAuthInitiationData() {
+
+        when(mockedContext.getExternalIdP()).thenReturn(externalIdPConfig);
+        when(mockedContext.getExternalIdP().getIdPName()).thenReturn(TOTPAuthenticatorConstants.LOCAL_AUTHENTICATOR);
+
+        Optional<AuthenticatorData> authenticatorData = totpAuthenticator.getAuthInitiationData(mockedContext);
+        Assert.assertTrue(authenticatorData.isPresent());
+        AuthenticatorData authenticatorDataObj = authenticatorData.get();
+
+        List<AuthenticatorParamMetadata> authenticatorParamMetadataList = new ArrayList<>();
+        AuthenticatorParamMetadata tokenMetadata = new AuthenticatorParamMetadata(
+                TOTPAuthenticatorConstants.TOKEN, FrameworkConstants.AuthenticatorParamType.STRING, 0);
+        authenticatorParamMetadataList.add(tokenMetadata);
+
+        Assert.assertEquals(authenticatorDataObj.getName(), TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
+        Assert.assertEquals(authenticatorDataObj.getAuthParams().size(), authenticatorParamMetadataList.size(),
+                "Size of lists should be equal.");
+        Assert.assertEquals(authenticatorDataObj.getAdditionalDataObj().getPromptType(), TOTPAuthenticatorConstants.
+                USER_PROMPT, "Prompt Type should match.");
+        for (int i = 0; i < authenticatorParamMetadataList.size(); i++) {
+            AuthenticatorParamMetadata expectedParam = authenticatorParamMetadataList.get(i);
+            AuthenticatorParamMetadata actualParam = authenticatorDataObj.getAuthParams().get(i);
+
+            Assert.assertEquals(actualParam.getName(), expectedParam.getName(), "Parameter name should match.");
+            Assert.assertEquals(actualParam.getType(), expectedParam.getType(), "Parameter type should match.");
+            Assert.assertEquals(actualParam.getParamOrder(), expectedParam.getParamOrder(),
+                    "Parameter order should match.");
+            Assert.assertEquals(actualParam.isConfidential(), expectedParam.isConfidential(),
+                    "Parameter confidential status should match.");
+        }
     }
 }
