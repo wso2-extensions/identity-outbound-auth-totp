@@ -763,14 +763,15 @@ public class TOTPAuthenticatorTest {
 
         List<AuthenticatorParamMetadata> authenticatorParamMetadataList = new ArrayList<>();
         AuthenticatorParamMetadata tokenMetadata = new AuthenticatorParamMetadata(
-                TOTPAuthenticatorConstants.TOKEN, FrameworkConstants.AuthenticatorParamType.STRING, 0);
+                TOTPAuthenticatorConstants.TOKEN, FrameworkConstants.AuthenticatorParamType.STRING,
+                0, Boolean.FALSE, TOTPAuthenticatorConstants.TOTP_AUTHENTICATOR);
         authenticatorParamMetadataList.add(tokenMetadata);
 
         Assert.assertEquals(authenticatorDataObj.getName(), TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
         Assert.assertEquals(authenticatorDataObj.getAuthParams().size(), authenticatorParamMetadataList.size(),
                 "Size of lists should be equal.");
-        Assert.assertEquals(authenticatorDataObj.getAdditionalDataObj().getPromptType(), TOTPAuthenticatorConstants.
-                USER_PROMPT, "Prompt Type should match.");
+        Assert.assertEquals(authenticatorDataObj.getPromptType(), FrameworkConstants.AuthenticatorPromptType.
+                        USER_PROMPT, "Prompt Type should match.");
         for (int i = 0; i < authenticatorParamMetadataList.size(); i++) {
             AuthenticatorParamMetadata expectedParam = authenticatorParamMetadataList.get(i);
             AuthenticatorParamMetadata actualParam = authenticatorDataObj.getAuthParams().get(i);

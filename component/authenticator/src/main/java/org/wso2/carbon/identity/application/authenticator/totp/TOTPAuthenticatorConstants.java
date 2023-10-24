@@ -25,6 +25,8 @@ package org.wso2.carbon.identity.application.authenticator.totp;
  */
 public abstract class TOTPAuthenticatorConstants {
 
+	public static final String TOTP_AUTHENTICATOR = "totp.authenticator";
+
 	/*
 	 * Private Constructor will prevent the instantiation of this class directly.
 	 */
