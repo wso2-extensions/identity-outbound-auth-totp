@@ -35,7 +35,6 @@ import org.wso2.carbon.identity.application.authentication.framework.context.Aut
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.exception.LogoutFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.exception.UserIdNotFoundException;
-import org.wso2.carbon.identity.application.authentication.framework.model.AdditionalData;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatorData;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatorParamMetadata;
@@ -83,6 +82,7 @@ import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthen
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.LogConstants.ActionIDs.PROCESS_AUTHENTICATION_RESPONSE;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.LogConstants.ActionIDs.INITIATE_TOTP_REQUEST;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.LogConstants.TOTP_AUTH_SERVICE;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOKEN;
 import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getMultiOptionURIQueryParam;
 import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getTOTPErrorPage;
 import static org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil.getTOTPLoginPage;
@@ -735,16 +735,18 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         authenticatorData.setDisplayName(getFriendlyName());
         String idpName = context.getExternalIdP().getIdPName();
         authenticatorData.setIdp(idpName);
-
-        AdditionalData additionalData = new AdditionalData();
-        additionalData.setPromptType(TOTPAuthenticatorConstants.USER_PROMPT);
-        authenticatorData.setAdditionalData(additionalData);
+        authenticatorData.setPromptType(FrameworkConstants.AuthenticatorPromptType.USER_PROMPT);
 
         List<AuthenticatorParamMetadata> authenticatorParamMetadataList = new ArrayList<>();
         AuthenticatorParamMetadata tokenMetadata = new AuthenticatorParamMetadata(
-                TOTPAuthenticatorConstants.TOKEN, FrameworkConstants.AuthenticatorParamType.STRING, 0);
+                TOTPAuthenticatorConstants.TOKEN, FrameworkConstants.AuthenticatorParamType.STRING,
+                0, Boolean.FALSE, TOTPAuthenticatorConstants.TOTP_AUTHENTICATOR);
         authenticatorParamMetadataList.add(tokenMetadata);
         authenticatorData.setAuthParams(authenticatorParamMetadataList);
+
+        List<String> requiredParams = new ArrayList<>();
+        requiredParams.add(TOKEN);
+        authenticatorData.setRequiredParams(requiredParams);
 
         return Optional.of(authenticatorData);
     }
