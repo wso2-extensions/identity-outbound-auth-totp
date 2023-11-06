@@ -348,34 +348,36 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 }
                 if (enrolUserInAuthenticationFlowEnabled &&
                         request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
-                    // If TOTP is not enabled for the user and he hasn't redirected to the enrollment page yet.
-                    if (log.isDebugEnabled()) {
-                        log.debug("User has not enabled TOTP: " + username);
-                    }
-                    Map<String, String> claims;
-                    if (isInitialFederationAttempt) {
-                        claims = TOTPKeyGenerator.generateClaimsForFedUser(username, tenantDomain, context);
-                    } else {
-                        claims = TOTPKeyGenerator.generateClaims(UserCoreUtil.addDomainToName(username,
-                                authenticatingUser.getUserStoreDomain()), false, context);
-                    }
-                    Map<String, String> claimProperties = TOTPUtil.getClaimProperties(tenantDomain,
-                            TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
-                    // Context will have the decrypted secret key all the time.
-                    if (claimProperties.containsKey(TOTPAuthenticatorConstants.ENABLE_ENCRYPTION)) {
-                        context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
-                                claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
-                    } else {
-                        context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
-                                TOTPUtil.decrypt(claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL)));
-                    }
-                    context.setProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
-                            claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL));
-                    String qrURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
-                    TOTPUtil.redirectToEnableTOTPReqPage(request, response, context, qrURL, runtimeParams);
-                    if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
-                        diagnosticLogBuilder.resultMessage("Redirecting user to the TOTP enable page.");
-                        LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
+                    if (!isAPIBasedAuthenticationSupported()) {
+                        // If TOTP is not enabled for the user and he hasn't redirected to the enrollment page yet.
+                        if (log.isDebugEnabled()) {
+                            log.debug("User has not enabled TOTP: " + username);
+                        }
+                        Map<String, String> claims;
+                        if (isInitialFederationAttempt) {
+                            claims = TOTPKeyGenerator.generateClaimsForFedUser(username, tenantDomain, context);
+                        } else {
+                            claims = TOTPKeyGenerator.generateClaims(UserCoreUtil.addDomainToName(username,
+                                    authenticatingUser.getUserStoreDomain()), false, context);
+                        }
+                        Map<String, String> claimProperties = TOTPUtil.getClaimProperties(tenantDomain,
+                                TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
+                        // Context will have the decrypted secret key all the time.
+                        if (claimProperties.containsKey(TOTPAuthenticatorConstants.ENABLE_ENCRYPTION)) {
+                            context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
+                                    claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
+                        } else {
+                            context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
+                                    TOTPUtil.decrypt(claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL)));
+                        }
+                        context.setProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
+                                claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL));
+                        String qrURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
+                        TOTPUtil.redirectToEnableTOTPReqPage(request, response, context, qrURL, runtimeParams);
+                        if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
+                            diagnosticLogBuilder.resultMessage("Redirecting user to the TOTP enable page.");
+                            LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
+                        }
                     }
                 } else if (Boolean.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)) ||
                         isTOTPEnabledByAdmin) {
