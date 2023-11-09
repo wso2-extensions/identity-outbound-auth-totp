@@ -97,6 +97,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
     private static final long serialVersionUID = 2009231028659744926L;
     private static final Log log = LogFactory.getLog(TOTPAuthenticator.class);
+    private static final String IS_API_BASED = "IS_API_BASED";
 
     /**
      * Check whether token or action are in request.
@@ -348,7 +349,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 }
                 if (enrolUserInAuthenticationFlowEnabled &&
                         request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
-                    if (!isAPIBasedAuthenticationSupported()) {
+                    if (context.getProperty(IS_API_BASED) == null) {
                         // If TOTP is not enabled for the user and he hasn't redirected to the enrollment page yet.
                         if (log.isDebugEnabled()) {
                             log.debug("User has not enabled TOTP: " + username);
