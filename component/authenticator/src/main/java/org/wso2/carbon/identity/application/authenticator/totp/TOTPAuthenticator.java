@@ -100,6 +100,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     private static final Log log = LogFactory.getLog(TOTPAuthenticator.class);
     private static final String IS_API_BASED = "IS_API_BASED";
     private static final String AUTHENTICATOR_MESSAGE = "authenticatorMessage";
+    private static final String LOCKED_REASON = "lockedReason";
 
     /**
      * Check whether token or action are in request.
@@ -306,14 +307,13 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                                     String.valueOf(Math.round((double) timeToUnlock / 1000 / 60)));
                         }
                         errorParam = buildErrorParamString(paramMap);
-                        Map<String, String> messageContext = getMessageContext("lockedReason",
+                        Map<String, String> messageContext = getMessageContext(LOCKED_REASON,
                                 String.valueOf(reason));
-                        AuthenticatorMessage authenticatorMessage =
-                                new AuthenticatorMessage(FrameworkConstants.AuthenticatorMessageType.ERROR,
-                                        UserCoreConstants.ErrorCode.USER_IS_LOCKED,
-                                        "The authenticated user account is locked.",
-                                        messageContext);
-                        setAuthenticatorMessage(authenticatorMessage, context);
+                        String message =
+                                String.format("Authentication failed since authenticated user: %s, account is locked.",
+                                        getUserStoreAppendedName(username));
+                        AuthenticatorMessage authenticatorMessage = getAuthenticatorMessage(message, messageContext);
+                        setAuthenticatorMessageToContext(authenticatorMessage, context);
                     }
                 }
             }
@@ -688,18 +688,19 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             }
             IdentityErrorMsgContext customErrorMessageContext = new IdentityErrorMsgContext(
                     UserCoreConstants.ErrorCode.USER_IS_LOCKED + ":" + accountLockedReason);
-            AuthenticatorMessage authenticatorMessage =
-                    new AuthenticatorMessage(FrameworkConstants.AuthenticatorMessageType.ERROR,
-                            UserCoreConstants.ErrorCode.USER_IS_LOCKED,
-                            "The authenticated user account is locked.",
-                            null);
-            setAuthenticatorMessage(authenticatorMessage, context);
+            String message =
+                    String.format("Authentication failed since authenticated user: %s, account is locked.",
+                            getUserStoreAppendedName(username));
+            AuthenticatorMessage authenticatorMessage = getAuthenticatorMessage
+                    (message, null);
+            setAuthenticatorMessageToContext(authenticatorMessage, context);
             IdentityUtil.setIdentityErrorMsg(customErrorMessageContext);
             throw new AuthenticationFailedException(errorMessage);
         }
     }
 
-    private static void setAuthenticatorMessage(AuthenticatorMessage errorMessage, AuthenticationContext context) {
+    private static void setAuthenticatorMessageToContext(AuthenticatorMessage errorMessage,
+                                                         AuthenticationContext context) {
 
         context.setProperty(AUTHENTICATOR_MESSAGE, errorMessage);
     }
@@ -1046,12 +1047,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             setUserClaimValues(authenticatedUser, updatedClaims);
             String errorMessage = String.format("User account: %s is locked.", (LoggerUtils.isLogMaskingEnable ?
                     LoggerUtils.getMaskedContent(authenticatedUser.getUserName()) : authenticatedUser.getUserName()));
-            AuthenticatorMessage authenticatorMessage =
-                    new AuthenticatorMessage(FrameworkConstants.AuthenticatorMessageType.ERROR,
-                            UserCoreConstants.ErrorCode.USER_IS_LOCKED,
-                            errorMessage,
-                            null);
-            setAuthenticatorMessage(authenticatorMessage, context);
+            AuthenticatorMessage authenticatorMessage = getAuthenticatorMessage(errorMessage, null);
+            setAuthenticatorMessageToContext(authenticatorMessage, context);
             IdentityErrorMsgContext customErrorMessageContext = new IdentityErrorMsgContext(
                     UserCoreConstants.ErrorCode.USER_IS_LOCKED + ":" +
                             TOTPAuthenticatorConstants.MAX_TOTP_ATTEMPTS_EXCEEDED);
@@ -1062,6 +1059,13 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     .put(TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM, String.valueOf(currentAttempts + 1));
             setUserClaimValues(authenticatedUser, updatedClaims);
         }
+    }
+
+    private static AuthenticatorMessage getAuthenticatorMessage(String errorMessage, Map<String, String> context) {
+        return new AuthenticatorMessage(FrameworkConstants.AuthenticatorMessageType.ERROR,
+                UserCoreConstants.ErrorCode.USER_IS_LOCKED,
+                errorMessage,
+                null);
     }
 
     private void resetTotpFailedAttempts(AuthenticationContext context) throws AuthenticationFailedException {
