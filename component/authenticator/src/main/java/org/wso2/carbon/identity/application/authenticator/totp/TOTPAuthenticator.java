@@ -307,8 +307,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                                     String.valueOf(Math.round((double) timeToUnlock / 1000 / 60)));
                         }
                         errorParam = buildErrorParamString(paramMap);
-                        Map<String, String> messageContext = getMessageContext(LOCKED_REASON,
-                                String.valueOf(reason));
+                        Map<String, String> messageContext = getMessageContext(LOCKED_REASON, String.valueOf(reason));
                         String message =
                                 String.format("Authentication failed since authenticated user: %s, account is locked.",
                                         getUserStoreAppendedName(username));
