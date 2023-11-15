@@ -1061,10 +1061,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     }
 
     private static AuthenticatorMessage getAuthenticatorMessage(String errorMessage, Map<String, String> context) {
+
         return new AuthenticatorMessage(FrameworkConstants.AuthenticatorMessageType.ERROR,
                 UserCoreConstants.ErrorCode.USER_IS_LOCKED,
                 errorMessage,
-                null);
+                context);
     }
 
     private void resetTotpFailedAttempts(AuthenticationContext context) throws AuthenticationFailedException {
