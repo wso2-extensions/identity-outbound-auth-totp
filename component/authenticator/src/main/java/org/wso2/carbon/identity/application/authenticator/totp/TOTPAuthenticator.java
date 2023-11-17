@@ -78,6 +78,7 @@ import java.util.concurrent.TimeUnit;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.DISPLAY_TOKEN;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ErrorMessages;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.LOGIN_FAIL_MESSAGE;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.LogConstants.ActionIDs.PROCESS_AUTHENTICATION_RESPONSE;
@@ -770,7 +771,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
         List<AuthenticatorParamMetadata> authenticatorParamMetadataList = new ArrayList<>();
         AuthenticatorParamMetadata tokenMetadata = new AuthenticatorParamMetadata(
-                TOTPAuthenticatorConstants.TOKEN, FrameworkConstants.AuthenticatorParamType.STRING,
+                TOKEN, DISPLAY_TOKEN, FrameworkConstants.AuthenticatorParamType.STRING,
                 0, Boolean.FALSE, TOTPAuthenticatorConstants.TOTP_AUTHENTICATOR);
         authenticatorParamMetadataList.add(tokenMetadata);
         authenticatorData.setAuthParams(authenticatorParamMetadataList);

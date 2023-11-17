@@ -64,6 +64,7 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String ENABLE_TOTP_REQUEST_PAGE = "authenticationendpoint/totp_enroll.do";
 
 	public static final String TOKEN = "token";
+	public static final String DISPLAY_TOKEN = "Token";
 	public static final String SEND_TOKEN = "sendToken";
 	public static final String AUTHENTICATION = "authentication";
 	public static final String BASIC = "basic";
