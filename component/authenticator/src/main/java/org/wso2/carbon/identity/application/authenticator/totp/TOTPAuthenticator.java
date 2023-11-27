@@ -1342,6 +1342,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         return Optional.empty();
     }
 
+    /**
+     * Set i18n key.
+     *
+     * @return the i18n key
+     */
     @Override
     public String getI18nKey() {
 
