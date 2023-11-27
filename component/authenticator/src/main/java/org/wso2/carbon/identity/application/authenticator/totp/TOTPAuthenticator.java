@@ -951,7 +951,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
      * @param token   TOTP Token which needs to be validated
      * @param context Authentication context
      * @return true if token is valid otherwise false
-     * @throws TOTPException If an error occurred while validating token.
+     * @throws TOTPException If an error occurred while validating token
      */
     private boolean isValidTokenFederatedUser(int token, AuthenticationContext context)
             throws TOTPException {
