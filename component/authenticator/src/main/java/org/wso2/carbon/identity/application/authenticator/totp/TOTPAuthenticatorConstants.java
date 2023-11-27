@@ -36,6 +36,7 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String USER_PROMPT = "USER_PROMPT";
 	public static final String AUTHENTICATOR_FRIENDLY_NAME = "TOTP";
 	public static final String AUTHENTICATOR_NAME = "totp";
+	public static final String AUTHENTICATOR_TOTP = "authenticator.totp";
 	public static final String QR_CODE_CLAIM_URL = "http://wso2.org/claims/identity/qrcodeurl";
 	public static final String SECRET_KEY_CLAIM_URL = "http://wso2.org/claims/identity/secretkey";
 	public static final String TOTP_ENABLED_CLAIM_URI = "http://wso2.org/claims/identity/totpEnabled";
