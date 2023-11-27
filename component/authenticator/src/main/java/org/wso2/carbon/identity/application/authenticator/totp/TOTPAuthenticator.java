@@ -78,6 +78,7 @@ import java.util.concurrent.TimeUnit;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.AUTHENTICATOR_TOTP;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.DISPLAY_TOKEN;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ErrorMessages;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.LOGIN_FAIL_MESSAGE;
@@ -765,6 +766,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         AuthenticatorData authenticatorData = new AuthenticatorData();
         authenticatorData.setName(getName());
         authenticatorData.setDisplayName(getFriendlyName());
+        authenticatorData.setI18nKey(getI18nKey());
         String idpName = context.getExternalIdP().getIdPName();
         authenticatorData.setIdp(idpName);
         authenticatorData.setPromptType(FrameworkConstants.AuthenticatorPromptType.USER_PROMPT);
@@ -1338,5 +1340,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             log.debug("Error while getting the user id from the authenticated user.", e);
         }
         return Optional.empty();
+    }
+
+    @Override
+    public String getI18nKey() {
+
+        return AUTHENTICATOR_TOTP;
     }
 }
