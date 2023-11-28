@@ -165,6 +165,9 @@
                             org.wso2.carbon.identity.handler.event.account.lock.exception;
                             version="${carbon.identity.account.lock.handler.imp.pkg.version.range}",
                             org.owasp.encoder; version="${encoder.wso2.import.version.range}",
+                            org.wso2.carbon.identity.organization.management.service;version="${org.wso2.carbon.identity.organization.management.core.version.range}",
+                            org.wso2.carbon.identity.organization.management.service.exception;version="${org.wso2.carbon.identity.organization.management.core.version.range}",
+                            org.wso2.carbon.identity.organization.management.service.util;version="${org.wso2.carbon.identity.organization.management.core.version.range}",
                         </Import-Package>
                         <DynamicImport-Package>*</DynamicImport-Package>
                         <Export-Package>!org.wso2.carbon.identity.application.authenticator.totp.internal.*,

@@ -61,6 +61,9 @@ import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.governance.IdentityGovernanceException;
 import org.wso2.carbon.identity.handler.event.account.lock.exception.AccountLockServiceException;
+import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
+import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
+import org.wso2.carbon.identity.organization.management.service.util.OrganizationManagementUtil;
 import org.wso2.carbon.idp.mgt.IdentityProviderManagementException;
 import org.wso2.carbon.registry.core.Registry;
 import org.wso2.carbon.registry.core.Resource;
@@ -90,11 +93,11 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ERROR_PAGE;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOTP_HIDE_USERSTORE_FROM_USERNAME;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE;
-import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW;
 
 /**
  * TOTP Util class.
@@ -156,7 +159,18 @@ public class TOTPUtil {
             issuer = (String) context.getProperty(TOTPAuthenticatorConstants.TOTP_ISSUER);
         }
         if (StringUtils.isBlank(issuer)) {
-            issuer = tenantDomain;
+            try {
+                // For sub organizations, issuer display name should be the organization name.
+                if (OrganizationManagementUtil.isOrganization(tenantDomain)) {
+                    OrganizationManager organizationManager = TOTPDataHolder.getInstance().getOrganizationManager();
+                    String organizationId = organizationManager.resolveOrganizationId(tenantDomain);
+                    issuer = organizationManager.getOrganizationNameById(organizationId);
+                } else {
+                    issuer = tenantDomain;
+                }
+            } catch (OrganizationManagementException e) {
+                throw new TOTPException("Error while resolving organization for tenant domain: " + tenantDomain, e);
+            }
         }
         return issuer;
     }

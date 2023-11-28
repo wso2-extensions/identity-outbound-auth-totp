@@ -100,7 +100,6 @@
                 <groupId>org.wso2.carbon.identity.organization.management.core</groupId>
                 <artifactId>org.wso2.carbon.identity.organization.management.service</artifactId>
                 <version>${org.wso2.carbon.identity.organization.management.core.version}</version>
-                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.wso2.carbon.extension.identity.authenticator.utils</groupId>
@@ -160,8 +159,10 @@
         <!--Carbon identity version-->
         <carbon.identity.framework.version>5.25.522</carbon.identity.framework.version>
 
-        <org.wso2.carbon.identity.organization.management.core.version>1.0.0
+        <org.wso2.carbon.identity.organization.management.core.version>1.0.92
         </org.wso2.carbon.identity.organization.management.core.version>
+        <org.wso2.carbon.identity.organization.management.core.version.range>[1.0.0, 2.0.0)
+        </org.wso2.carbon.identity.organization.management.core.version.range>
 
         <carbon.identity.version>5.0.8</carbon.identity.version>
         <carbon.identity.package.export.version>${carbon.identity.version}</carbon.identity.package.export.version>
