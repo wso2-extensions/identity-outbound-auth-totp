@@ -160,7 +160,7 @@ public class TOTPUtil {
         }
         if (StringUtils.isBlank(issuer)) {
             try {
-                // For sub organizations, issuer display name should be the organization name.
+                // For organizations, issuer display name should be the organization name.
                 if (OrganizationManagementUtil.isOrganization(tenantDomain)) {
                     OrganizationManager organizationManager = TOTPDataHolder.getInstance().getOrganizationManager();
                     String organizationId = organizationManager.resolveOrganizationId(tenantDomain);
