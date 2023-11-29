@@ -22,6 +22,7 @@ import org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataManagementServic
 import org.wso2.carbon.identity.event.services.IdentityEventService;
 import org.wso2.carbon.identity.governance.IdentityGovernanceService;
 import org.wso2.carbon.identity.handler.event.account.lock.service.AccountLockService;
+import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.idp.mgt.IdpManager;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.ConfigurationContextService;
@@ -39,6 +40,7 @@ public class TOTPDataHolder {
 	private AccountLockService accountLockService;
 	private IdentityGovernanceService identityGovernanceService;
 	private IdpManager idpManager;
+	private OrganizationManager organizationManager;
 
 	private static ClaimMetadataManagementService claimManagementService;
 
@@ -181,5 +183,25 @@ public class TOTPDataHolder {
 	public static void setClaimManagementService(ClaimMetadataManagementService claimManagementService) {
 
 		TOTPDataHolder.claimManagementService = claimManagementService;
+	}
+
+	/**
+	 * Set {@link OrganizationManager}.
+	 *
+	 * @param organizationManager Instance of {@link OrganizationManager}.
+	 */
+	public void setOrganizationManager(OrganizationManager organizationManager) {
+
+		this.organizationManager = organizationManager;
+	}
+
+	/**
+	 * Get {@link OrganizationManager}.
+	 *
+	 * @return Instance of {@link OrganizationManager}
+	 */
+	public OrganizationManager getOrganizationManager() {
+
+		return organizationManager;
 	}
 }

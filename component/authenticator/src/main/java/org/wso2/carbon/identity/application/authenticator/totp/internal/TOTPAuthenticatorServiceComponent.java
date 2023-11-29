@@ -32,6 +32,7 @@ import org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataManagementServic
 import org.wso2.carbon.identity.event.services.IdentityEventService;
 import org.wso2.carbon.identity.governance.IdentityGovernanceService;
 import org.wso2.carbon.identity.handler.event.account.lock.service.AccountLockService;
+import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.idp.mgt.IdpManager;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.ConfigurationContextService;
@@ -223,5 +224,20 @@ public class TOTPAuthenticatorServiceComponent {
 			log.debug("claimManagementService unset in IdentityMgtServiceComponent bundle");
 		}
 		TOTPDataHolder.setClaimManagementService(null);
+	}
+
+	@Reference(name = "identity.organization.management.component",
+			service = OrganizationManager.class,
+			cardinality = ReferenceCardinality.OPTIONAL,
+			policy = ReferencePolicy.DYNAMIC,
+			unbind = "unsetOrganizationManager")
+	protected void setOrganizationManager(OrganizationManager organizationManager) {
+
+		TOTPDataHolder.getInstance().setOrganizationManager(organizationManager);
+	}
+
+	protected void unsetOrganizationManager(OrganizationManager organizationManager) {
+
+		TOTPDataHolder.getInstance().setOrganizationManager(null);
 	}
 }
