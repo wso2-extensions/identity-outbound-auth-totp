@@ -20,6 +20,7 @@ package org.wso2.carbon.identity.application.authenticator.totp.util;
 
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
@@ -27,12 +28,16 @@ import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 import java.util.logging.Logger;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 /**
  * TOTP Authenticator Implementation.
@@ -372,9 +377,26 @@ public final class TOTPAuthenticatorCredentials {
 			}
 			Map<String, String> userClaimValues = userRealm.getUserStoreManager().
 					getUserClaimValues(tenantAwareUsername,
-							new String[]{TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL}, null);
-			String secretKey = TOTPUtil.decrypt(userClaimValues.
-					get(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL));
+							new String[]{
+								TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL,
+								TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL
+							}, null);
+			String verifySecretKeyClaim = userClaimValues
+					.get(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL);
+			if (StringUtils.isBlank(verifySecretKeyClaim)) {
+				/*
+				If the secret key is already validated then "Verify Secret Key" claim can be empty.
+				In that case, "Secret Key" claim will be used for TOTP validation.
+				*/
+				String secretKeyClaim = userClaimValues
+						.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
+				if (StringUtils.isBlank(secretKeyClaim)) {
+					return false;
+				}
+				return authorize(TOTPUtil.decrypt(secretKeyClaim), verificationCode, new Date().getTime());
+			}
+
+			String secretKey = TOTPUtil.decrypt(verifySecretKeyClaim);
 			if (authorize(secretKey, verificationCode, new Date().getTime())) {
 				storeSecretKey(secretKey, tenantAwareUsername, tenantDomain, userRealm);
 				return true;
