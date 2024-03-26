@@ -1,0 +1,13 @@
+{
+    "name": "TOTP",
+    "owner": "WSO2",
+    "category": "Local authenticator",
+    "documentationUrl": "https://docs.wso2.com/display/ISCONNECTORS/TOTP+Authenticator",
+    "description": "The TOTP authenticator allows you to authenticate a user using Time-Based One Time Password through WSO2 Identity Server. It uses the TOTP specification to calculate the access tokens based on the time and the shared secret key between the user and the identity provider.",
+    "status": "Active",
+    "labels": [
+        "Twofactor",
+        "Token"
+    ],
+    "releases": []
+}
