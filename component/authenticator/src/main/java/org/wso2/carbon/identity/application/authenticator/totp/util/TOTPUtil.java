@@ -662,7 +662,9 @@ public class TOTPUtil {
         if (isEnrolUserInAuthenticationFlowEnabled(context, runtimeParams)) {
             String multiOptionURI = getMultiOptionURIQueryParam(request);
             String queryParams = "sessionDataKey=" + context.getContextIdentifier() + "&authenticators=" +
-                    TOTPAuthenticatorConstants.AUTHENTICATOR_NAME + "&type=totp" + "&ske=" + skey + multiOptionURI;
+                    TOTPAuthenticatorConstants.AUTHENTICATOR_NAME + "&type=totp" + "&ske=" + skey +
+                    "&t=" + context.getLoginTenantDomain() + "&sp=" +
+                    Encode.forUriComponent(context.getServiceProviderName()) + multiOptionURI;
             String enableTOTPReqPageUrl =
                     FrameworkUtils.appendQueryParamsStringToUrl(getEnableTOTPPage(context), queryParams);
 
