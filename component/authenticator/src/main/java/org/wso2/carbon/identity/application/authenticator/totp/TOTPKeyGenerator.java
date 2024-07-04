@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.application.authenticator.totp;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
@@ -49,10 +50,11 @@ public class TOTPKeyGenerator {
 	 * @throws TOTPException when user realm is null or while decrypting the key
 	 */
 	public static Map<String, String> generateClaims(String username, boolean refresh,
-			AuthenticationContext context) throws TOTPException {
-		String storedSecretKey, secretKey;
-		String decryptedSecretKey = null;
-		String generatedSecretKey = null;
+													 AuthenticationContext context) throws TOTPException {
+
+		String storedSecretKey;
+		char[] secretKey = new char[0];
+		char[] generatedSecretKey;
 		String encodedQRCodeURL;
 		String tenantAwareUsername = null;
 		Map<String, String> claims = new HashMap<>();
@@ -68,21 +70,18 @@ public class TOTPKeyGenerator {
 						userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
 				if (StringUtils.isEmpty(storedSecretKey) || refresh) {
 					TOTPAuthenticatorKey key = generateKey(tenantDomain, context);
-					generatedSecretKey = key.getKey();
-					claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
-					           TOTPUtil.encrypt(generatedSecretKey));
+					generatedSecretKey = key.getKey().toCharArray();
+					claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(
+							String.valueOf(generatedSecretKey)));
+					secretKey = ArrayUtils.isNotEmpty(generatedSecretKey) ? generatedSecretKey : new char[0];
 				} else {
-					decryptedSecretKey = TOTPUtil.decrypt(storedSecretKey);
-				}
-				if (StringUtils.isNotEmpty(generatedSecretKey)) {
-					secretKey = generatedSecretKey;
-				} else {
-					secretKey = decryptedSecretKey;
+					secretKey = StringUtils.isBlank(TOTPUtil.decrypt(storedSecretKey)) ? new char[0]
+							: TOTPUtil.decrypt(storedSecretKey).toCharArray();
 				}
 
 				String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
 				String qrCodeURL = "otpauth://totp/" + issuer + ":" + tenantAwareUsername + "?secret=" +
-						secretKey + "&issuer=" + issuer;
+						String.valueOf(secretKey) + "&issuer=" + issuer;
 				encodedQRCodeURL = Base64.encodeBase64String(qrCodeURL.getBytes());
 				claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, encodedQRCodeURL);
 			}
@@ -92,7 +91,7 @@ public class TOTPKeyGenerator {
 							+ tenantAwareUsername, e);
 		} catch (CryptoException e) {
 			throw new TOTPException("TOTPKeyGenerator failed while decrypt the storedSecretKey ",
-			                        e);
+					e);
 		} catch (AuthenticationFailedException e) {
 			throw new TOTPException(
 					"TOTPKeyGenerator cannot find the property value for encoding method", e);
@@ -123,7 +122,7 @@ public class TOTPKeyGenerator {
 	 * @throws TOTPException when user realm is null or while decrypting the key
 	 */
 	public static String addTOTPClaimsAndRetrievingQRCodeURL(Map<String, String> claims, String username,
-			AuthenticationContext context) throws TOTPException {
+															 AuthenticationContext context) throws TOTPException {
 		String tenantAwareUsername = null;
 		String qrCodeURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
 		try {
@@ -173,12 +172,12 @@ public class TOTPKeyGenerator {
 			if (userRealm != null) {
 				claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "");
 				userRealm.getUserStoreManager()
-				         .setUserClaimValues(tenantAwareUsername, claims, null);
+						.setUserClaimValues(tenantAwareUsername, claims, null);
 				return true;
 			} else {
 				throw new TOTPException(
 						"Can not find the user realm for the given tenant domain : " +
-						MultitenantUtils.getTenantDomain(username));
+								MultitenantUtils.getTenantDomain(username));
 			}
 		} catch (UserStoreException e) {
 			throw new TOTPException("Can not find the user realm for the user : " + username, e);
