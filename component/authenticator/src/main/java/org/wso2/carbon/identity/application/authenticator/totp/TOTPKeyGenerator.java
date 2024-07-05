@@ -122,7 +122,7 @@ public class TOTPKeyGenerator {
 	 * @throws TOTPException when user realm is null or while decrypting the key
 	 */
 	public static String addTOTPClaimsAndRetrievingQRCodeURL(Map<String, String> claims, String username,
-															 AuthenticationContext context) throws TOTPException {
+					AuthenticationContext context) throws TOTPException {
 		String tenantAwareUsername = null;
 		String qrCodeURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
 		try {
