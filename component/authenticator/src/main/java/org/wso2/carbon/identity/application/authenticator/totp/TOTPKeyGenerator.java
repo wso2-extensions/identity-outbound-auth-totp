@@ -50,7 +50,7 @@ public class TOTPKeyGenerator {
 	 * @throws TOTPException when user realm is null or while decrypting the key
 	 */
 	public static Map<String, String> generateClaims(String username, boolean refresh,
-													 AuthenticationContext context) throws TOTPException {
+                                                     AuthenticationContext context) throws TOTPException {
 
 		String storedSecretKey;
 		char[] secretKey = new char[0];
