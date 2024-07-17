@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.application.authenticator.totp;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
@@ -75,9 +76,9 @@ public class TOTPKeyGenerator {
     private static Map<String, String> generateClaims(String username, boolean refresh, AuthenticationContext context,
                                                       String secretKeyClaim) throws TOTPException {
 
-        String storedSecretKey, secretKey;
-        String decryptedSecretKey = null;
-        String generatedSecretKey = null;
+        String storedSecretKey;
+        char[] secretKey = new char[0];
+        char[] generatedSecretKey;
         String encodedQRCodeURL;
         String tenantAwareUsername = null;
         Map<String, String> claims = new HashMap<>();
@@ -97,21 +98,18 @@ public class TOTPKeyGenerator {
                 storedSecretKey = userClaimValues.get(secretKeyClaim);
                 if (StringUtils.isEmpty(storedSecretKey) || refresh) {
                     TOTPAuthenticatorKey key = generateKey(tenantDomain, context);
-                    generatedSecretKey = key.getKey();
-                    claims.put(secretKeyClaim, TOTPUtil.encrypt(generatedSecretKey));
+                    generatedSecretKey = key.getKey().toCharArray();
+                    claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(
+                            String.valueOf(generatedSecretKey)));
+                    secretKey = ArrayUtils.isNotEmpty(generatedSecretKey) ? generatedSecretKey : new char[0];
                 } else {
-                    decryptedSecretKey = TOTPUtil.decrypt(storedSecretKey);
-                }
-                if (StringUtils.isNotEmpty(generatedSecretKey)) {
-                    secretKey = generatedSecretKey;
-                } else {
-                    secretKey = decryptedSecretKey;
-                }
+                    secretKey = StringUtils.isBlank(TOTPUtil.decrypt(storedSecretKey)) ? new char[0]
+                            : TOTPUtil.decrypt(storedSecretKey).toCharArray();                }
 
                 String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
                 String qrCodeURL =
-                        "otpauth://totp/" + issuer + ":" + tenantAwareUsername + "?secret=" + secretKey + "&issuer=" +
-                                issuer + "&period=" + timeStep;
+                        "otpauth://totp/" + issuer + ":" + tenantAwareUsername + "?secret=" + String.valueOf(secretKey)
+                                + "&issuer=" + issuer + "&period=" + timeStep;
                 encodedQRCodeURL = Base64.encodeBase64String(qrCodeURL.getBytes());
                 claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, encodedQRCodeURL);
             }
