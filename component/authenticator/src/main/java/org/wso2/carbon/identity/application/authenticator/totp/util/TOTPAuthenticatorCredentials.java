@@ -226,7 +226,7 @@ public final class TOTPAuthenticatorCredentials {
 	 * @param window    The window size to use during the validation process
 	 * @return <code>true</code> if the validation code is valid, <code>false</code> otherwise
 	 */
-	private boolean checkCode(String secret, long code, long timestamp, int window) {
+	private boolean checkCode(byte[] secret, long code, long timestamp, int window) {
 		byte[] decodedKey = decodeSecret(secret);
 
 		// convert unix time into a 30 second "window" as specified by the TOTP specification.
@@ -256,12 +256,13 @@ public final class TOTPAuthenticatorCredentials {
 	 * @param secret Secret key
 	 * @return Decoded secret key
 	 */
-	private byte[] decodeSecret(String secret) {
+	private byte[] decodeSecret(byte[] secret) {
 		// Decoding the secret key to get its raw byte representation.
 		switch (config.getKeyRepresentation()) {
 			case BASE32:
 				Base32 codec32 = new Base32();
 				return codec32.decode(secret);
+
 			case BASE64:
 				Base64 codec64 = new Base64();
 				return codec64.decode(secret);
@@ -327,7 +328,7 @@ public final class TOTPAuthenticatorCredentials {
 	 * @param verificationCode Verification code which needs to be verified
 	 * @return true, if code is verified
 	 */
-	public boolean authorize(String secretKey, int verificationCode) {
+	public boolean authorize(byte[] secretKey, int verificationCode) {
 		return authorize(secretKey, verificationCode, new Date().getTime());
 	}
 
@@ -340,7 +341,7 @@ public final class TOTPAuthenticatorCredentials {
 	 */
 	public boolean isValidVerificationCode(int verificationCode, String username) {
 
-		String secretKey;
+		byte[] secretKey = new byte[0];
 		String tenantAwareUsername = null;
 		try {
 			UserRealm userRealm = TOTPUtil.getUserRealm(username);
@@ -349,7 +350,7 @@ public final class TOTPAuthenticatorCredentials {
 				Map<String, String> userClaimValues = userRealm.getUserStoreManager().
 						getUserClaimValues(tenantAwareUsername,
 								new String[]{TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL}, null);
-				secretKey = TOTPUtil.decrypt(userClaimValues.
+				secretKey = TOTPUtil.decryptSecret(userClaimValues.
 						get(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL));
 				if (authorize(secretKey, verificationCode, new Date().getTime())) {
 					storeSecretKey(secretKey, username);
@@ -369,7 +370,7 @@ public final class TOTPAuthenticatorCredentials {
 		}
 	}
 
-	private void storeSecretKey(String secretKey, String username) {
+	private void storeSecretKey(byte[] secretKey, String username) {
 
 		Map<String, String> userClaims = new HashMap<>();
 		String tenantAwareUsername = null;
@@ -398,7 +399,7 @@ public final class TOTPAuthenticatorCredentials {
 	 * @param time             The time in milliseconds
 	 * @return true, if validation code is verified
 	 */
-	private boolean authorize(String secretKey, int verificationCode, long time) {
+	private boolean authorize(byte[] secretKey, int verificationCode, long time) {
 		// Checking user input and failing if the secret key was not provided.
 		if (secretKey == null) {
 			throw new IllegalArgumentException("Secret key cannot be null.");

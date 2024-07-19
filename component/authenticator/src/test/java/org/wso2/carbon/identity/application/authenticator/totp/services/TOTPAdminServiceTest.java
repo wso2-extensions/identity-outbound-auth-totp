@@ -79,7 +79,7 @@ public class TOTPAdminServiceTest {
         userClaimValues.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, encryptedSecretKey);
         doReturn(userClaimValues).when(mockUserStoreManager).getUserClaimValues(username + "@" + tenantDomain,
                 new String[]{TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL}, null);
-        when(TOTPUtil.decrypt(anyString())).thenReturn(secretKey);
+        when(TOTPUtil.decryptSecret(anyString())).thenReturn(secretKey.getBytes());
         when(TOTPUtil.getWindowSize(tenantDomain)).thenReturn(3);
         when(TOTPUtil.getTimeStepSize(tenantDomain)).thenReturn(30L);
 

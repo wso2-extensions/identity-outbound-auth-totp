@@ -66,7 +66,7 @@ public class TOTPKeyGeneratorTest {
         String username = "admin";
         when(TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
         when(TOTPUtil.getTOTPIssuerDisplayName(anyString(), (AuthenticationContext) anyObject())).thenReturn("carbon.super");
-        claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "AnySecretKey");
+        claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "eyJjIjoiSUhjSTFOZVJVKytROXo3anE5dGxxYnVvYjBLeGFGa3kzU0VoK0cxcUV2TWFYWE9SVmhqaUxjd2dLWXRybTBuQUMrb3dsQVI4OHExSjRXNUQrR0hMYXQ0S2FEbTdYZHVKWVM3L3BZM1dsekNxMXJZTjBCalZGLzRzWkdIdXhsUzNOZVRsdmpqYnZkOU1aejdlZWJEcWRFamdWNzdQY0dZQWhsNnVobzBoQU1IVHRwYUlJbDU3S1lUbGpoSE90Wk15Z1JzMk5wSDVFMUZBS0ptdlVZc1c1Wm5pWm82ZWV1RFdMZU9zWmlzTXQxemNBZ0IxM0pJTjBrRFRWYk5vMjNkSkxPQmoySlB6WldWdjhiNlVtOE91ajc1RWw5dFd1QmQ4Vm4rRXA5b254cU9aVHZZSFBYb1h1T3c0ZUN4M3RuTm43Zk82V0NIOFhSOFBXZnlrU2I3T1VBXHUwMDNkXHUwMDNkIiwidCI6IlJTQS9FQ0IvT0FFUHdpdGhTSEExYW5kTUdGMVBhZGRpbmciLCJ0cCI6IjU3RkYzOEQ5NzY2NEM3OTJGRjg4MDExNzFGMDQxOTFERUQ4ODc3OEQiLCJ0cGQiOiJTSEEtMSJ9");
         when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
         when(userStoreManager.getUserClaimValues(MultitenantUtils.getTenantAwareUsername(username), new String[] {
                 TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL }, null)).thenReturn(claims);

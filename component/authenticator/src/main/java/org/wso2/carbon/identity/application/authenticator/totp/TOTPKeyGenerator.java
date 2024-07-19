@@ -77,8 +77,8 @@ public class TOTPKeyGenerator {
                                                       String secretKeyClaim) throws TOTPException {
 
         String storedSecretKey;
-        char[] secretKey = new char[0];
-        char[] generatedSecretKey;
+        byte[] secretKey = new byte[0];
+        byte[] generatedSecretKey;
         String encodedQRCodeURL;
         String tenantAwareUsername = null;
         Map<String, String> claims = new HashMap<>();
@@ -98,17 +98,19 @@ public class TOTPKeyGenerator {
                 storedSecretKey = userClaimValues.get(secretKeyClaim);
                 if (StringUtils.isEmpty(storedSecretKey) || refresh) {
                     TOTPAuthenticatorKey key = generateKey(tenantDomain, context);
-                    generatedSecretKey = key.getKey().toCharArray();
-                    claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(
-                            String.valueOf(generatedSecretKey)));
-                    secretKey = ArrayUtils.isNotEmpty(generatedSecretKey) ? generatedSecretKey : new char[0];
+                    generatedSecretKey = key.getKey().getBytes();
+                    claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(generatedSecretKey));
+                    secretKey = ArrayUtils.isNotEmpty(generatedSecretKey) ? generatedSecretKey : new byte[0];
                 } else {
-                    secretKey = StringUtils.isBlank(TOTPUtil.decrypt(storedSecretKey)) ? new char[0]
-                            : TOTPUtil.decrypt(storedSecretKey).toCharArray();                }
+                    byte[] decryptedSecret = TOTPUtil.decryptSecret(storedSecretKey);
+                    if (decryptedSecret != null && decryptedSecret.length > 0) {
+                        secretKey = decryptedSecret;
+                    }
+                }
 
                 String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
                 String qrCodeURL =
-                        "otpauth://totp/" + issuer + ":" + tenantAwareUsername + "?secret=" + String.valueOf(secretKey)
+                        "otpauth://totp/" + issuer + ":" + tenantAwareUsername + "?secret=" + new String(secretKey)
                                 + "&issuer=" + issuer + "&period=" + timeStep;
                 encodedQRCodeURL = Base64.encodeBase64String(qrCodeURL.getBytes());
                 claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, encodedQRCodeURL);
