@@ -328,10 +328,21 @@ public final class TOTPAuthenticatorCredentials {
 	 * @param verificationCode Verification code which needs to be verified
 	 * @return true, if code is verified
 	 */
+	@Deprecated
+	public boolean authorize(String secretKey, int verificationCode) {
+		return authorize(secretKey.getBytes(), verificationCode, new Date().getTime());
+	}
+
+	/**
+	 * Authorize the code belongs to secret key.
+	 *
+	 * @param secretKey        The byte array of the Secret Key.
+	 * @param verificationCode Verification code which needs to be verified.
+	 * @return true, if code is verified.
+	 */
 	public boolean authorize(byte[] secretKey, int verificationCode) {
 		return authorize(secretKey, verificationCode, new Date().getTime());
 	}
-
 	/**
 	 * Check whether the verification code is valid.
 	 *
