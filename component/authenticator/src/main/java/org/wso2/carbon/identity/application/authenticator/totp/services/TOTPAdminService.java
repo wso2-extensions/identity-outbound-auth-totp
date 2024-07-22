@@ -234,6 +234,14 @@ public class TOTPAdminService {
         return new String(secretKey);
     }
 
+    /**
+     * Retrieve the secret key of a given user.
+     *
+     * @param username  Username of the user.
+     * @param context   Authentication context.
+     * @return          Byte array of the Secret Key.
+     * @throws TOTPException when could not find the user.
+     */
     public byte[] retrieveSecretKeyInByteArray(String username, AuthenticationContext context) throws TOTPException {
 
         UserRealm userRealm;
@@ -277,7 +285,6 @@ public class TOTPAdminService {
         }
         return secretKey;
     }
-
 
     /**
      * Validates the user entered verification code.
