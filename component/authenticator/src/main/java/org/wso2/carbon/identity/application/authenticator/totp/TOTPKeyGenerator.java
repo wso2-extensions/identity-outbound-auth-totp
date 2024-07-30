@@ -109,10 +109,11 @@ public class TOTPKeyGenerator {
                 }
 
                 String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
-                String qrCodeURL =
-                        "otpauth://totp/" + issuer + ":" + tenantAwareUsername + "?secret=" + new String(secretKey)
-                                + "&issuer=" + issuer + "&period=" + timeStep;
-                encodedQRCodeURL = Base64.encodeBase64String(qrCodeURL.getBytes());
+                byte[] qrCodeURL = concatByteArrays(
+                                ("otpauth://totp/" + issuer + ":" + tenantAwareUsername +
+                                "?secret=").getBytes(), secretKey,
+                                ("&issuer=" + issuer + "&period=" + timeStep).getBytes());
+                encodedQRCodeURL = Base64.encodeBase64String(qrCodeURL);
                 claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, encodedQRCodeURL);
             }
         } catch (UserStoreException e) {
@@ -126,6 +127,29 @@ public class TOTPKeyGenerator {
                     "TOTPKeyGenerator cannot find the property value for encoding method", e);
         }
         return claims;
+    }
+
+    /**
+     * Concatenate byte arrays.
+     *
+     * @param arrays byte arrays.
+     * @return concatenated byte array.
+     */
+    private static byte[] concatByteArrays(byte[]... arrays) {
+
+        int totalLength = 0;
+        for (byte[] array : arrays) {
+            totalLength += array.length;
+        }
+
+        byte[] result = new byte[totalLength];
+        int currentPosition = 0;
+
+        for (byte[] array : arrays) {
+            System.arraycopy(array, 0, result, currentPosition, array.length);
+            currentPosition += array.length;
+        }
+        return result;
     }
 
     /**
