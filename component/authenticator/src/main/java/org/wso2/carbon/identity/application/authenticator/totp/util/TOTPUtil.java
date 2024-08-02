@@ -120,13 +120,7 @@ public class TOTPUtil {
      */
     public static byte[] decryptSecret(String encryptedText) throws CryptoException {
 
-        byte[] encryptedByteArray = CryptoUtil.getDefaultCryptoUtil().base64DecodeAndDecrypt(encryptedText);
-//        CharBuffer charBuffer = Charsets.UTF_8.decode(ByteBuffer.wrap(encryptedByteArray));
-//        char[] decryptedChars = Arrays.copyOf(charBuffer.array(), charBuffer.limit());
-        // Clear the encryptedByteArray from memory
-//        Arrays.fill(encryptedByteArray, (byte) 0);
-
-        return encryptedByteArray;
+        return CryptoUtil.getDefaultCryptoUtil().base64DecodeAndDecrypt(encryptedText);
     }
 
     public static String getTOTPIssuerDisplayName(String tenantDomain, AuthenticationContext context)

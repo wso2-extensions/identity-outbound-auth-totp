@@ -262,7 +262,6 @@ public final class TOTPAuthenticatorCredentials {
 			case BASE32:
 				Base32 codec32 = new Base32();
 				return codec32.decode(secret);
-
 			case BASE64:
 				Base64 codec64 = new Base64();
 				return codec64.decode(secret);
@@ -341,8 +340,10 @@ public final class TOTPAuthenticatorCredentials {
 	 * @return true, if code is verified.
 	 */
 	public boolean authorize(byte[] secretKey, int verificationCode) {
+
 		return authorize(secretKey, verificationCode, new Date().getTime());
 	}
+
 	/**
 	 * Check whether the verification code is valid.
 	 *
