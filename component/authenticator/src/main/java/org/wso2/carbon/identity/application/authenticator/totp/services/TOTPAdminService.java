@@ -229,7 +229,7 @@ public class TOTPAdminService {
                     "TOTPAdminService failed while trying to get the user store manager from user realm of the user : "
                             + tenantAwareUsername, e);
         } catch (CryptoException e) {
-            throw new TOTPException("TOTPAdminService failed while decrypt the stored SecretKey ", e);
+            throw new TOTPException("TOTPAdminService failed while decrypt the stored SecretKey.", e);
         }
         return new String(secretKey);
     }
