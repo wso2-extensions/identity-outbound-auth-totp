@@ -25,6 +25,9 @@
         <parameter name="ServiceClass">
             org.wso2.carbon.identity.application.authenticator.totp.services.TOTPAdminService
         </parameter>
+        <excludeOperations>
+            <operation>retrieveSecretKey</operation>
+        </excludeOperations>
     </service>
 
     <parameter name="AuthorizationAction" locked="true">/permission/admin/login</parameter>

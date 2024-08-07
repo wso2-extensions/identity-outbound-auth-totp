@@ -625,7 +625,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 						.getUserStoreManager().getUserClaimValues
 								(tenantAwareUsername, new String[]
 										{ TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL }, null);
-				String secretKey = TOTPUtil.decrypt(
+				byte[] secretKey = TOTPUtil.decryptSecret(
 						userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
 				return totpAuthenticator.authorize(secretKey, token);
 			} else {

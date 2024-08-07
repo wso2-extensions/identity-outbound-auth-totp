@@ -79,9 +79,23 @@ public class TOTPUtil {
      * @return Base64 encoded string
      * @throws CryptoException On error during encryption
      */
+    @Deprecated
     public static String encrypt(String plainText) throws CryptoException {
 
         return CryptoUtil.getDefaultCryptoUtil().encryptAndBase64Encode(plainText.getBytes(Charsets.UTF_8));
+    }
+
+    /**
+     * Encrypt the given text in a char array.
+     *
+     * @param plainText The plaintext value to be encrypted and base64 encoded.
+     * @return Base64 encoded string.
+     * @throws CryptoException On error during encryption.
+     */
+    public static String encrypt(byte[] plainText) throws CryptoException {
+
+        // Encrypt the plainTextByteArray and get the encoded result
+        return CryptoUtil.getDefaultCryptoUtil().encryptAndBase64Encode(plainText);
     }
 
     /**
@@ -91,9 +105,22 @@ public class TOTPUtil {
      * @return Base64 decoded string
      * @throws CryptoException On an error during decryption
      */
+    @Deprecated
     public static String decrypt(String cipherText) throws CryptoException {
 
         return new String(CryptoUtil.getDefaultCryptoUtil().base64DecodeAndDecrypt(cipherText), Charsets.UTF_8);
+    }
+
+    /**
+     * Decrypt the given cipher text.
+     *
+     * @param encryptedText The string which needs to be decrypted
+     * @return Decrypted char array
+     * @throws CryptoException On an error during decryption
+     */
+    public static byte[] decryptSecret(String encryptedText) throws CryptoException {
+
+        return CryptoUtil.getDefaultCryptoUtil().base64DecodeAndDecrypt(encryptedText);
     }
 
     public static String getTOTPIssuerDisplayName(String tenantDomain, AuthenticationContext context)

@@ -126,7 +126,7 @@ public class TOTPAdminService {
                 }
 
                 boolean validationResult = validateTOTP(username, verificationCode,
-                        TOTPUtil.decrypt(encryptedSecretKey), null);
+                        TOTPUtil.decryptSecret(encryptedSecretKey), null);
                 if (!validationResult) {
                     return false;
                 }
@@ -189,11 +189,12 @@ public class TOTPAdminService {
      * @return Secret Key.
      * @throws TOTPException when could not find the user
      */
+    @Deprecated
     public String retrieveSecretKey(String username, AuthenticationContext context) throws TOTPException {
 
         UserRealm userRealm;
         String tenantAwareUsername = null;
-        String secretKey = null;
+        byte[] secretKey = new byte[0];
         Map<String, String> claims = new HashMap<>();
         String encoding;
         try {
@@ -204,10 +205,11 @@ public class TOTPAdminService {
                 Map<String, String> userClaimValues = userRealm.getUserStoreManager().
                         getUserClaimValues(tenantAwareUsername,
                                 new String[]{TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL}, null);
-                secretKey = userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
-                if (StringUtils.isEmpty(secretKey)) {
+                secretKey = userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL)
+                        .getBytes();
+                if (secretKey.length > 0) {
                     TOTPAuthenticatorKey key = TOTPKeyGenerator.generateKey(tenantDomain, context);
-                    secretKey = key.getKey();
+                    secretKey = key.getKey().getBytes();
                     if (context == null) {
                         encoding = TOTPUtil.getEncodingMethod(tenantDomain);
                     } else {
@@ -217,7 +219,59 @@ public class TOTPAdminService {
                     claims.put(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL, encoding);
                     TOTPKeyGenerator.addTOTPClaimsAndRetrievingQRCodeURL(claims, username, context);
                 } else {
-                    secretKey = TOTPUtil.decrypt(secretKey);
+                    secretKey = TOTPUtil.decryptSecret(new String(secretKey));
+                }
+            }
+        } catch (AuthenticationFailedException e) {
+            throw new TOTPException("TOTPAdminService cannot find the property value for encoding method", e);
+        } catch (UserStoreException e) {
+            throw new TOTPException(
+                    "TOTPAdminService failed while trying to get the user store manager from user realm of the user : "
+                            + tenantAwareUsername, e);
+        } catch (CryptoException e) {
+            throw new TOTPException("TOTPAdminService failed while decrypt the stored SecretKey.", e);
+        }
+        return new String(secretKey);
+    }
+
+    /**
+     * Retrieve the secret key of a given user.
+     *
+     * @param username  Username of the user.
+     * @param context   Authentication context.
+     * @return          Byte array of the Secret Key.
+     * @throws TOTPException when could not find the user.
+     */
+    public byte[] retrieveSecretKeyInByteArray(String username, AuthenticationContext context) throws TOTPException {
+
+        UserRealm userRealm;
+        String tenantAwareUsername = null;
+        byte[] secretKey = new byte[0];
+        Map<String, String> claims = new HashMap<>();
+        String encoding;
+        try {
+            userRealm = TOTPUtil.getUserRealm(username);
+            String tenantDomain = MultitenantUtils.getTenantDomain(username);
+            tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
+            if (userRealm != null) {
+                Map<String, String> userClaimValues = userRealm.getUserStoreManager().
+                        getUserClaimValues(tenantAwareUsername,
+                                new String[]{TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL}, null);
+                secretKey = userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL)
+                        .getBytes();
+                if (secretKey.length > 0) {
+                    TOTPAuthenticatorKey key = TOTPKeyGenerator.generateKey(tenantDomain, context);
+                    secretKey = key.getKey().getBytes();
+                    if (context == null) {
+                        encoding = TOTPUtil.getEncodingMethod(tenantDomain);
+                    } else {
+                        encoding = TOTPUtil.getEncodingMethod(tenantDomain, context);
+                    }
+                    claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(secretKey));
+                    claims.put(TOTPAuthenticatorConstants.ENCODING_CLAIM_URL, encoding);
+                    TOTPKeyGenerator.addTOTPClaimsAndRetrievingQRCodeURL(claims, username, context);
+                } else {
+                    secretKey = TOTPUtil.decryptSecret(new String(secretKey));
                 }
             }
         } catch (AuthenticationFailedException e) {
@@ -244,12 +298,12 @@ public class TOTPAdminService {
     public boolean validateTOTP(String username, AuthenticationContext context, int verificationCode) throws
             TOTPException {
 
-        String secretKey = retrieveSecretKey(username, context);
+        byte[] secretKey = retrieveSecretKeyInByteArray(username, context);
 
         return validateTOTP(username, verificationCode, secretKey, context);
     }
 
-    private boolean validateTOTP(String username, int verificationCode, String secretKey, AuthenticationContext context)
+    private boolean validateTOTP(String username, int verificationCode, byte[] secretKey, AuthenticationContext context)
             throws TOTPException {
 
         TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;

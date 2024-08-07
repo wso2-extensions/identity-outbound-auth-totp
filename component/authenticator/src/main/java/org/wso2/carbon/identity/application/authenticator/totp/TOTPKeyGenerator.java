@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.application.authenticator.totp;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
@@ -75,9 +76,9 @@ public class TOTPKeyGenerator {
     private static Map<String, String> generateClaims(String username, boolean refresh, AuthenticationContext context,
                                                       String secretKeyClaim) throws TOTPException {
 
-        String storedSecretKey, secretKey;
-        String decryptedSecretKey = null;
-        String generatedSecretKey = null;
+        String storedSecretKey;
+        byte[] secretKey = new byte[0];
+        byte[] generatedSecretKey;
         String encodedQRCodeURL;
         String tenantAwareUsername = null;
         Map<String, String> claims = new HashMap<>();
@@ -97,22 +98,22 @@ public class TOTPKeyGenerator {
                 storedSecretKey = userClaimValues.get(secretKeyClaim);
                 if (StringUtils.isEmpty(storedSecretKey) || refresh) {
                     TOTPAuthenticatorKey key = generateKey(tenantDomain, context);
-                    generatedSecretKey = key.getKey();
-                    claims.put(secretKeyClaim, TOTPUtil.encrypt(generatedSecretKey));
+                    generatedSecretKey = key.getKey().getBytes();
+                    claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(generatedSecretKey));
+                    secretKey = ArrayUtils.isNotEmpty(generatedSecretKey) ? generatedSecretKey : new byte[0];
                 } else {
-                    decryptedSecretKey = TOTPUtil.decrypt(storedSecretKey);
-                }
-                if (StringUtils.isNotEmpty(generatedSecretKey)) {
-                    secretKey = generatedSecretKey;
-                } else {
-                    secretKey = decryptedSecretKey;
+                    byte[] decryptedSecret = TOTPUtil.decryptSecret(storedSecretKey);
+                    if (decryptedSecret != null && decryptedSecret.length > 0) {
+                        secretKey = decryptedSecret;
+                    }
                 }
 
                 String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
-                String qrCodeURL =
-                        "otpauth://totp/" + issuer + ":" + tenantAwareUsername + "?secret=" + secretKey + "&issuer=" +
-                                issuer + "&period=" + timeStep;
-                encodedQRCodeURL = Base64.encodeBase64String(qrCodeURL.getBytes());
+                byte[] qrCodeURL = concatByteArrays(
+                                ("otpauth://totp/" + issuer + ":" + tenantAwareUsername +
+                                "?secret=").getBytes(), secretKey,
+                                ("&issuer=" + issuer + "&period=" + timeStep).getBytes());
+                encodedQRCodeURL = Base64.encodeBase64String(qrCodeURL);
                 claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, encodedQRCodeURL);
             }
         } catch (UserStoreException e) {
@@ -126,6 +127,29 @@ public class TOTPKeyGenerator {
                     "TOTPKeyGenerator cannot find the property value for encoding method", e);
         }
         return claims;
+    }
+
+    /**
+     * Concatenate byte arrays.
+     *
+     * @param arrays byte arrays.
+     * @return concatenated byte array.
+     */
+    private static byte[] concatByteArrays(byte[]... arrays) {
+
+        int totalLength = 0;
+        for (byte[] array : arrays) {
+            totalLength += array.length;
+        }
+
+        byte[] result = new byte[totalLength];
+        int currentPosition = 0;
+
+        for (byte[] array : arrays) {
+            System.arraycopy(array, 0, result, currentPosition, array.length);
+            currentPosition += array.length;
+        }
+        return result;
     }
 
     /**
