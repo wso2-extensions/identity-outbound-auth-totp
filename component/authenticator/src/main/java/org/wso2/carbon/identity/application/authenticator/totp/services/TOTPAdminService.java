@@ -207,7 +207,7 @@ public class TOTPAdminService {
                                 new String[]{TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL}, null);
                 secretKey = userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL)
                         .getBytes();
-                if (secretKey.length > 0) {
+                if (secretKey.length < 1) {
                     TOTPAuthenticatorKey key = TOTPKeyGenerator.generateKey(tenantDomain, context);
                     secretKey = key.getKey().getBytes();
                     if (context == null) {
@@ -259,7 +259,7 @@ public class TOTPAdminService {
                                 new String[]{TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL}, null);
                 secretKey = userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL)
                         .getBytes();
-                if (secretKey.length > 0) {
+                if (secretKey.length < 1) {
                     TOTPAuthenticatorKey key = TOTPKeyGenerator.generateKey(tenantDomain, context);
                     secretKey = key.getKey().getBytes();
                     if (context == null) {
