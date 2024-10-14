@@ -842,9 +842,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
 		if (isIndefiniteLock(unlockTimePropertyValue)) {
 			return 0;
-		} else {
-			return calculateLockoutDuration(unlockTimePropertyValue, unlockTimeRatio, failedLoginLockoutCountValue);
 		}
+		return calculateLockoutDuration(unlockTimePropertyValue, unlockTimeRatio, failedLoginLockoutCountValue);
 	}
 
 	private boolean isIndefiniteLock(long unlockTimePropertyValue) {
