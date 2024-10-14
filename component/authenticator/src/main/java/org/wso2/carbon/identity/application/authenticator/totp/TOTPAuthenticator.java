@@ -715,14 +715,16 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
 		Map<String, String> updatedClaims = new HashMap<>();
 		if ((currentAttempts + 1) >= maxAttempts) {
-			// Calculate the incremental unlock-time-interval in milli seconds.
-			unlockTimePropertyValue = (long) (unlockTimePropertyValue * 1000 * 60 * Math.pow(unlockTimeRatio,
-					failedLoginLockoutCountValue));
-			// Calculate unlock-time by adding current-time and unlock-time-interval in milli seconds.
-			long unlockTime = System.currentTimeMillis() + unlockTimePropertyValue;
+			// Calculate the incremental unlock-time-interval in milli seconds if the unlock-time is not equal to 0.
+			if(unlockTimePropertyValue != 0) {
+				unlockTimePropertyValue = (long) (unlockTimePropertyValue * 1000 * 60 * Math.pow(unlockTimeRatio,
+						failedLoginLockoutCountValue));
+				// Calculate unlock-time by adding current-time and unlock-time-interval in milli seconds.
+				long unlockTime = System.currentTimeMillis() + unlockTimePropertyValue;
+				updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_UNLOCK_TIME_CLAIM, String.valueOf(unlockTime));
+			}
 			updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_LOCKED_CLAIM, Boolean.TRUE.toString());
 			updatedClaims.put(TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM, "0");
-			updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_UNLOCK_TIME_CLAIM, String.valueOf(unlockTime));
 			updatedClaims.put(TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM,
 					String.valueOf(failedLoginLockoutCountValue + 1));
 			updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_LOCKED_REASON_CLAIM_URI,
