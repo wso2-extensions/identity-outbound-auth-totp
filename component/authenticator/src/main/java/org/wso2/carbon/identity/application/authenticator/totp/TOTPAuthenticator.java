@@ -715,16 +715,12 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
 		Map<String, String> updatedClaims = new HashMap<>();
 		if ((currentAttempts + 1) >= maxAttempts) {
-			// Calculate the incremental unlock-time-interval in milli seconds if the unlock-time is not equal to 0.
-			if (unlockTimePropertyValue != 0) {
-				unlockTimePropertyValue = (long) (unlockTimePropertyValue * 1000 * 60 * Math.pow(unlockTimeRatio,
-						failedLoginLockoutCountValue));
-				// Calculate unlock-time by adding current-time and unlock-time-interval in milli seconds.
-				long unlockTime = System.currentTimeMillis() + unlockTimePropertyValue;
-				updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_UNLOCK_TIME_CLAIM, String.valueOf(unlockTime));
-			}
+			// Calculate the incremental unlock-time-interval in milli seconds
+			long unlockTime = calculateUnlockTime(unlockTimePropertyValue, unlockTimeRatio,
+					failedLoginLockoutCountValue);
 			updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_LOCKED_CLAIM, Boolean.TRUE.toString());
 			updatedClaims.put(TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM, "0");
+			updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_UNLOCK_TIME_CLAIM, String.valueOf(unlockTime));
 			updatedClaims.put(TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM,
 					String.valueOf(failedLoginLockoutCountValue + 1));
 			updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_LOCKED_REASON_CLAIM_URI,
@@ -839,5 +835,27 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			return redirectUrl;
 		}
 		return ServiceURLBuilder.create().addPath(redirectUrl).build().getAbsolutePublicURL();
+	}
+
+	private long calculateUnlockTime(long unlockTimePropertyValue, double unlockTimeRatio,
+									 int failedLoginLockoutCountValue) {
+
+		if (isIndefiniteLock(unlockTimePropertyValue)) {
+			return 0;
+		} else {
+			return calculateLockoutDuration(unlockTimePropertyValue, unlockTimeRatio, failedLoginLockoutCountValue);
+		}
+	}
+
+	private boolean isIndefiniteLock(long unlockTimePropertyValue) {
+		return TOTPUtil.isIndefiniteAccountLockingEnabled() && unlockTimePropertyValue == 0;
+	}
+
+	private long calculateLockoutDuration(long unlockTimePropertyValue, double unlockTimeRatio,
+										  int failedLoginLockoutCountValue) {
+
+		unlockTimePropertyValue = (long) (unlockTimePropertyValue * 1000 * 60 * Math.pow(unlockTimeRatio,
+				failedLoginLockoutCountValue));
+		return System.currentTimeMillis() + unlockTimePropertyValue;
 	}
 }
