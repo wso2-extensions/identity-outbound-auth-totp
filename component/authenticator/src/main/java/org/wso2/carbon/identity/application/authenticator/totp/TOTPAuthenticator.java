@@ -716,7 +716,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 		Map<String, String> updatedClaims = new HashMap<>();
 		if ((currentAttempts + 1) >= maxAttempts) {
 			// Calculate the incremental unlock-time-interval in milli seconds if the unlock-time is not equal to 0.
-			if(unlockTimePropertyValue != 0) {
+			if (unlockTimePropertyValue != 0) {
 				unlockTimePropertyValue = (long) (unlockTimePropertyValue * 1000 * 60 * Math.pow(unlockTimeRatio,
 						failedLoginLockoutCountValue));
 				// Calculate unlock-time by adding current-time and unlock-time-interval in milli seconds.
