@@ -757,7 +757,7 @@ public class TOTPUtil {
      *
      * @return True if indefinite account locking is enabled for TOTP when account lock duraion is 0.
      */
-    public static boolean isIndefinteAccountLockingIsEnabled() {
+    public static boolean isIndefiniteAccountLockingEnabled() {
 
         return Boolean.parseBoolean(
                 getTOTPParameters().get(TOTPAuthenticatorConstants.ENABLE_INDEFINITE_ACCOUNT_LOCKING_FOR_DURATAION_ZERO));

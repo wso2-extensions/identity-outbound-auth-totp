@@ -848,6 +848,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 	}
 
 	private boolean isIndefiniteLock(long unlockTimePropertyValue) {
+
 		return TOTPUtil.isIndefiniteAccountLockingEnabled() && unlockTimePropertyValue == 0;
 	}
 
