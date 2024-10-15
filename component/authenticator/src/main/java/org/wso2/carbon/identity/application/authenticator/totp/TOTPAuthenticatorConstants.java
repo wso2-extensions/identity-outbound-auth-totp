@@ -80,6 +80,8 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String AUTHENTICATED_USER = "authenticatedUser";
 	public static final String LOCAL_AUTHENTICATOR = "LOCAL";
 	public static final String ENABLE_ACCOUNT_LOCKING_FOR_FAILED_ATTEMPTS = "EnableAccountLockingForFailedAttempts";
+	public static final String ENABLE_INDEFINITE_ACCOUNT_LOCKING_FOR_DURATAION_ZERO
+			= "EnableIndefiniteAccountLockingForDurationZero";
 	public static final String PROPERTY_LOGIN_FAIL_TIMEOUT_RATIO = "account.lock.handler.login.fail.timeout.ratio";
 	public static final String PROPERTY_ACCOUNT_LOCK_ON_FAILURE = "account.lock.handler.enable";
 	public static final String PROPERTY_ACCOUNT_LOCK_ON_FAILURE_MAX = "account.lock.handler.On.Failure.Max.Attempts";
