@@ -99,7 +99,7 @@ public class TOTPKeyGenerator {
                 if (StringUtils.isEmpty(storedSecretKey) || refresh) {
                     TOTPAuthenticatorKey key = generateKey(tenantDomain, context);
                     generatedSecretKey = key.getKey().getBytes();
-                    claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.encrypt(generatedSecretKey));
+                    claims.put(secretKeyClaim, TOTPUtil.encrypt(generatedSecretKey));
                     secretKey = ArrayUtils.isNotEmpty(generatedSecretKey) ? generatedSecretKey : new byte[0];
                 } else {
                     byte[] decryptedSecret = TOTPUtil.decryptSecret(storedSecretKey);
