@@ -564,7 +564,8 @@ public class TOTPUtil {
                     ("?sessionDataKey=" + context.getContextIdentifier()) +
                     "&authenticators=" +
                     TOTPAuthenticatorConstants.AUTHENTICATOR_NAME +
-                    "&type=totp" + "&ske=" + skey + multiOptionURI;
+                    "&type=totp" + "&sp=" + Encode.forUriComponent(context.getServiceProviderName()) +
+                    "&ske=" + skey + multiOptionURI;
             try {
                 response.sendRedirect(enableTOTPReqPageUrl);
             } catch (IOException e) {
