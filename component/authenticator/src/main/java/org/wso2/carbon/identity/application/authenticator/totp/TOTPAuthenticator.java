@@ -226,7 +226,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			String totpErrorPageUrl =
 					getErrorPage(context) + ("?sessionDataKey=" + context.getContextIdentifier()) +
 							"&authenticators=" + getName() + "&type=totp_error" + retryParam +
-							"&username=" + username + errorParam + multiOptionURI;
+							"&username=" + username + "&sp="
+							+ Encode.forUriComponent(context.getServiceProviderName()) + errorParam + multiOptionURI;
 			if (isTOTPEnabled && request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
 				//if TOTP is enabled for the user.
 				if (!showAuthFailureReasonOnLoginPage) {
@@ -329,7 +330,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
 		return getLoginPage(context) + ("?sessionDataKey=" + context.getContextIdentifier()) +
 				"&authenticators=" + getName() + "&type=totp" + retryParam + "&username=" +
-				username + errorParam + multiOptionURI;
+				username + "&sp="
+				+ Encode.forUriComponent(context.getServiceProviderName()) + errorParam + multiOptionURI;
 	}
 
 	/**
