@@ -984,6 +984,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         authenticatedUser.getUserStoreDomain())) {
             return;
         }
+        boolean accountLockOnFailedAttemptsEnabled = false;
         int maxAttempts = 0;
         long unlockTimePropertyValue = 0;
         double unlockTimeRatio = 1;
@@ -992,9 +993,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         for (Property connectorConfig : connectorConfigs) {
             switch (connectorConfig.getName()) {
                 case TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_ON_FAILURE:
-                    if (!Boolean.parseBoolean(connectorConfig.getValue())) {
-                        return;
-                    }
+                    accountLockOnFailedAttemptsEnabled = Boolean.parseBoolean(connectorConfig.getValue());
+                    break;
                 case TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_ON_FAILURE_MAX:
                     if (NumberUtils.isNumber(connectorConfig.getValue())) {
                         maxAttempts = Integer.parseInt(connectorConfig.getValue());
@@ -1015,6 +1015,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     break;
             }
         }
+
+        if (!accountLockOnFailedAttemptsEnabled) {
+            return;
+        }
+
         Map<String, String> claimValues = getUserClaimValues(authenticatedUser, new String[]{
                 TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM,
                 TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM});
