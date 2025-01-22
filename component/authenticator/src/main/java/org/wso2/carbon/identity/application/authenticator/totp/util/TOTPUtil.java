@@ -890,6 +890,7 @@ public class TOTPUtil {
                     .getConfiguration(
                             new String[]{
                                     TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_ON_FAILURE,
+                                    TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_ON_FAILURE_ENABLE,
                                     TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_ON_FAILURE_MAX,
                                     TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_TIME,
                                     TOTPAuthenticatorConstants.PROPERTY_LOGIN_FAIL_TIMEOUT_RATIO

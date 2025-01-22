@@ -993,6 +993,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         for (Property connectorConfig : connectorConfigs) {
             switch (connectorConfig.getName()) {
                 case TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_ON_FAILURE:
+                case TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_ON_FAILURE_ENABLE:
                     accountLockOnFailedAttemptsEnabled = Boolean.parseBoolean(connectorConfig.getValue());
                     break;
                 case TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_ON_FAILURE_MAX:
@@ -1094,7 +1095,9 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         // Return if account lock handler is not enabled.
         for (Property connectorConfig : connectorConfigs) {
             if ((TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_ON_FAILURE.equals(connectorConfig.getName())) &&
-                    !Boolean.parseBoolean(connectorConfig.getValue())) {
+                    !Boolean.parseBoolean(connectorConfig.getValue()) ||
+                    (TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_ON_FAILURE_ENABLE
+                            .equals(connectorConfig.getName())) && !Boolean.parseBoolean(connectorConfig.getValue())) {
                 return;
             }
         }
