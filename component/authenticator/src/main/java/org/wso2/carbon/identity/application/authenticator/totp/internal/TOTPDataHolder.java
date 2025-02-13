@@ -18,6 +18,7 @@
  */
 package org.wso2.carbon.identity.application.authenticator.totp.internal;
 
+import org.wso2.carbon.identity.branding.preference.management.core.BrandingPreferenceManager;
 import org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataManagementService;
 import org.wso2.carbon.identity.event.services.IdentityEventService;
 import org.wso2.carbon.identity.governance.IdentityGovernanceService;
@@ -41,6 +42,7 @@ public class TOTPDataHolder {
 	private IdentityGovernanceService identityGovernanceService;
 	private IdpManager idpManager;
 	private OrganizationManager organizationManager;
+	private BrandingPreferenceManager brandingPreferenceManager;
 
 	private static ClaimMetadataManagementService claimManagementService;
 
@@ -203,5 +205,25 @@ public class TOTPDataHolder {
 	public OrganizationManager getOrganizationManager() {
 
 		return organizationManager;
+	}
+
+	/**
+	 * Get the BrandingPreferenceManager service.
+	 *
+	 * @return BrandingPreferenceManager service.
+	 */
+	public BrandingPreferenceManager getBrandingPreferenceManager() {
+
+		return brandingPreferenceManager;
+	}
+
+	/**
+	 * Set the BrandingPreferenceManager service.
+	 *
+	 * @param brandingPreferenceManager The BrandingPreferenceManager service.
+	 */
+	public void setBrandingPreferenceManager(BrandingPreferenceManager brandingPreferenceManager) {
+
+		this.brandingPreferenceManager = brandingPreferenceManager;
 	}
 }

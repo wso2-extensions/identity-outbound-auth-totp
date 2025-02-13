@@ -18,6 +18,8 @@
 
 package org.wso2.carbon.identity.application.authenticator.totp.util;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -53,6 +55,10 @@ import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPExc
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
 import org.wso2.carbon.identity.application.common.model.ClaimMapping;
 import org.wso2.carbon.identity.application.common.model.Property;
+import org.wso2.carbon.identity.branding.preference.management.core.BrandingPreferenceManager;
+import org.wso2.carbon.identity.branding.preference.management.core.constant.BrandingPreferenceMgtConstants;
+import org.wso2.carbon.identity.branding.preference.management.core.exception.BrandingPreferenceMgtException;
+import org.wso2.carbon.identity.branding.preference.management.core.model.BrandingPreference;
 import org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataHandler;
 import org.wso2.carbon.identity.claim.metadata.mgt.exception.ClaimMetadataException;
 import org.wso2.carbon.identity.claim.metadata.mgt.model.LocalClaim;
@@ -149,14 +155,12 @@ public class TOTPUtil {
     public static String getTOTPIssuerDisplayName(String tenantDomain, AuthenticationContext context)
             throws TOTPException {
 
-        String issuer = null;
-        if (TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN.equals(tenantDomain) ||
-                Boolean.parseBoolean(getTOTPParameters().get(TOTPAuthenticatorConstants.TOTP_COMMON_ISSUER))) {
-            issuer = getTOTPParameters().get(TOTPAuthenticatorConstants.TOTP_ISSUER);
-        } else if (context == null) {
-            issuer = getIssuerFromRegistry(tenantDomain);
-        } else if (context.getProperty(TOTPAuthenticatorConstants.TOTP_ISSUER) != null) {
-            issuer = (String) context.getProperty(TOTPAuthenticatorConstants.TOTP_ISSUER);
+        String issuer = getIssuerFromParameters();
+        if (StringUtils.isBlank(issuer)) {
+            issuer = getIssuerFromBranding(tenantDomain);
+        }
+        if (StringUtils.isBlank(issuer)) {
+            issuer = getIssuerFromContextOrRegistry(tenantDomain, context);
         }
         if (StringUtils.isBlank(issuer)) {
             try {
@@ -173,6 +177,78 @@ public class TOTPUtil {
             }
         }
         return issuer;
+    }
+
+    private static String getIssuerFromParameters() {
+
+        if (Boolean.parseBoolean(getTOTPParameters().get(TOTPAuthenticatorConstants.TOTP_COMMON_ISSUER))) {
+            return getTOTPParameters().get(TOTPAuthenticatorConstants.TOTP_ISSUER);
+        }
+        return null;
+    }
+
+    private static String getIssuerFromContextOrRegistry(String tenantDomain, AuthenticationContext context)
+            throws TOTPException {
+
+        if (context == null) {
+            return getIssuerFromRegistry(tenantDomain);
+        } else if (context.getProperty(TOTPAuthenticatorConstants.TOTP_ISSUER) != null) {
+            return (String) context.getProperty(TOTPAuthenticatorConstants.TOTP_ISSUER);
+        }
+        return null;
+    }
+
+    private static String getIssuerFromBranding(String tenantDomain) {
+
+        BrandingPreferenceManager brandingPreferenceManager = TOTPDataHolder.getInstance()
+                .getBrandingPreferenceManager();
+        if (brandingPreferenceManager == null) {
+            return null;
+        }
+
+        try {
+            BrandingPreference responseDTO = brandingPreferenceManager.resolveBrandingPreference(
+                    BrandingPreferenceMgtConstants.ORGANIZATION_TYPE, tenantDomain,
+                    BrandingPreferenceMgtConstants.DEFAULT_LOCALE, false);
+            JsonNode brandingPreferences = new ObjectMapper().valueToTree(responseDTO.getPreference());
+
+            if (!brandingPreferences.at("/configs/isBrandingEnabled").asBoolean()) {
+                return null;
+            }
+            return brandingPreferences.at("/organizationDetails/displayName").asText();
+        } catch (BrandingPreferenceMgtException e) {
+            handleBrandingPreferenceException(e, tenantDomain);
+            if (BrandingPreferenceMgtConstants.ErrorMessages.ERROR_CODE_BRANDING_PREFERENCE_NOT_CONFIGURED.getCode()
+                    .equals(e.getErrorCode())) {
+                if (log.isDebugEnabled()) {
+                    String message = "No branding preferences exist for organization " + tenantDomain ;
+                    log.debug(message, e);
+                }
+            } else {
+                if (log.isDebugEnabled()) {
+                    String message = "Error occurred while retrieving branding preferences for organization "
+                            + tenantDomain ;
+                    log.debug(message, e);
+                }
+            }
+        }
+        return null;
+    }
+
+    private static void handleBrandingPreferenceException(BrandingPreferenceMgtException e, String tenantDomain) {
+
+        if (BrandingPreferenceMgtConstants.ErrorMessages.ERROR_CODE_BRANDING_PREFERENCE_NOT_CONFIGURED.getCode()
+                .equals(e.getErrorCode())) {
+            if (log.isDebugEnabled()) {
+                log.debug("No branding preferences exist for organization: " + tenantDomain, e);
+            }
+        } else {
+            if (log.isDebugEnabled()) {
+                String message = "Error occurred while retrieving branding preferences for organization "
+                        + tenantDomain ;
+                log.debug(message, e);
+            }
+        }
     }
 
     /**
