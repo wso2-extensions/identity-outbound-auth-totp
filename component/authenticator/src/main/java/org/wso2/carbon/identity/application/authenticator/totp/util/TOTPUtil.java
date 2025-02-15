@@ -101,6 +101,8 @@ import static org.apache.commons.lang.StringUtils.isNotBlank;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ERROR_PAGE;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.PATH_TO_IS_BRANDING_ENABLED;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.PATH_TO_ORG_DISPLAY_NAME;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOTP_HIDE_USERSTORE_FROM_USERNAME;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE;
@@ -212,42 +214,24 @@ public class TOTPUtil {
                     BrandingPreferenceMgtConstants.DEFAULT_LOCALE, false);
             JsonNode brandingPreferences = new ObjectMapper().valueToTree(responseDTO.getPreference());
 
-            if (!brandingPreferences.at("/configs/isBrandingEnabled").asBoolean()) {
+            if (!brandingPreferences.at(PATH_TO_IS_BRANDING_ENABLED).asBoolean()) {
                 return null;
             }
-            return brandingPreferences.at("/organizationDetails/displayName").asText();
+            return brandingPreferences.at(PATH_TO_ORG_DISPLAY_NAME).asText();
         } catch (BrandingPreferenceMgtException e) {
             handleBrandingPreferenceException(e, tenantDomain);
-            if (BrandingPreferenceMgtConstants.ErrorMessages.ERROR_CODE_BRANDING_PREFERENCE_NOT_CONFIGURED.getCode()
-                    .equals(e.getErrorCode())) {
-                if (log.isDebugEnabled()) {
-                    String message = "No branding preferences exist for organization " + tenantDomain ;
-                    log.debug(message, e);
-                }
-            } else {
-                if (log.isDebugEnabled()) {
-                    String message = "Error occurred while retrieving branding preferences for organization "
-                            + tenantDomain ;
-                    log.debug(message, e);
-                }
-            }
         }
         return null;
     }
 
     private static void handleBrandingPreferenceException(BrandingPreferenceMgtException e, String tenantDomain) {
 
-        if (BrandingPreferenceMgtConstants.ErrorMessages.ERROR_CODE_BRANDING_PREFERENCE_NOT_CONFIGURED.getCode()
-                .equals(e.getErrorCode())) {
-            if (log.isDebugEnabled()) {
-                log.debug("No branding preferences exist for organization: " + tenantDomain, e);
-            }
-        } else {
-            if (log.isDebugEnabled()) {
-                String message = "Error occurred while retrieving branding preferences for organization "
-                        + tenantDomain ;
-                log.debug(message, e);
-            }
+        if ( log.isDebugEnabled()) {
+            String message = BrandingPreferenceMgtConstants.ErrorMessages.ERROR_CODE_BRANDING_PREFERENCE_NOT_CONFIGURED
+                    .getCode().equals(e.getErrorCode())
+                    ? "No branding preferences exist for organization " + tenantDomain
+                    : "Error occurred while retrieving branding preferences for organization " + tenantDomain ;
+            log.debug(message, e);
         }
     }
 
