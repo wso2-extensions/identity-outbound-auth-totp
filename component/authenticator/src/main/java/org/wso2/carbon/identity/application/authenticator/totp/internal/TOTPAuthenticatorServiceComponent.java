@@ -28,6 +28,7 @@ import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticator;
+import org.wso2.carbon.identity.branding.preference.management.core.BrandingPreferenceManager;
 import org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataManagementService;
 import org.wso2.carbon.identity.event.services.IdentityEventService;
 import org.wso2.carbon.identity.governance.IdentityGovernanceService;
@@ -239,5 +240,20 @@ public class TOTPAuthenticatorServiceComponent {
 	protected void unsetOrganizationManager(OrganizationManager organizationManager) {
 
 		TOTPDataHolder.getInstance().setOrganizationManager(null);
+	}
+
+	@Reference(name = "identity.branding.preference.management",
+			service = BrandingPreferenceManager.class,
+			cardinality = ReferenceCardinality.MANDATORY,
+			policy = ReferencePolicy.DYNAMIC,
+			unbind = "unsetBrandingPreferenceManager")
+	protected void setBrandingPreferenceManager(BrandingPreferenceManager brandingPreferenceManager) {
+
+		TOTPDataHolder.getInstance().setBrandingPreferenceManager(brandingPreferenceManager);
+	}
+
+	protected void unsetBrandingPreferenceManager(BrandingPreferenceManager brandingPreferenceManager) {
+
+		TOTPDataHolder.getInstance().setBrandingPreferenceManager(null);
 	}
 }

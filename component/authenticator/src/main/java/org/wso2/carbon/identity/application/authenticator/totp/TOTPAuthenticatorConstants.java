@@ -119,6 +119,10 @@ public abstract class TOTPAuthenticatorConstants {
 	// value make sure to change it there as well.
 	public static final String ENABLE_ENCRYPTION = "EnableEncryption";
 
+	// Branding constants to resolve TOTP issuer.
+	public static final String PATH_TO_IS_BRANDING_ENABLED = "/configs/isBrandingEnabled";
+	public static final String PATH_TO_ORG_DISPLAY_NAME = "/organizationDetails/displayName";
+
 	/**
 	 * Constants related to log management.
 	 */
