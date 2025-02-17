@@ -265,8 +265,8 @@ public class TOTPUtil {
             NodeList authConfigList = getAuthenticationConfigNodeList(tenantDomain, tenantID);
             issuer = getAttributeFromRegistry(authConfigList, TOTPAuthenticatorConstants.TOTP_ISSUER);
         } catch (RegistryException e) {
-            //Default to tenant domain name on registry exception.
-            issuer = tenantDomain;
+            // Default to null on registry exception.
+            issuer = null;
         } catch (SAXException e) {
             throw new TOTPException("Error while parsing the content as XML", e);
         } catch (ParserConfigurationException e) {
