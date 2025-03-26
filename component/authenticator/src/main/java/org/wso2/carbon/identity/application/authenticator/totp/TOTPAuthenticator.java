@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2017, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2017-2025, WSO2 LLC. (http://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
@@ -11,7 +11,7 @@
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied. See the License for the
+ * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
  */
@@ -984,6 +984,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         authenticatedUser.getUserStoreDomain())) {
             return;
         }
+        boolean accountLockOnFailedAttemptsEnabled = false;
         int maxAttempts = 0;
         long unlockTimePropertyValue = 0;
         double unlockTimeRatio = 1;
@@ -992,9 +993,9 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         for (Property connectorConfig : connectorConfigs) {
             switch (connectorConfig.getName()) {
                 case TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_ON_FAILURE:
-                    if (!Boolean.parseBoolean(connectorConfig.getValue())) {
-                        return;
-                    }
+                case TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_ON_FAILURE_ENABLE:
+                    accountLockOnFailedAttemptsEnabled = Boolean.parseBoolean(connectorConfig.getValue());
+                    break;
                 case TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_ON_FAILURE_MAX:
                     if (NumberUtils.isNumber(connectorConfig.getValue())) {
                         maxAttempts = Integer.parseInt(connectorConfig.getValue());
@@ -1015,6 +1016,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     break;
             }
         }
+
+        if (!accountLockOnFailedAttemptsEnabled) {
+            return;
+        }
+
         Map<String, String> claimValues = getUserClaimValues(authenticatedUser, new String[]{
                 TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM,
                 TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM});
@@ -1033,14 +1039,16 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
         Map<String, String> updatedClaims = new HashMap<>();
         if ((currentAttempts + 1) >= maxAttempts) {
-            // Calculate the incremental unlock-time-interval in milli seconds.
-            unlockTimePropertyValue = (long) (unlockTimePropertyValue * 1000 * 60 * Math.pow(unlockTimeRatio,
-                    failedLoginLockoutCountValue));
-            // Calculate unlock-time by adding current-time and unlock-time-interval in milli seconds.
-            long unlockTime = System.currentTimeMillis() + unlockTimePropertyValue;
+            if (unlockTimePropertyValue != 0) {
+                // Calculate the incremental unlock-time-interval in milli seconds.
+                unlockTimePropertyValue = (long) (unlockTimePropertyValue * 1000 * 60 * Math.pow(unlockTimeRatio,
+                        failedLoginLockoutCountValue));
+                // Calculate unlock-time by adding current-time and unlock-time-interval in milli seconds.
+                long unlockTime = System.currentTimeMillis() + unlockTimePropertyValue;
+                updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_UNLOCK_TIME_CLAIM, String.valueOf(unlockTime));
+            }
             updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_LOCKED_CLAIM, Boolean.TRUE.toString());
             updatedClaims.put(TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM, "0");
-            updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_UNLOCK_TIME_CLAIM, String.valueOf(unlockTime));
             updatedClaims.put(TOTPAuthenticatorConstants.FAILED_LOGIN_LOCKOUT_COUNT_CLAIM,
                     String.valueOf(failedLoginLockoutCountValue + 1));
             updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_LOCKED_REASON_CLAIM_URI,
@@ -1087,7 +1095,9 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         // Return if account lock handler is not enabled.
         for (Property connectorConfig : connectorConfigs) {
             if ((TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_ON_FAILURE.equals(connectorConfig.getName())) &&
-                    !Boolean.parseBoolean(connectorConfig.getValue())) {
+                    !Boolean.parseBoolean(connectorConfig.getValue()) ||
+                    (TOTPAuthenticatorConstants.PROPERTY_ACCOUNT_LOCK_ON_FAILURE_ENABLE
+                            .equals(connectorConfig.getName())) && !Boolean.parseBoolean(connectorConfig.getValue())) {
                 return;
             }
         }
@@ -1105,12 +1115,14 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     UserCoreConstants.DEFAULT_PROFILE);
             String failedTotpAttempts = userClaims.get(TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM);
 
+            Map<String, String> updatedClaims = new HashMap<>();
+            updatedClaims.put(TOTPAuthenticatorConstants.ACCOUNT_LOCKED_CLAIM, Boolean.FALSE.toString());
+
             if (NumberUtils.isNumber(failedTotpAttempts) && Integer.parseInt(failedTotpAttempts) > 0) {
-                Map<String, String> updatedClaims = new HashMap<>();
                 updatedClaims.put(TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM, "0");
-                userStoreManager
-                        .setUserClaimValues(usernameWithDomain, updatedClaims, UserCoreConstants.DEFAULT_PROFILE);
             }
+            userStoreManager
+                    .setUserClaimValues(usernameWithDomain, updatedClaims, UserCoreConstants.DEFAULT_PROFILE);
         } catch (UserStoreException e) {
             if (log.isDebugEnabled()) {
                 log.debug("Error while resetting failed TOTP attempts count for user: " + username, e);

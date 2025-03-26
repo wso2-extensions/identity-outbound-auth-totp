@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.wso2.carbon.extension.identity.authenticator.outbound.totp</groupId>
         <artifactId>identity-outbound-auth-totp</artifactId>
-        <version>3.3.31-SNAPSHOT</version>
+        <version>3.3.38-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -88,6 +88,10 @@
             <artifactId>encoder</artifactId>
             <version>${encoder.wso2.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.branding.preference.management</groupId>
+            <artifactId>org.wso2.carbon.identity.branding.preference.management.core</artifactId>
+        </dependency>
 
         <!--Test Dependencies-->
         <dependency>
@@ -103,8 +107,8 @@
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.powermock/powermock-module-testng -->
         <dependency>
-            <groupId>org.powermock</groupId>
-            <artifactId>powermock-module-testng</artifactId>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -191,6 +195,7 @@
                         --add-opens java.base/sun.nio.cs=ALL-UNNAMED
                         --add-opens java.base/java.nio.charset=ALL-UNNAMED
                         --add-opens java.logging/java.util.logging=ALL-UNNAMED
+                        --add-opens java.base/java.io=ALL-UNNAMED
                     </argLine>
                 </configuration>
             </plugin>

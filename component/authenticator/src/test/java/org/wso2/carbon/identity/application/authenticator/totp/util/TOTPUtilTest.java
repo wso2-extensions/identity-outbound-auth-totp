@@ -18,6 +18,8 @@
  */
 package org.wso2.carbon.identity.application.authenticator.totp.util;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
@@ -31,6 +33,10 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.ObjectFactory;
 import org.testng.annotations.Test;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
+import org.wso2.carbon.context.PrivilegedCarbonContext;
+import org.wso2.carbon.context.RegistryType;
 import org.wso2.carbon.extension.identity.helper.IdentityHelperConstants;
 import org.wso2.carbon.extension.identity.helper.util.IdentityHelperUtil;
 import org.wso2.carbon.identity.application.authentication.framework.config.ConfigurationFacade;
@@ -39,13 +45,23 @@ import org.wso2.carbon.identity.application.authentication.framework.config.mode
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
+import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
+import org.wso2.carbon.identity.branding.preference.management.core.BrandingPreferenceManager;
+import org.wso2.carbon.identity.branding.preference.management.core.exception.BrandingPreferenceMgtException;
+import org.wso2.carbon.identity.branding.preference.management.core.model.BrandingPreference;
+import org.wso2.carbon.identity.common.testng.WithCarbonHome;
 import org.wso2.carbon.identity.core.ServiceURL;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
+import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
+import org.wso2.carbon.identity.organization.management.service.util.OrganizationManagementUtil;
+import org.wso2.carbon.registry.core.Registry;
+import org.wso2.carbon.registry.core.Resource;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -53,10 +69,13 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Matchers.anyString;
-
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.MockitoAnnotations.initMocks;
 import static org.powermock.api.mockito.PowerMockito.doNothing;
 import static org.powermock.api.mockito.PowerMockito.mock;
@@ -66,7 +85,9 @@ import static org.powermock.api.mockito.PowerMockito.when;
 import static org.testng.Assert.assertEquals;
 
 @PrepareForTest({FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, ConfigurationFacade.class,
-        IdentityTenantUtil.class, ServiceURLBuilder.class})
+        IdentityTenantUtil.class, ServiceURLBuilder.class, TOTPDataHolder.class, PrivilegedCarbonContext.class,
+        DocumentBuilderFactory.class, OrganizationManagementUtil.class})
+@WithCarbonHome
 @PowerMockIgnore({"org.mockito.*", "org.powermock.api.mockito.invocation.*"})
 public class TOTPUtilTest {
 
@@ -87,6 +108,9 @@ public class TOTPUtilTest {
     @Mock
     private AuthenticationContext context;
 
+    @Mock
+    private TOTPDataHolder dataHolder;
+
     @BeforeMethod
     public void setUp() {
 
@@ -97,7 +121,10 @@ public class TOTPUtilTest {
         mockStatic(IdentityHelperUtil.class);
         mockStatic(ConfigurationFacade.class);
         mockStatic(IdentityTenantUtil.class);
-        mockStatic(IdentityHelperUtil.class);
+        mockStatic(TOTPDataHolder.class);
+        mockStatic(PrivilegedCarbonContext.class);
+        mockStatic(DocumentBuilderFactory.class);
+        mockStatic(OrganizationManagementUtil.class);
     }
 
     @Test
@@ -599,6 +626,103 @@ public class TOTPUtilTest {
     public IObjectFactory getObjectFactory() {
 
         return new PowerMockObjectFactory();
+    }
+
+    @Test
+    void testGetTOTPIssuerDisplayName_FromParameters() throws TOTPException {
+
+        AuthenticatorConfig mockAuthConfig = Mockito.mock(AuthenticatorConfig.class);
+        Map<String, String> mockParameters = new HashMap<>();
+        mockParameters.put(TOTPAuthenticatorConstants.TOTP_COMMON_ISSUER, "true");
+        mockParameters.put(TOTPAuthenticatorConstants.TOTP_ISSUER, "IssuerFromParams");
+
+        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        Mockito.when(fileBasedConfigurationBuilder.getAuthenticatorBean(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)).thenReturn(mockAuthConfig);
+        Mockito.when(mockAuthConfig.getParameterMap()).thenReturn(mockParameters);
+
+        String result = TOTPUtil.getTOTPIssuerDisplayName("example.com", null);
+        assertEquals("IssuerFromParams", result);
+    }
+
+    @Test
+    public void testGetIssuerFromBranding_BrandingEnabled() throws TOTPException, BrandingPreferenceMgtException {
+
+        AuthenticatorConfig mockAuthConfig = Mockito.mock(AuthenticatorConfig.class);
+        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        Mockito.when(fileBasedConfigurationBuilder.getAuthenticatorBean(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME))
+                .thenReturn(mockAuthConfig);
+        Mockito.when(mockAuthConfig.getParameterMap()).thenReturn(new HashMap<>());
+
+        BrandingPreferenceManager mockBrandingManager = Mockito.mock(BrandingPreferenceManager.class);
+        BrandingPreference brandingPreference = new BrandingPreference();
+        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectNode preferenceNode = objectMapper.createObjectNode();
+        preferenceNode.putObject("configs").put("isBrandingEnabled", true);
+        preferenceNode.putObject("organizationDetails").put("displayName", "BrandedIssuer");
+        brandingPreference.setPreference(preferenceNode);
+
+        Mockito.when(TOTPDataHolder.getInstance()).thenReturn(dataHolder);
+        Mockito.when(dataHolder.getBrandingPreferenceManager()).thenReturn(mockBrandingManager);
+        when(mockBrandingManager.resolveBrandingPreference(anyString(), anyString(), anyString(), anyBoolean()))
+                .thenReturn(brandingPreference);
+
+        String result = TOTPUtil.getTOTPIssuerDisplayName("example.com", null);
+        assertEquals(result, "BrandedIssuer");
+    }
+
+    @Test
+    public void testGetIssuerFromBranding_BrandingDisabled() throws Exception {
+
+        AuthenticatorConfig mockAuthConfig = Mockito.mock(AuthenticatorConfig.class);
+        Mockito.when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        Mockito.when(fileBasedConfigurationBuilder.getAuthenticatorBean(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME))
+                .thenReturn(mockAuthConfig);
+        Mockito.when(mockAuthConfig.getParameterMap()).thenReturn(new HashMap<>());
+
+        BrandingPreferenceManager mockBrandingManager = Mockito.mock(BrandingPreferenceManager.class);
+        BrandingPreference brandingPreference = new BrandingPreference();
+        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectNode preferenceNode = objectMapper.createObjectNode();
+        preferenceNode.putObject("configs").put("isBrandingEnabled", false);
+        brandingPreference.setPreference(preferenceNode);
+
+        Mockito.when(TOTPDataHolder.getInstance()).thenReturn(dataHolder);
+        Mockito.when(dataHolder.getBrandingPreferenceManager()).thenReturn(mockBrandingManager);
+        PrivilegedCarbonContext privilegedCarbonContext = Mockito.mock(PrivilegedCarbonContext.class);
+        Registry mockRegistry = Mockito.mock(Registry.class);
+        Resource mockResource = Mockito.mock(Resource.class);
+
+        Mockito.when(PrivilegedCarbonContext.getThreadLocalCarbonContext()).thenReturn(privilegedCarbonContext);
+        when(mockBrandingManager.resolveBrandingPreference(anyString(), anyString(), anyString(), anyBoolean()))
+                .thenReturn(brandingPreference);
+        doNothing().when(privilegedCarbonContext, "setTenantId", anyInt());
+        doNothing().when(PrivilegedCarbonContext.class, "endTenantFlow");
+        when(privilegedCarbonContext.getRegistry(RegistryType.SYSTEM_GOVERNANCE)).thenReturn(mockRegistry);
+        when(mockRegistry.get(anyString())).thenReturn(mockResource);
+        when(mockResource.getContent()).thenReturn(new byte[0]);
+
+        DocumentBuilderFactory mockedDocumentBuilderFactory = Mockito.mock(DocumentBuilderFactory.class);
+        when(DocumentBuilderFactory.newInstance()).thenReturn(mockedDocumentBuilderFactory);
+        DocumentBuilder mockedDocumentBuilder = Mockito.mock(DocumentBuilder.class);
+        when(mockedDocumentBuilderFactory.newDocumentBuilder()).thenReturn(mockedDocumentBuilder);
+        Document mockedDocument = Mockito.mock(Document.class);
+        when(mockedDocumentBuilder.parse(any(ByteArrayInputStream.class))).thenReturn(mockedDocument);
+
+        NodeList emptyNodeList = Mockito.mock(NodeList.class);
+        Mockito.when(emptyNodeList.getLength()).thenReturn(0);
+        when(mockedDocument.getElementsByTagName("AuthenticatorConfig")).thenReturn(emptyNodeList);
+
+        Mockito.when(OrganizationManagementUtil.isOrganization(anyString())).thenReturn(false);
+        String result = TOTPUtil.getTOTPIssuerDisplayName("example.com", null);
+        assertEquals(result, "example.com");
+
+        Mockito.when(OrganizationManagementUtil.isOrganization(anyString())).thenReturn(true);
+        OrganizationManager mockedOrganizationManager = Mockito.mock(OrganizationManager.class);
+        Mockito.when(dataHolder.getOrganizationManager()).thenReturn(mockedOrganizationManager);
+        Mockito.when(mockedOrganizationManager.resolveOrganizationId(anyString())).thenReturn("123");
+        Mockito.when(mockedOrganizationManager.getOrganizationNameById(anyString())).thenReturn("org1");
+        result = TOTPUtil.getTOTPIssuerDisplayName("example.com", null);
+        assertEquals(result, "org1");
     }
 
    /* @Test(description = "Test case for getProcessedClaimValue()", dataProvider = "processedClaimValueTestDataProvider")

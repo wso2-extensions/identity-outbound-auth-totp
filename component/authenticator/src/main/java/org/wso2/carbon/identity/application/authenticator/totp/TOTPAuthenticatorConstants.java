@@ -92,6 +92,8 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String ENABLE_ACCOUNT_LOCKING_FOR_FAILED_ATTEMPTS = "EnableAccountLockingForFailedAttempts";
 	public static final String PROPERTY_LOGIN_FAIL_TIMEOUT_RATIO = "account.lock.handler.login.fail.timeout.ratio";
 	public static final String PROPERTY_ACCOUNT_LOCK_ON_FAILURE = "account.lock.handler.enable";
+	public static final String PROPERTY_ACCOUNT_LOCK_ON_FAILURE_ENABLE =
+			"account.lock.handler.lock.on.max.failed.attempts.enable";
 	public static final String PROPERTY_ACCOUNT_LOCK_ON_FAILURE_MAX = "account.lock.handler.On.Failure.Max.Attempts";
 	public static final String PROPERTY_ACCOUNT_LOCK_TIME = "account.lock.handler.Time";
 	public static final String LOGIN_FAIL_MESSAGE = "login.fail.message";
@@ -116,6 +118,10 @@ public abstract class TOTPAuthenticatorConstants {
 	// This constant has been defined in FrameworkConstants class in framework repo as well. Hence, when changing this
 	// value make sure to change it there as well.
 	public static final String ENABLE_ENCRYPTION = "EnableEncryption";
+
+	// Branding constants to resolve TOTP issuer.
+	public static final String PATH_TO_IS_BRANDING_ENABLED = "/configs/isBrandingEnabled";
+	public static final String PATH_TO_ORG_DISPLAY_NAME = "/organizationDetails/displayName";
 
 	/**
 	 * Constants related to log management.

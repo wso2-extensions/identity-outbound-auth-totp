@@ -83,9 +83,8 @@ import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
@@ -614,7 +613,7 @@ public class TOTPAuthenticatorTest {
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
         when(mockedContext.getSequenceConfig()).thenReturn(sequenceConfig);
         when(sequenceConfig.getStepMap()).thenReturn(mockedMap);
-        when(mockedMap.get(anyObject())).thenReturn(stepConfig);
+        when(mockedMap.get(any())).thenReturn(stepConfig);
         when(stepConfig.getAuthenticatedAutenticator()).thenReturn(authenticatorConfig);
         when(authenticatorConfig.getApplicationAuthenticator()).thenReturn(applicationAuthenticator);
         when(TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
@@ -660,7 +659,7 @@ public class TOTPAuthenticatorTest {
         when(TOTPUtil.getAuthenticatedUser(context)).thenReturn(authenticatedUser);
         when(context.getSequenceConfig()).thenReturn(sequenceConfig);
         when(sequenceConfig.getStepMap()).thenReturn(mockedMap);
-        when(mockedMap.get(anyObject())).thenReturn(stepConfig);
+        when(mockedMap.get(any())).thenReturn(stepConfig);
         when(TOTPUtil.getTOTPLoginPage(any(AuthenticationContext.class))).
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
         when(stepConfig.getAuthenticatedAutenticator()).thenReturn(authenticatorConfig);
