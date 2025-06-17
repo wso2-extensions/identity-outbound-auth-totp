@@ -21,6 +21,7 @@ package org.wso2.carbon.identity.application.authenticator.totp;
 import org.apache.axis2.context.ConfigurationContext;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.context.CarbonContext;
@@ -105,8 +106,11 @@ public class TOTPTokenGenerator {
 							userRealm.getUserStoreManager().getUserClaimValues
 									(tenantAwareUsername, new String[] {
 											TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL }, null);
-					String secretKey = TOTPUtil.decrypt(
-							userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
+					String secretKeyValue = userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
+					if (StringUtils.isBlank(secretKeyValue)) {
+						secretKeyValue = (String) context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
+					}
+					String secretKey = TOTPUtil.decrypt(secretKeyValue);
 					String firstName = userRealm
 							.getUserStoreManager().getUserClaimValue
 									(tenantAwareUsername,
