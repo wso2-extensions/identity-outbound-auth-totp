@@ -576,8 +576,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             handleTotpVerificationFail(context);
             throw new AuthenticationFailedException("TOTP Authentication process failed for user " + loggableUsername, e);
         } catch (TOTPException e) {
-            throw new AuthenticationFailedException("TOTP Authentication process failed for user "
-                    + loggableUsername, e);
+            throw new AuthenticationFailedException("TOTP Authentication process failed for user " + loggableUsername, e);
         }
         // It reached here means the authentication was successful.
         resetTotpFailedAttempts(context);
