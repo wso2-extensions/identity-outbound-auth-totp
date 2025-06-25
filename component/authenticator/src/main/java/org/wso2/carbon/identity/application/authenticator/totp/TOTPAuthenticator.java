@@ -553,7 +553,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     throw new AuthenticationFailedException("Invalid Token. Authentication failed for federated user: "
                             + loggableUsername);
                 }
-                context.setProperty(TOTPAuthenticatorConstants.LAST_USED_TOTP, token);
+                context.setProperty(TOTPAuthenticatorConstants.USED_TIME_WINDOWS, token);
             } else {
                 checkTotpEnabled(context, username);
                 if (!isValidTokenLocalUser(tokenValue, username, context)) {
@@ -577,11 +577,12 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             handleTotpVerificationFail(context);
             throw new AuthenticationFailedException("TOTP Authentication process failed for user " + loggableUsername, e);
         } catch (TOTPException e) {
-            throw new AuthenticationFailedException("TOTP Authentication process failed for user " + loggableUsername, e);
+            throw new AuthenticationFailedException("TOTP Authentication process failed for user "
+                    + loggableUsername, e);
         }
         // It reached here means the authentication was successful.
         resetTotpFailedAttempts(context);
-        updateLastUsedTotpClaim(context, token);
+//        updateLastUsedTotpClaim(context, token);
         if (LoggerUtils.isDiagnosticLogsEnabled()) {
             DiagnosticLog.DiagnosticLogBuilder diagnosticLogBuilder = new DiagnosticLog.DiagnosticLogBuilder(
                     TOTP_AUTH_SERVICE, PROCESS_AUTHENTICATION_RESPONSE);
@@ -903,7 +904,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         .getUserStoreManager().getUserClaimValues
                                 (tenantAwareUsername, new String[] {
                                         TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
-                                        TOTPAuthenticatorConstants.LAST_USED_TOTP,
+                                        TOTPAuthenticatorConstants.USED_TIME_WINDOWS,
                                 }, null);
                 String secretKeyClaimValue = userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
                 if (secretKeyClaimValue == null) {
@@ -911,12 +912,9 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                             (LoggerUtils.isLogMaskingEnable ? LoggerUtils.getMaskedContent(tenantAwareUsername) :
                                     tenantAwareUsername));
                 }
-                String lastUsedTOTP = userClaimValues.get(TOTPAuthenticatorConstants.LAST_USED_TOTP);
-                if (lastUsedTOTP != null && token == Integer.parseInt(lastUsedTOTP)) {
-                    return false;
-                }
                 String secretKey = TOTPUtil.decrypt(secretKeyClaimValue);
-                return totpAuthenticator.authorize(secretKey, token);
+                return totpAuthenticator.authorize(secretKey, token, context,
+                        userClaimValues.get(TOTPAuthenticatorConstants.USED_TIME_WINDOWS));
             } else {
                 throw new TOTPException(
                         "Cannot find the user realm for the given tenant domain : " +
@@ -969,7 +967,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             secretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
         }
         TOTPAuthenticatorCredentials totpAuthenticator = getTotpAuthenticator(context, context.getTenantDomain());
-        return totpAuthenticator.authorize(secretKey, token);
+        return totpAuthenticator.authorize(secretKey, token, context, null);
     }
 
     /**
@@ -1136,34 +1134,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 log.debug("Error while resetting failed TOTP attempts count for user: " + username, e);
             }
             String errorMessage = "Failed to reset failed attempts count for user : " + (LoggerUtils.isLogMaskingEnable
-                    ? LoggerUtils.getMaskedContent(username) : username);
-            throw new AuthenticationFailedException(errorMessage, e);
-        }
-    }
-
-    private void updateLastUsedTotpClaim(AuthenticationContext context, String token) throws AuthenticationFailedException {
-
-        if (isInitialFederationAttempt(context)) {
-            return;
-        }
-        AuthenticatedUser authenticatedUser =
-                (AuthenticatedUser) context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
-        String username = authenticatedUser.toFullQualifiedUsername();
-        String usernameWithDomain = IdentityUtil.addDomainToName(authenticatedUser.getUserName(),
-                authenticatedUser.getUserStoreDomain());
-        try {
-            UserRealm userRealm = TOTPUtil.getUserRealm(username);
-            UserStoreManager userStoreManager = userRealm.getUserStoreManager();
-
-            Map<String, String> updatedClaims = new HashMap<>();
-            updatedClaims.put(TOTPAuthenticatorConstants.LAST_USED_TOTP, token);
-            userStoreManager
-                    .setUserClaimValues(usernameWithDomain, updatedClaims, UserCoreConstants.DEFAULT_PROFILE);
-        } catch (UserStoreException e) {
-            if (log.isDebugEnabled()) {
-                log.debug("Error while updating last used TOTP for user: " + username, e);
-            }
-            String errorMessage = "Failed to update last used TOTP for user : " + (LoggerUtils.isLogMaskingEnable
                     ? LoggerUtils.getMaskedContent(username) : username);
             throw new AuthenticationFailedException(errorMessage, e);
         }

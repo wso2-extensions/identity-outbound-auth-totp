@@ -21,11 +21,20 @@ package org.wso2.carbon.identity.application.authenticator.totp.util;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.json.JSONArray;
 import org.wso2.carbon.core.util.CryptoException;
+import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
+import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
+import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
+import org.wso2.carbon.user.api.UserStoreManager;
+import org.wso2.carbon.user.core.UserCoreConstants;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.security.InvalidKeyException;
@@ -33,8 +42,10 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.logging.Logger;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -104,11 +115,11 @@ public final class TOTPAuthenticatorCredentials {
 	 */
 	private static final String HMAC_HASH_FUNCTION = "HmacSHA1";
 
+	private static final Log log = LogFactory.getLog(TOTPAuthenticator.class);
 	/**
 	 * The configuration used by the current instance.
 	 */
 	private final TOTPAuthenticatorConfig config;
-
 	/**
 	 * The internal SecureRandom instance used by this class.  Since Java 7
 	 * {@link Random} instances are required to be thread-safe, no synchronisation is
@@ -231,7 +242,9 @@ public final class TOTPAuthenticatorCredentials {
 	 * @param window    The window size to use during the validation process
 	 * @return <code>true</code> if the validation code is valid, <code>false</code> otherwise
 	 */
-	private boolean checkCode(String secret, long code, long timestamp, int window) {
+	private boolean checkCode(String secret, long code, long timestamp, int window,
+							  AuthenticationContext context, String usedTimeWindows) {
+
 		byte[] decodedKey = decodeSecret(secret);
 
 		// convert unix time into a 30 second "window" as specified by the TOTP specification.
@@ -248,10 +261,78 @@ public final class TOTPAuthenticatorCredentials {
 			// Checking if the provided code is equal to the calculated one.
 			if (hash == code) {
 				// The verification code is valid.
-				return true;
+				return (validateUsedTimeWindows(context, timeWindow, timeWindow + i, window, usedTimeWindows));
 			}
 		}
 		// The verification code is invalid.
+		return false;
+	}
+
+	private boolean validateUsedTimeWindows(AuthenticationContext context,long currentTimeWindow,
+											long attemptedTimeWindow, int window, String usedTimeWindows) {
+
+		//preserve the old behaviour
+		if (context == null) {
+			return true;
+		}
+
+		if (isInitialFederationAttempt(context)) {
+			JSONArray timeWindows = new JSONArray();
+			timeWindows.put(attemptedTimeWindow);
+			context.setProperty(TOTPAuthenticatorConstants.USED_TIME_WINDOWS, timeWindows.toString());
+            return true;
+		}
+
+		JSONArray timeWindows = new JSONArray(usedTimeWindows != null ? usedTimeWindows : "[]");
+		JSONArray updatedTimeWindows = new JSONArray();
+		Set<Long> timeWindowsSet = new HashSet<>();
+		for (int i = 0; i < timeWindows.length(); i++) {
+			timeWindowsSet.add(timeWindows.getLong(i));
+		}
+
+		if (timeWindowsSet.contains(attemptedTimeWindow)){
+			return false;
+		} else {
+			timeWindowsSet.add(attemptedTimeWindow);
+			for (int i = -((window - 1) / 2); i <= window / 2; ++i) {
+				if (timeWindowsSet.contains(currentTimeWindow + i)){
+					updatedTimeWindows.put(currentTimeWindow + i);
+				}
+			}
+            return updateUsedTimeWindows(updatedTimeWindows.toString(), context);
+        }
+	}
+
+	private boolean updateUsedTimeWindows(String updatedTimeWindows, AuthenticationContext context){
+
+		AuthenticatedUser authenticatedUser =
+				(AuthenticatedUser) context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
+		String username = authenticatedUser.toFullQualifiedUsername();
+		String usernameWithDomain = IdentityUtil.addDomainToName(authenticatedUser.getUserName(),
+				authenticatedUser.getUserStoreDomain());
+		try {
+			UserRealm userRealm = TOTPUtil.getUserRealm(username);
+			UserStoreManager userStoreManager = userRealm.getUserStoreManager();
+
+			Map<String, String> updatedClaims = new HashMap<>();
+			updatedClaims.put(TOTPAuthenticatorConstants.USED_TIME_WINDOWS, updatedTimeWindows);
+			userStoreManager
+					.setUserClaimValues(usernameWithDomain, updatedClaims, UserCoreConstants.DEFAULT_PROFILE);
+			return true;
+		} catch (UserStoreException | AuthenticationFailedException e) {
+			if (log.isDebugEnabled()) {
+				log.debug("Error while updating used TOTP time windows for user: " + username, e);
+			}
+			return false;
+		}
+	}
+
+	private boolean isInitialFederationAttempt(AuthenticationContext context) {
+
+		if (context.getProperty(TOTPAuthenticatorConstants.IS_INITIAL_FEDERATED_USER_ATTEMPT) != null) {
+			return Boolean.parseBoolean(context.
+					getProperty(TOTPAuthenticatorConstants.IS_INITIAL_FEDERATED_USER_ATTEMPT).toString());
+		}
 		return false;
 	}
 
@@ -333,7 +414,20 @@ public final class TOTPAuthenticatorCredentials {
 	 * @return true, if code is verified
 	 */
 	public boolean authorize(String secretKey, int verificationCode) {
-		return authorize(secretKey, verificationCode, new Date().getTime());
+		return authorize(secretKey, verificationCode, new Date().getTime(), null,null);
+	}
+
+	/**
+	 * Authorize the code belongs to secret key.
+	 *
+	 * @param secretKey        The Secret Key
+	 * @param verificationCode Verification code which needs to be verified
+	 * @param context		   Authentication context
+	 * @return true, if code is verified
+	 */
+	public boolean authorize(String secretKey, int verificationCode, AuthenticationContext context,
+							 String usedTimeWindows) {
+		return authorize(secretKey, verificationCode, new Date().getTime(), context, usedTimeWindows);
 	}
 
 	/**
@@ -344,7 +438,8 @@ public final class TOTPAuthenticatorCredentials {
 	 * @param time             The time in milliseconds
 	 * @return true, if validation code is verified
 	 */
-	private boolean authorize(String secretKey, int verificationCode, long time) {
+	private boolean authorize(String secretKey, int verificationCode, long time, AuthenticationContext context,
+							  String usedTimeWindows) {
 		// Checking user input and failing if the secret key was not provided.
 		if (secretKey == null) {
 			throw new IllegalArgumentException("Secret key cannot be null.");
@@ -354,7 +449,7 @@ public final class TOTPAuthenticatorCredentials {
 			return false;
 		}
 		// Checking the validation code using the current UNIX time.
-		return checkCode(secretKey, verificationCode, time, this.config.getWindowSize());
+		return checkCode(secretKey, verificationCode, time, this.config.getWindowSize(), context, usedTimeWindows);
 	}
 
 	/**
@@ -379,7 +474,8 @@ public final class TOTPAuthenticatorCredentials {
 					getUserClaimValues(tenantAwareUsername,
 							new String[]{
 								TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL,
-								TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL
+								TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
+								TOTPAuthenticatorConstants.USED_TIME_WINDOWS
 							}, null);
 			String verifySecretKeyClaim = userClaimValues
 					.get(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL);
@@ -393,12 +489,14 @@ public final class TOTPAuthenticatorCredentials {
 				if (StringUtils.isBlank(secretKeyClaim)) {
 					return false;
 				}
-				return authorize(TOTPUtil.decrypt(secretKeyClaim), verificationCode, new Date().getTime());
+				return authorize(TOTPUtil.decrypt(secretKeyClaim), verificationCode, new Date().getTime(), null,
+						userClaimValues.get(TOTPAuthenticatorConstants.USED_TIME_WINDOWS));
 			}
 
 			String secretKey = TOTPUtil.decrypt(verifySecretKeyClaim);
-			if (authorize(secretKey, verificationCode, new Date().getTime())) {
-				storeSecretKey(secretKey, tenantAwareUsername, tenantDomain, userRealm);
+			if (authorize(secretKey, verificationCode, new Date().getTime(), null,
+					userClaimValues.get(TOTPAuthenticatorConstants.USED_TIME_WINDOWS))) {
+				storeSecretKeyAndUpdateUsedTimeWindows(secretKey, tenantAwareUsername, tenantDomain, userRealm);
 				return true;
 			}
 			return false;
@@ -414,13 +512,15 @@ public final class TOTPAuthenticatorCredentials {
 		}
 	}
 
-	private void storeSecretKey(String secretKey, String tenantAwareUsername, String tenantDomain, UserRealm userRealm) {
+	private void storeSecretKeyAndUpdateUsedTimeWindows(String secretKey, String tenantAwareUsername,
+														String tenantDomain, UserRealm userRealm) {
 
 		Map<String, String> userClaims = new HashMap<>();
 		try {
 			userClaims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, TOTPUtil.getProcessedClaimValue(
 					TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, secretKey, tenantDomain));
 			userClaims.put(TOTPAuthenticatorConstants.TOTP_ENABLED_CLAIM_URI, "true");
+			userClaims.put(TOTPAuthenticatorConstants.USED_TIME_WINDOWS, "[]");
 			userRealm.getUserStoreManager().setUserClaimValues(tenantAwareUsername, userClaims, null);
 		} catch (UserStoreException e) {
 			throw new TOTPAuthenticatorException("TOTPKeyGenerator failed while trying to access user store manager " +
