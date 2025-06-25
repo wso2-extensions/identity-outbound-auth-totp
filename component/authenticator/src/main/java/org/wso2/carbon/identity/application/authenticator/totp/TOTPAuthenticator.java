@@ -553,7 +553,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     throw new AuthenticationFailedException("Invalid Token. Authentication failed for federated user: "
                             + loggableUsername);
                 }
-                context.setProperty(TOTPAuthenticatorConstants.USED_TIME_WINDOWS, token);
             } else {
                 checkTotpEnabled(context, username);
                 if (!isValidTokenLocalUser(tokenValue, username, context)) {
@@ -582,7 +581,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         }
         // It reached here means the authentication was successful.
         resetTotpFailedAttempts(context);
-//        updateLastUsedTotpClaim(context, token);
         if (LoggerUtils.isDiagnosticLogsEnabled()) {
             DiagnosticLog.DiagnosticLogBuilder diagnosticLogBuilder = new DiagnosticLog.DiagnosticLogBuilder(
                     TOTP_AUTH_SERVICE, PROCESS_AUTHENTICATION_RESPONSE);
