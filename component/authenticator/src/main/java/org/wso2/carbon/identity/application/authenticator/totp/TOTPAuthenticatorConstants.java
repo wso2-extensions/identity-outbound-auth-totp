@@ -125,9 +125,6 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String PATH_TO_IS_BRANDING_ENABLED = "/configs/isBrandingEnabled";
 	public static final String PATH_TO_ORG_DISPLAY_NAME = "/organizationDetails/displayName";
 
-	public static final String DEFAULT_USER_STORE_DOMAIN = "PRIMARY";
-	public static final String USED_TIME_WINDOWS_CLAIM_MAPPED_ATTRIBUTE_NAME = "usedTimeWindows";
-
 	/**
 	 * Constants related to log management.
 	 */
