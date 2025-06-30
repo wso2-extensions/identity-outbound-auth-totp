@@ -120,6 +120,24 @@ public class TOTPAuthenticatorServiceComponent {
 		TOTPDataHolder.getInstance().setRealmService(realmService);
 	}
 
+	@Reference(
+			name = "claim.meta.mgt.service",
+			service = ClaimMetadataManagementService.class,
+			cardinality = ReferenceCardinality.MANDATORY,
+			policy = ReferencePolicy.DYNAMIC,
+			unbind = "unsetClaimMetaMgtService"
+	)
+	protected void setClaimMetaMgtService(ClaimMetadataManagementService claimMetaMgtService) {
+
+		TOTPDataHolder.getInstance().setClaimMetadataManagementService(
+				claimMetaMgtService);
+	}
+
+	protected void unsetClaimMetaMgtService(ClaimMetadataManagementService claimMetaMgtService) {
+
+		TOTPDataHolder.getInstance().setClaimMetadataManagementService(null);
+	}
+
 	/**
 	 * This method is used to unset the Realm Service.
 	 *

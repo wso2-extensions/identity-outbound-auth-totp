@@ -935,6 +935,17 @@ public class TOTPUtil {
     }
 
     /**
+     * Check whether preventing TOTP code reuse is disabled.
+     *
+     * @return True if preventing TOTP code reuse is disabled; false otherwise.
+     */
+    public static boolean isPreventTOTPCodeReuseEnabled() {
+
+        return Boolean.parseBoolean(getTOTPParameters().get(
+                TOTPAuthenticatorConstants.PREVENT_TOTP_CODE_REUSE));
+    }
+
+    /**
      * Get Account Lock Connector Configs.
      *
      * @param tenantDomain Tenant domain.
