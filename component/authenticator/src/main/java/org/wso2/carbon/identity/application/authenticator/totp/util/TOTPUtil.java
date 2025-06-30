@@ -61,6 +61,7 @@ import org.wso2.carbon.identity.branding.preference.management.core.exception.Br
 import org.wso2.carbon.identity.branding.preference.management.core.model.BrandingPreference;
 import org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataHandler;
 import org.wso2.carbon.identity.claim.metadata.mgt.exception.ClaimMetadataException;
+import org.wso2.carbon.identity.claim.metadata.mgt.model.AttributeMapping;
 import org.wso2.carbon.identity.claim.metadata.mgt.model.LocalClaim;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
@@ -1260,6 +1261,34 @@ public class TOTPUtil {
             return TOTPUtil.encrypt(claimValue);
         } catch (CryptoException e) {
             throw new TOTPAuthenticatorException("Error occurred while encrypting claim value of: " + claimURI, e);
+        }
+    }
+
+    /**
+     * Add usedTOTPTimeWindows claim if not exist for tenant.
+     *
+     * @param tenantDomain              Tenant domain.
+     * @throws ClaimMetadataException   When errors occurs while registering the claim.
+     */
+    public static void addUsedTimeWindowsClaimIfNotExist(String tenantDomain) throws ClaimMetadataException {
+
+        // Retrieve all claims and confirm if usedTOTPTimeWindows claim is present for the tenant.
+        List<LocalClaim> localClaimsList = TOTPDataHolder.getInstance()
+                .getClaimMetadataManagementService().getLocalClaims(tenantDomain);
+
+        boolean usedTimeWindowClaimExists = localClaimsList.stream().anyMatch(localClaim ->
+                TOTPAuthenticatorConstants.USED_TIME_WINDOWS.equals(localClaim.getClaimURI()));
+
+        // Register usedTOTPTimeWindows claim if not present.
+        if (!usedTimeWindowClaimExists) {
+            LocalClaim usedTimeWindowLocalClaim =
+                    new LocalClaim(TOTPAuthenticatorConstants.USED_TIME_WINDOWS);
+            usedTimeWindowLocalClaim.setMappedAttribute(new AttributeMapping(
+                    TOTPAuthenticatorConstants.DEFAULT_USER_STORE_DOMAIN,
+                    TOTPAuthenticatorConstants.USED_TIME_WINDOWS_CLAIM_MAPPED_ATTRIBUTE_NAME
+            ));
+            TOTPDataHolder.getInstance().getClaimMetadataManagementService()
+                    .addLocalClaim(usedTimeWindowLocalClaim, tenantDomain);
         }
     }
 }

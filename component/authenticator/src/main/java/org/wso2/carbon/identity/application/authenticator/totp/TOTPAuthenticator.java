@@ -53,8 +53,6 @@ import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.identity.central.log.mgt.utils.LogConstants;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
 import org.wso2.carbon.identity.claim.metadata.mgt.exception.ClaimMetadataException;
-import org.wso2.carbon.identity.claim.metadata.mgt.model.AttributeMapping;
-import org.wso2.carbon.identity.claim.metadata.mgt.model.LocalClaim;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.model.IdentityErrorMsgContext;
@@ -902,27 +900,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             if (userRealm != null) {
                 Map<String, String> userClaimValues;
 
-                //Confirm if TOTP reuse is disabled.
+                // Confirm if TOTP reuse is disabled.
                 if (TOTPUtil.isPreventTOTPCodeReuseEnabled()) {
 
-                    //Retrieve all claims and confirm if usedTOTPTimeWindows claim is present for the tenant.
-                    List<LocalClaim> localClaimsList = TOTPDataHolder.getInstance()
-                            .getClaimMetadataManagementService().getLocalClaims(tenantDomain);
-
-                    boolean usedTimeWindowClaimExists = localClaimsList.stream().anyMatch(localClaim ->
-                            TOTPAuthenticatorConstants.USED_TIME_WINDOWS.equals(localClaim.getClaimURI()));
-
-                    // Register usedTOTPTimeWindows claim if not present.
-                    if (!usedTimeWindowClaimExists) {
-                        LocalClaim usedTimeWindowLocalClaim =
-                                new LocalClaim(TOTPAuthenticatorConstants.USED_TIME_WINDOWS);
-                        usedTimeWindowLocalClaim.setMappedAttribute(new AttributeMapping(
-                                TOTPAuthenticatorConstants.DEFAULT_USER_STORE_DOMAIN,
-                                TOTPAuthenticatorConstants.USED_TIME_WINDOWS_CLAIM_MAPPED_ATTRIBUTE_NAME
-                        ));
-                        TOTPDataHolder.getInstance().getClaimMetadataManagementService()
-                                .addLocalClaim(usedTimeWindowLocalClaim, tenantDomain);
-                    }
+                    // Register usedTOTPTimeWindows claim if not exist.
+                    TOTPUtil.addUsedTimeWindowsClaimIfNotExist(tenantDomain);
 
                     userClaimValues = userRealm
                             .getUserStoreManager().getUserClaimValues

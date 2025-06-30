@@ -132,6 +132,7 @@ public class TOTPDataHolder {
 	 * @return claim metadata management service.
 	 */
 	public ClaimMetadataManagementService getClaimMetadataManagementService() {
+
 		return claimMetadataManagementService;
 	}
 
@@ -141,6 +142,7 @@ public class TOTPDataHolder {
 	 * @param claimMetadataManagementService Claim metadata management service
 	 */
 	public void setClaimMetadataManagementService(ClaimMetadataManagementService claimMetadataManagementService) {
+
 		this.claimMetadataManagementService = claimMetadataManagementService;
 	}
 
