@@ -474,6 +474,7 @@ public final class TOTPAuthenticatorCredentials {
 	 */
 	private boolean authorize(String secretKey, int verificationCode, long time, AuthenticationContext context,
 							  String usedTimeWindows) {
+
 		// Checking user input and failing if the secret key was not provided.
 		if (secretKey == null) {
 			throw new IllegalArgumentException("Secret key cannot be null.");
