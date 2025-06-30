@@ -900,12 +900,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             if (userRealm != null) {
                 Map<String, String> userClaimValues;
 
-                // Confirm if TOTP reuse is disabled.
-                if (TOTPUtil.isPreventTOTPCodeReuseEnabled()) {
-
-                    // Register usedTOTPTimeWindows claim if not exist.
-                    TOTPUtil.addUsedTimeWindowsClaimIfNotExist(tenantDomain);
-
+                // Confirm if TOTP reuse is disabled and if required claims are present.
+                if (TOTPUtil.isPreventTOTPCodeReuseEnabled() && TOTPUtil.doesUsedTimeWindowsClaimExist(tenantDomain)) {
                     userClaimValues = userRealm
                             .getUserStoreManager().getUserClaimValues
                                     (tenantAwareUsername, new String[] {

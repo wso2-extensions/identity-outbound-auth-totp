@@ -24,6 +24,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
+import org.opensaml.soap.wsaddressing.To;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
@@ -291,6 +292,16 @@ public final class TOTPAuthenticatorCredentials {
 			return true;
 		}
 
+		try {
+			// If the tenant do not contain the required claims, proceed with authentication.
+			if (!TOTPUtil.doesUsedTimeWindowsClaimExist(context.getTenantDomain())){
+				return true;
+			}
+		} catch (ClaimMetadataException e) {
+			log.error("Error when accessing claims for tenant domain : " + context.getTenantDomain(), e);
+			return false;
+		}
+
 		// If this is an initial federation attempt, the user is not created yet.
 		// Hence, the claim is added to the context and will be added while JIT provisioning.
 		if (isInitialFederationAttempt(context)) {
@@ -507,12 +518,8 @@ public final class TOTPAuthenticatorCredentials {
 			}
 			Map<String, String> userClaimValues;
 
-			// Confirm if TOTP reuse is disabled.
-			if (TOTPUtil.isPreventTOTPCodeReuseEnabled()) {
-
-				// Register usedTOTPTimeWindows claim if not exist.
-				TOTPUtil.addUsedTimeWindowsClaimIfNotExist(tenantDomain);
-
+			// Confirm if TOTP reuse is disabled and if required claims are present.
+			if (TOTPUtil.isPreventTOTPCodeReuseEnabled() && TOTPUtil.doesUsedTimeWindowsClaimExist(tenantDomain)) {
 				userClaimValues = userRealm.getUserStoreManager().
 						getUserClaimValues(tenantAwareUsername,
 								new String[]{

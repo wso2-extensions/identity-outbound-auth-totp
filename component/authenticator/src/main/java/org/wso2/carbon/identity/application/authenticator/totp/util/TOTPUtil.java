@@ -1268,9 +1268,10 @@ public class TOTPUtil {
      * Add usedTOTPTimeWindows claim if not exist for tenant.
      *
      * @param tenantDomain              Tenant domain.
+     * @return  True if usedTOTPTimeWindows claim exists in specific tenant; false otherwise.
      * @throws ClaimMetadataException   When errors occurs while registering the claim.
      */
-    public static void addUsedTimeWindowsClaimIfNotExist(String tenantDomain) throws ClaimMetadataException {
+    public static boolean doesUsedTimeWindowsClaimExist(String tenantDomain) throws ClaimMetadataException {
 
         // Retrieve all claims and confirm if usedTOTPTimeWindows claim is present for the tenant.
         List<LocalClaim> localClaimsList = TOTPDataHolder.getInstance()
@@ -1279,16 +1280,13 @@ public class TOTPUtil {
         boolean usedTimeWindowClaimExists = localClaimsList.stream().anyMatch(localClaim ->
                 TOTPAuthenticatorConstants.USED_TIME_WINDOWS.equals(localClaim.getClaimURI()));
 
-        // Register usedTOTPTimeWindows claim if not present.
+        // Print error log since even though PreventTOTPCodeReuse is true, relevant claims aren't present in the tenant.
+        // Since the claims aren't present, the feature will not prevent TOTP code reuse.
         if (!usedTimeWindowClaimExists) {
-            LocalClaim usedTimeWindowLocalClaim =
-                    new LocalClaim(TOTPAuthenticatorConstants.USED_TIME_WINDOWS);
-            usedTimeWindowLocalClaim.setMappedAttribute(new AttributeMapping(
-                    TOTPAuthenticatorConstants.DEFAULT_USER_STORE_DOMAIN,
-                    TOTPAuthenticatorConstants.USED_TIME_WINDOWS_CLAIM_MAPPED_ATTRIBUTE_NAME
-            ));
-            TOTPDataHolder.getInstance().getClaimMetadataManagementService()
-                    .addLocalClaim(usedTimeWindowLocalClaim, tenantDomain);
+            log.warn("PreventTOTPCodeReuse is enabled, but required claims are missing in tenant: " + tenantDomain
+                    + ". This will disable the feature.");
         }
+
+        return usedTimeWindowClaimExists;
     }
 }
