@@ -24,7 +24,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
-import org.opensaml.soap.wsaddressing.To;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
@@ -124,7 +123,7 @@ public final class TOTPAuthenticatorCredentials {
 	/**
 	 * Logger of the class TOTPAuthenticatorCredentials.
 	 */
-	private static final Log log = LogFactory.getLog(TOTPAuthenticatorCredentials.class);
+	private static final Log LOG = LogFactory.getLog(TOTPAuthenticatorCredentials.class);
 
 	/**
 	 * The internal SecureRandom instance used by this class.  Since Java 7
@@ -267,7 +266,11 @@ public final class TOTPAuthenticatorCredentials {
 			// Checking if the provided code is equal to the calculated one.
 			if (hash == code) {
 				// The verification code is valid.
-				return (validateUsedTimeWindows(context, timeWindow, timeWindow + i, window, usedTimeWindows));
+				if (TOTPUtil.isPreventTOTPCodeReuseEnabled()) {
+					return validateUsedTimeWindows(context, timeWindow, timeWindow + i, window, usedTimeWindows);
+				} else {
+					return true;
+				}
 			}
 		}
 		// The verification code is invalid.
@@ -287,18 +290,23 @@ public final class TOTPAuthenticatorCredentials {
 	private boolean validateUsedTimeWindows(AuthenticationContext context,long currentTimeWindow,
 											long attemptedTimeWindow, int window, String usedTimeWindows) {
 
-		// Preserve the old behaviour.
-		if (context == null || !TOTPUtil.isPreventTOTPCodeReuseEnabled()) {
-			return true;
+		if (context == null) {
+			return false;
 		}
 
 		try {
 			// If the tenant do not contain the required claims, proceed with authentication.
 			if (!TOTPUtil.doesUsedTimeWindowsClaimExist(context.getTenantDomain())){
+				/*
+				Print error log since even though PreventTOTPCodeReuse is true, relevant claims aren't present
+				in the tenant. Because the claims aren't present, the feature will not prevent TOTP code reuse.
+				 */
+				LOG.warn("PreventTOTPCodeReuse is enabled, but required claims are missing in tenant : "
+						+ context.getTenantDomain() + ". This will disable the feature.");
 				return true;
 			}
 		} catch (ClaimMetadataException e) {
-			log.error("Error when accessing claims for tenant domain : " + context.getTenantDomain(), e);
+			LOG.error("Error when accessing claims for tenant domain : " + context.getTenantDomain(), e);
 			return false;
 		}
 
@@ -352,12 +360,11 @@ public final class TOTPAuthenticatorCredentials {
 
 			Map<String, String> updatedClaims = new HashMap<>();
 			updatedClaims.put(TOTPAuthenticatorConstants.USED_TIME_WINDOWS, updatedTimeWindows);
-			userStoreManager
-					.setUserClaimValues(usernameWithDomain, updatedClaims, UserCoreConstants.DEFAULT_PROFILE);
+			userStoreManager.setUserClaimValues(usernameWithDomain, updatedClaims, null);
 			return true;
 		} catch (UserStoreException | AuthenticationFailedException e) {
-			if (log.isDebugEnabled()) {
-				log.debug("Error while updating used TOTP time windows for user: " + username, e);
+			if (LOG.isDebugEnabled()) {
+				LOG.debug("Error while updating used TOTP time windows for user : " + username, e);
 			}
 			return false;
 		}
@@ -456,7 +463,7 @@ public final class TOTPAuthenticatorCredentials {
 	 * @return true, if code is verified
 	 */
 	public boolean authorize(String secretKey, int verificationCode) {
-		return authorize(secretKey, verificationCode, new Date().getTime(), null,null);
+		return authorize(secretKey, verificationCode, new Date().getTime(), null, null);
 	}
 
 	/**

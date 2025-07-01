@@ -1277,16 +1277,7 @@ public class TOTPUtil {
         List<LocalClaim> localClaimsList = TOTPDataHolder.getInstance()
                 .getClaimMetadataManagementService().getLocalClaims(tenantDomain);
 
-        boolean usedTimeWindowClaimExists = localClaimsList.stream().anyMatch(localClaim ->
+        return localClaimsList.stream().anyMatch(localClaim ->
                 TOTPAuthenticatorConstants.USED_TIME_WINDOWS.equals(localClaim.getClaimURI()));
-
-        // Print error log since even though PreventTOTPCodeReuse is true, relevant claims aren't present in the tenant.
-        // Since the claims aren't present, the feature will not prevent TOTP code reuse.
-        if (!usedTimeWindowClaimExists) {
-            log.warn("PreventTOTPCodeReuse is enabled, but required claims are missing in tenant: " + tenantDomain
-                    + ". This will disable the feature.");
-        }
-
-        return usedTimeWindowClaimExists;
     }
 }
