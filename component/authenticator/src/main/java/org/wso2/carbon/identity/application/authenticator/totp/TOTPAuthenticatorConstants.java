@@ -41,6 +41,7 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String SECRET_KEY_CLAIM_URL = "http://wso2.org/claims/identity/secretkey";
 	public static final String TOTP_ENABLED_CLAIM_URI = "http://wso2.org/claims/identity/totpEnabled";
 	public static final String VERIFY_SECRET_KEY_CLAIM_URL = "http://wso2.org/claims/identity/verifySecretkey";
+	public static final String USED_TIME_WINDOWS = "http://wso2.org/claims/identity/usedTOTPTimeWindows";
 	public static final String ENCODING_CLAIM_URL = "http://wso2.org/claims/identity/encoding";
 	public static final String FIRST_NAME_CLAIM_URL = "http://wso2.org/claims/givenname";
 	public static final String LAST_NAME_CLAIM_URL = "http://wso2.org/claims/lastname";
@@ -114,6 +115,7 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String ERROR_CODE = "errorCode";
 	public static final String UNLOCK_TIME = "unlockTime";
 	public static final String LOCKED_REASON = "lockedReason";
+	public static final String PREVENT_TOTP_CODE_REUSE = "PreventTOTPCodeReuse";
 
 	// This constant has been defined in FrameworkConstants class in framework repo as well. Hence, when changing this
 	// value make sure to change it there as well.

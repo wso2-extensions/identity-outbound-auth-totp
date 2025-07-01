@@ -61,6 +61,7 @@ import org.wso2.carbon.identity.branding.preference.management.core.exception.Br
 import org.wso2.carbon.identity.branding.preference.management.core.model.BrandingPreference;
 import org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataHandler;
 import org.wso2.carbon.identity.claim.metadata.mgt.exception.ClaimMetadataException;
+import org.wso2.carbon.identity.claim.metadata.mgt.model.AttributeMapping;
 import org.wso2.carbon.identity.claim.metadata.mgt.model.LocalClaim;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
@@ -935,6 +936,17 @@ public class TOTPUtil {
     }
 
     /**
+     * Check whether preventing TOTP code reuse is disabled.
+     *
+     * @return True if preventing TOTP code reuse is disabled; false otherwise.
+     */
+    public static boolean isPreventTOTPCodeReuseEnabled() {
+
+        return Boolean.parseBoolean(getTOTPParameters().get(
+                TOTPAuthenticatorConstants.PREVENT_TOTP_CODE_REUSE));
+    }
+
+    /**
      * Get Account Lock Connector Configs.
      *
      * @param tenantDomain Tenant domain.
@@ -1250,5 +1262,22 @@ public class TOTPUtil {
         } catch (CryptoException e) {
             throw new TOTPAuthenticatorException("Error occurred while encrypting claim value of: " + claimURI, e);
         }
+    }
+
+    /**
+     * Add usedTOTPTimeWindows claim if not exist for tenant.
+     *
+     * @param tenantDomain              Tenant domain.
+     * @return  True if usedTOTPTimeWindows claim exists in specific tenant; false otherwise.
+     * @throws ClaimMetadataException   When errors occurs while registering the claim.
+     */
+    public static boolean doesUsedTimeWindowsClaimExist(String tenantDomain) throws ClaimMetadataException {
+
+        // Retrieve all claims and confirm if usedTOTPTimeWindows claim is present for the tenant.
+        List<LocalClaim> localClaimsList = TOTPDataHolder.getInstance()
+                .getClaimMetadataManagementService().getLocalClaims(tenantDomain);
+
+        return localClaimsList.stream().anyMatch(localClaim ->
+                TOTPAuthenticatorConstants.USED_TIME_WINDOWS.equals(localClaim.getClaimURI()));
     }
 }

@@ -52,6 +52,7 @@ import org.wso2.carbon.identity.application.common.model.JustInTimeProvisioningC
 import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.identity.central.log.mgt.utils.LogConstants;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
+import org.wso2.carbon.identity.claim.metadata.mgt.exception.ClaimMetadataException;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.model.IdentityErrorMsgContext;
@@ -897,10 +898,22 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
             UserRealm userRealm = TOTPUtil.getUserRealm(username);
             if (userRealm != null) {
-                Map<String, String> userClaimValues = userRealm
-                        .getUserStoreManager().getUserClaimValues
-                                (tenantAwareUsername, new String[]
-                                        {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL}, null);
+                Map<String, String> userClaimValues;
+
+                // Confirm if TOTP reuse is disabled and if required claims are present.
+                if (TOTPUtil.isPreventTOTPCodeReuseEnabled() && TOTPUtil.doesUsedTimeWindowsClaimExist(tenantDomain)) {
+                    userClaimValues = userRealm
+                            .getUserStoreManager().getUserClaimValues
+                                    (tenantAwareUsername, new String[] {
+                                            TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
+                                            TOTPAuthenticatorConstants.USED_TIME_WINDOWS
+                                    }, null);
+                } else {
+                    userClaimValues = userRealm
+                            .getUserStoreManager().getUserClaimValues
+                                    (tenantAwareUsername, new String[]
+                                            {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL}, null);
+                }
                 String secretKeyClaimValue = userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
                 if (secretKeyClaimValue == null) {
                     throw new TOTPException("Secret key claim is null for the user : " +
@@ -908,7 +921,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                                     tenantAwareUsername));
                 }
                 String secretKey = TOTPUtil.decrypt(secretKeyClaimValue);
-                return totpAuthenticator.authorize(secretKey, token);
+                return totpAuthenticator.authorize(secretKey, token, context,
+                        userClaimValues.get(TOTPAuthenticatorConstants.USED_TIME_WINDOWS));
             } else {
                 throw new TOTPException(
                         "Cannot find the user realm for the given tenant domain : " +
@@ -924,6 +938,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         } catch (AuthenticationFailedException e) {
             throw new TOTPException(
                     "TOTPTokenVerifier cannot find the property value for encodingMethod");
+        } catch (ClaimMetadataException e) {
+            throw new TOTPException("Error while obtaining used tokens", e);
         }
     }
 
@@ -961,7 +977,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             secretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
         }
         TOTPAuthenticatorCredentials totpAuthenticator = getTotpAuthenticator(context, context.getTenantDomain());
-        return totpAuthenticator.authorize(secretKey, token);
+        return totpAuthenticator.authorize(secretKey, token, context, null);
     }
 
     /**

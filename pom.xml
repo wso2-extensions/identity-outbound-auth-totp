@@ -121,6 +121,11 @@
                 <artifactId>org.wso2.carbon.identity.branding.preference.management.core</artifactId>
                 <version>${identity.branding.preference.management.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.framework</groupId>
+                <artifactId>org.wso2.carbon.identity.claim.metadata.mgt</artifactId>
+                <version>${carbon.identity.framework.version}</version>
+            </dependency>
 
             <!--Test Dependencies-->
             <dependency>
