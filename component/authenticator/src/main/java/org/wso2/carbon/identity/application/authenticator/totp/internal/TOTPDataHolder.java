@@ -43,6 +43,7 @@ public class TOTPDataHolder {
 	private IdpManager idpManager;
 	private OrganizationManager organizationManager;
 	private BrandingPreferenceManager brandingPreferenceManager;
+	private ClaimMetadataManagementService claimMetadataManagementService;
 
 	private static ClaimMetadataManagementService claimManagementService;
 
@@ -123,6 +124,26 @@ public class TOTPDataHolder {
 	public void setIdentityGovernanceService(IdentityGovernanceService identityGovernanceService) {
 
 		this.identityGovernanceService = identityGovernanceService;
+	}
+
+	/**
+	 * Returns the claim metadata management service.
+	 *
+	 * @return claim metadata management service.
+	 */
+	public ClaimMetadataManagementService getClaimMetadataManagementService() {
+
+		return claimMetadataManagementService;
+	}
+
+	/**
+	 * Sets the claim metadata management service.
+	 *
+	 * @param claimMetadataManagementService Claim metadata management service
+	 */
+	public void setClaimMetadataManagementService(ClaimMetadataManagementService claimMetadataManagementService) {
+
+		this.claimMetadataManagementService = claimMetadataManagementService;
 	}
 
 	/**
