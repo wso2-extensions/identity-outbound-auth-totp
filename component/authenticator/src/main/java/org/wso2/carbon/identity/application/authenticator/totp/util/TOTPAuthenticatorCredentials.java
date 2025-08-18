@@ -248,7 +248,7 @@ public final class TOTPAuthenticatorCredentials {
 	 * @return <code>true</code> if the validation code is valid, <code>false</code> otherwise
 	 */
 	private boolean checkCode(String secret, long code, long timestamp, int window,
-							  AuthenticationContext context, String usedTimeWindows) {
+							  AuthenticationContext context, String usedTimeWindows, String tenantDomain) {
 
 		byte[] decodedKey = decodeSecret(secret);
 
@@ -267,7 +267,8 @@ public final class TOTPAuthenticatorCredentials {
 			if (hash == code) {
 				// The verification code is valid.
 				if (TOTPUtil.isPreventTOTPCodeReuseEnabled()) {
-					return validateUsedTimeWindows(context, timeWindow, timeWindow + i, window, usedTimeWindows);
+					return validateUsedTimeWindows(context, timeWindow, timeWindow + i, window, usedTimeWindows,
+							tenantDomain);
 				} else {
 					return true;
 				}
@@ -288,25 +289,28 @@ public final class TOTPAuthenticatorCredentials {
 	 * @return True if authentication is allowed; false otherwise.
 	 */
 	private boolean validateUsedTimeWindows(AuthenticationContext context,long currentTimeWindow,
-											long attemptedTimeWindow, int window, String usedTimeWindows) {
+											long attemptedTimeWindow, int window, String usedTimeWindows,
+											String tenantDomain) {
 
-		if (context == null) {
+		if (StringUtils.isBlank(tenantDomain) && context == null) {
 			return false;
+		} else if (context != null) {
+			tenantDomain = context.getTenantDomain();
 		}
 
 		try {
 			// If the tenant do not contain the required claims, proceed with authentication.
-			if (!TOTPUtil.doesUsedTimeWindowsClaimExist(context.getTenantDomain())){
+			if (!TOTPUtil.doesUsedTimeWindowsClaimExist(tenantDomain)){
 				/*
 				Print error log since even though PreventTOTPCodeReuse is true, relevant claims aren't present
 				in the tenant. Because the claims aren't present, the feature will not prevent TOTP code reuse.
 				 */
 				LOG.warn("PreventTOTPCodeReuse is enabled, but required claims are missing in tenant : "
-						+ context.getTenantDomain() + ". This will disable the feature.");
+						+ tenantDomain + ". This will disable the feature.");
 				return true;
 			}
 		} catch (ClaimMetadataException e) {
-			LOG.error("Error when accessing claims for tenant domain : " + context.getTenantDomain(), e);
+			LOG.error("Error when accessing claims for tenant domain : " + tenantDomain, e);
 			return false;
 		}
 
@@ -463,7 +467,7 @@ public final class TOTPAuthenticatorCredentials {
 	 * @return true, if code is verified
 	 */
 	public boolean authorize(String secretKey, int verificationCode) {
-		return authorize(secretKey, verificationCode, new Date().getTime(), null, null);
+		return authorize(secretKey, verificationCode, new Date().getTime(), null, null, null);
 	}
 
 	/**
@@ -477,7 +481,21 @@ public final class TOTPAuthenticatorCredentials {
 	 */
 	public boolean authorize(String secretKey, int verificationCode, AuthenticationContext context,
 							 String usedTimeWindows) {
-		return authorize(secretKey, verificationCode, new Date().getTime(), context, usedTimeWindows);
+		return authorize(secretKey, verificationCode, new Date().getTime(), context, usedTimeWindows, null);
+	}
+
+	/**
+	 * Authorize the code belongs to secret key.
+	 *
+	 * @param secretKey 		The Secret Key.
+	 * @param verificationCode 	Verification code which needs to be verified.
+	 * @param context 			Authentication context.
+	 * @param usedTimeWindows 	Used time windows.
+	 * @return true if code is verified; false otherwise.
+	 */
+	public boolean authorize(String secretKey, int verificationCode, AuthenticationContext context,
+							 String usedTimeWindows, String tenantDomain) {
+		return authorize(secretKey, verificationCode, new Date().getTime(), context, usedTimeWindows, tenantDomain);
 	}
 
 	/**
@@ -491,7 +509,7 @@ public final class TOTPAuthenticatorCredentials {
 	 * @return true, if validation code is verified.
 	 */
 	private boolean authorize(String secretKey, int verificationCode, long time, AuthenticationContext context,
-							  String usedTimeWindows) {
+							  String usedTimeWindows, String tenantDomain) {
 
 		// Checking user input and failing if the secret key was not provided.
 		if (secretKey == null) {
@@ -502,7 +520,8 @@ public final class TOTPAuthenticatorCredentials {
 			return false;
 		}
 		// Checking the validation code using the current UNIX time.
-		return checkCode(secretKey, verificationCode, time, this.config.getWindowSize(), context, usedTimeWindows);
+		return checkCode(secretKey, verificationCode, time, this.config.getWindowSize(), context, usedTimeWindows,
+				tenantDomain);
 	}
 
 	/**
@@ -555,12 +574,12 @@ public final class TOTPAuthenticatorCredentials {
 					return false;
 				}
 				return authorize(TOTPUtil.decrypt(secretKeyClaim), verificationCode, new Date().getTime(),
-						null, userClaimValues.get(TOTPAuthenticatorConstants.USED_TIME_WINDOWS));
+						null, userClaimValues.get(TOTPAuthenticatorConstants.USED_TIME_WINDOWS), tenantDomain);
 			}
 
 			String secretKey = TOTPUtil.decrypt(verifySecretKeyClaim);
 			if (authorize(secretKey, verificationCode, new Date().getTime(), null,
-					userClaimValues.get(TOTPAuthenticatorConstants.USED_TIME_WINDOWS))) {
+					userClaimValues.get(TOTPAuthenticatorConstants.USED_TIME_WINDOWS), tenantDomain)) {
 				storeSecretKeyAndUpdateUsedTimeWindows(secretKey, tenantAwareUsername, tenantDomain, userRealm);
 				return true;
 			}

@@ -281,7 +281,7 @@ public class TOTPAdminService {
             if (log.isDebugEnabled()) {
                 log.debug("Validating TOTP verification code for the user: " + username);
             }
-            return totpAuthenticator.authorize(secretKey, verificationCode, context, null);
+            return totpAuthenticator.authorize(secretKey, verificationCode, context, null, tenantDomain);
         } catch (AuthenticationFailedException e) {
             throw new TOTPException("TOTPTokenVerifier cannot find the property value for encodingMethod.", e);
         }

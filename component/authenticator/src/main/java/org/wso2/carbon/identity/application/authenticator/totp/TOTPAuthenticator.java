@@ -922,7 +922,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 }
                 String secretKey = TOTPUtil.decrypt(secretKeyClaimValue);
                 return totpAuthenticator.authorize(secretKey, token, context,
-                        userClaimValues.get(TOTPAuthenticatorConstants.USED_TIME_WINDOWS));
+                        userClaimValues.get(TOTPAuthenticatorConstants.USED_TIME_WINDOWS), tenantDomain);
             } else {
                 throw new TOTPException(
                         "Cannot find the user realm for the given tenant domain : " +
@@ -977,7 +977,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             secretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
         }
         TOTPAuthenticatorCredentials totpAuthenticator = getTotpAuthenticator(context, context.getTenantDomain());
-        return totpAuthenticator.authorize(secretKey, token, context, null);
+        return totpAuthenticator.authorize(secretKey, token, context, null,null);
     }
 
     /**
