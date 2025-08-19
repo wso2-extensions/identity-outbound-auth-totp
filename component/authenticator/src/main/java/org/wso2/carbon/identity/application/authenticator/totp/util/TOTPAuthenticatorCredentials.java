@@ -393,7 +393,7 @@ public final class TOTPAuthenticatorCredentials {
 		String usernameWithDomain = IdentityUtil.addDomainToName(authenticatedUser.getUserName(),
 				authenticatedUser.getUserStoreDomain());
 		try {
-			UserRealm userRealm = TOTPUtil.getUserRealm(authenticatedUser.getUserName());
+			UserRealm userRealm = TOTPUtil.getUserRealm(authenticatedUser.toString());
 			UserStoreManager userStoreManager = userRealm.getUserStoreManager();
 
 			Map<String, String> updatedClaims = new HashMap<>();
