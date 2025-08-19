@@ -258,6 +258,7 @@ public class TOTPKeyGenerator {
                 claims.put(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL, "");
                 claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "");
                 claims.put(TOTPAuthenticatorConstants.TOTP_ENABLED_CLAIM_URI, "false");
+                claims.put(TOTPAuthenticatorConstants.USED_TIME_WINDOWS, "[]");
                 userRealm.getUserStoreManager()
                         .setUserClaimValues(tenantAwareUsername, claims, null);
                 return true;
