@@ -307,8 +307,10 @@ public final class TOTPAuthenticatorCredentials {
 				Print error log since even though PreventTOTPCodeReuse is true, relevant claims aren't present
 				in the tenant. Because the claims aren't present, the feature will not prevent TOTP code reuse.
 				 */
-				LOG.warn("PreventTOTPCodeReuse is enabled, but required claims are missing in tenant : "
-						+ tenantDomain + ". This will disable the feature.");
+				if (LOG.isDebugEnabled()) {
+					LOG.debug("PreventTOTPCodeReuse is enabled, but required claims are missing in tenant : "
+							+ tenantDomain + ". This will disable the feature.");
+				}
 				return true;
 			}
 		} catch (ClaimMetadataException e) {
