@@ -977,7 +977,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             secretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
         }
         TOTPAuthenticatorCredentials totpAuthenticator = getTotpAuthenticator(context, context.getTenantDomain());
-        return totpAuthenticator.authorize(secretKey, token, context, null,null, null);
+        return totpAuthenticator.authorize(secretKey, token, context, null, null, null);
     }
 
     /**
