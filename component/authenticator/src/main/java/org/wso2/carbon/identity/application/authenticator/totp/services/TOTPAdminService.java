@@ -20,6 +20,7 @@ package org.wso2.carbon.identity.application.authenticator.totp.services;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.core.util.CryptoException;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
@@ -28,11 +29,15 @@ import org.wso2.carbon.identity.application.authenticator.totp.TOTPKeyGenerator;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorConfig;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorCredentials;
+import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorKey;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPKeyRepresentation;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
+import org.wso2.carbon.identity.core.util.IdentityConfigParser;
+import org.wso2.carbon.user.api.AuthorizationManager;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
+import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.util.HashMap;
@@ -45,7 +50,10 @@ import java.util.Map;
  */
 public class TOTPAdminService {
 
-	private static Log log = LogFactory.getLog(TOTPAdminService.class);
+    private static Log log = LogFactory.getLog(TOTPAdminService.class);
+	private static final String DEFAULT_USER_UPDATE_PERMISSION = "/permission/admin/manage/identity/usermgt/update";
+	private static final String SELF_OPERATIONS_ENABLED = "AdminServices.TOTPAdminService.SelfOperations.Enabled";
+	private static final String SERVICE_PERMISSION = "AdminServices.TOTPAdminService.Permission";
 
 	/**
 	 * Generate TOTP Token for a given user.
@@ -57,6 +65,10 @@ public class TOTPAdminService {
 	 */
 	public String initTOTP(String username, AuthenticationContext context) throws TOTPException {
 
+		String tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
+		if (!this.isAuthorized(tenantAwareUsername)) {
+			throw new TOTPException("User is not authorized perform the operation");
+		}
 		Map<String, String> claims = TOTPKeyGenerator.generateClaims(username, false, context);
 		return TOTPKeyGenerator.addTOTPClaimsAndRetrievingQRCodeURL(claims, username, context);
 	}
@@ -69,6 +81,11 @@ public class TOTPAdminService {
 	 * @throws TOTPException when could not find the user
 	 */
 	public boolean resetTOTP(String username) throws TOTPException, AuthenticationFailedException {
+
+		String tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
+		if (!this.isAuthorized(tenantAwareUsername)) {
+			throw new TOTPException("User is not authorized perform the operation");
+		}
 		return TOTPKeyGenerator.resetLocal(username);
 	}
 
@@ -81,6 +98,11 @@ public class TOTPAdminService {
 	 * @throws TOTPException when could not find the user
 	 */
 	public String refreshSecretKey(String username, AuthenticationContext context) throws TOTPException {
+
+		String tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
+		if (!this.isAuthorized(tenantAwareUsername)) {
+			throw new TOTPException("User is not authorized perform the operation");
+		}
 		Map<String, String> claims = TOTPKeyGenerator.generateClaims(username, true, context);
 		return TOTPKeyGenerator.addTOTPClaimsAndRetrievingQRCodeURL(claims, username, context);
 	}
@@ -103,6 +125,9 @@ public class TOTPAdminService {
 			userRealm = TOTPUtil.getUserRealm(username);
 			String tenantDomain = MultitenantUtils.getTenantDomain(username);
 			tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
+			if (!this.isAuthorized(tenantAwareUsername)) {
+				throw new TOTPException("User is not authorized perform the operation");
+			}
 			if (userRealm != null) {
 				Map<String, String> userClaimValues = userRealm.getUserStoreManager().
 						getUserClaimValues(tenantAwareUsername,
@@ -147,6 +172,10 @@ public class TOTPAdminService {
 	public boolean validateTOTP(String username, AuthenticationContext context, int verificationCode) throws
 			TOTPException {
 
+		String tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
+		if (!this.isAuthorized(tenantAwareUsername)) {
+			throw new TOTPException("User is not authorized perform the operation");
+		}
 		TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;
 		String tenantDomain = MultitenantUtils.getTenantDomain(username);
 		String encodingMethod;
@@ -172,5 +201,55 @@ public class TOTPAdminService {
 		} catch (AuthenticationFailedException e) {
 			throw new TOTPException("TOTPTokenVerifier cannot find the property value for encodingMethod.", e);
 		}
+	}
+
+	/**
+	 * Check whether the authenticated user is authorized to perform the operation on the target user.
+	 * Authorization is successful if the authenticated user is trying to perform the operation on his own or
+	 * has the required permission.
+	 *
+	 * @param targetUser       user on whom the operation is being performed
+	 * @return true if authorized, false otherwise
+	 * @throws TOTPException when error occurs while checking authorization
+	 */
+	private boolean isAuthorized(String targetUser) throws TOTPException {
+
+		String authenticatedUsername = CarbonContext.getThreadLocalCarbonContext().getUsername();
+		int authenticatedTenantId = CarbonContext.getThreadLocalCarbonContext().getTenantId();
+		RealmService realmService = TOTPDataHolder.getInstance().getRealmService();
+		try {
+			UserRealm userRealm = realmService.getTenantUserRealm(authenticatedTenantId);
+			return isUserAuthorizedToPerformOperation(userRealm, authenticatedUsername, targetUser);
+		} catch (UserStoreException e) {
+			throw new TOTPException("Error while checking the authorization to perform the operation.", e);
+		}
+	}
+
+	private static boolean isUserAuthorizedToPerformOperation(UserRealm realm, String currentUserName,
+															  String targetUser)
+			throws UserStoreException {
+
+		String selfOperationsEnabled = (String) IdentityConfigParser.getInstance().getConfiguration().
+				get(SELF_OPERATIONS_ENABLED);
+		String permission = (String) IdentityConfigParser.getInstance().getConfiguration().
+				get(SERVICE_PERMISSION);
+
+		if (Boolean.parseBoolean(selfOperationsEnabled)) {
+			if (StringUtils.equals(currentUserName, targetUser)) {
+				if (log.isDebugEnabled()) {
+					log.debug("Self operations are enabled. Hence user: " + currentUserName +
+							" is authorized to perform the operation on himself.");
+				}
+				return true;
+			}
+		}
+		if (StringUtils.isEmpty(permission)) {
+			permission = DEFAULT_USER_UPDATE_PERMISSION;
+			if (log.isDebugEnabled()) {
+				log.debug("Permission is not configured. Hence using the default permission: " + permission);
+			}
+		}
+		AuthorizationManager authorizer = realm.getAuthorizationManager();
+		return authorizer.isUserAuthorized(currentUserName, permission, "ui.execute");
 	}
 }

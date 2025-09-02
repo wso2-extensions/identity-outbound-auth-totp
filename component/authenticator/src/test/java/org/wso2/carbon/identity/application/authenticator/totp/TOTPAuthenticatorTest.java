@@ -46,6 +46,7 @@ import org.wso2.carbon.identity.application.authentication.framework.exception.L
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.core.UserRealm;
 import org.wso2.carbon.user.core.UserStoreException;
 import org.wso2.carbon.user.core.UserStoreManager;
@@ -67,10 +68,12 @@ import static org.mockito.MockitoAnnotations.initMocks;
 import static org.powermock.api.mockito.PowerMockito.*;
 
 @PrepareForTest({TOTPUtil.class, TOTPTokenGenerator.class, ConfigurationFacade.class, TOTPTokenGenerator.class,
-        FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, CarbonContext.class,
+        FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, CarbonContext.class, IdentityUtil.class,
         FederatedAuthenticatorUtil.class})
 @PowerMockIgnore({"javax.crypto.*" })
 public class TOTPAuthenticatorTest {
+
+    private static final String USER_STORE_DOMAIN = "PRIMARY";
 
     @Mock
     private TOTPAuthenticator mockedTOTPAuthenticator;
@@ -322,7 +325,10 @@ public class TOTPAuthenticatorTest {
 
     @Test(description = "Test case for initiateAuthenticationRequest() method with totp enabled user.")
     public void testInitiateAuthenticationRequest() throws AuthenticationFailedException, UserStoreException {
+
         String username = "admin";
+        mockStatic(IdentityUtil.class);
+        when(IdentityUtil.getPrimaryDomainName()).thenReturn(USER_STORE_DOMAIN);
         AuthenticatedUser authenticatedUser = AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
         AuthenticationContext authenticationContext = new AuthenticationContext();
         authenticationContext.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
@@ -347,7 +353,10 @@ public class TOTPAuthenticatorTest {
             "TOTP is not enabled for the user.")
     public void testInitiateAuthenticationRequestWithEnrollment() throws AuthenticationFailedException,
             UserStoreException {
+
         String username = "admin";
+        mockStatic(IdentityUtil.class);
+        when(IdentityUtil.getPrimaryDomainName()).thenReturn(USER_STORE_DOMAIN);
         AuthenticatedUser authenticatedUser = AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
         mockedContext.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
         mockedContext.setProperty("username", username);
@@ -374,7 +383,10 @@ public class TOTPAuthenticatorTest {
     @Test(description = "Test case for initiateAuthenticationRequest() method when admin enforces TOTP and " +
             "TOTP is not enabled for the user.", priority=2)
     public void testInitiateAuthenticationRequestAdminEnforces() throws AuthenticationFailedException, UserStoreException, IOException {
+
         String username = "admin";
+        mockStatic(IdentityUtil.class);
+        when(IdentityUtil.getPrimaryDomainName()).thenReturn(USER_STORE_DOMAIN);
         AuthenticatedUser authenticatedUser = AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
         context.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
         context.setProperty("username", username);
@@ -403,7 +415,10 @@ public class TOTPAuthenticatorTest {
     @Test(description = "Test case for initiateAuthenticationRequest() method when admin enforces TOTP and " +
             "TOTP is not enabled for the user.", priority=2)
     public void testInitiateAuthenticationWithEnableTOTP() throws AuthenticationFailedException, UserStoreException, IOException {
+
         String username = "admin";
+        mockStatic(IdentityUtil.class);
+        when(IdentityUtil.getPrimaryDomainName()).thenReturn(USER_STORE_DOMAIN);
         AuthenticatedUser authenticatedUser = AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
         context.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
         context.setProperty("username", username);
