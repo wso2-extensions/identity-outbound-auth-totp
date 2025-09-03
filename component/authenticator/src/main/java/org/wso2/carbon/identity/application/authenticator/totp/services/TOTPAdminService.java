@@ -286,6 +286,9 @@ public class TOTPAdminService {
             userRealm = TOTPUtil.getUserRealm(username);
             String tenantDomain = MultitenantUtils.getTenantDomain(username);
             tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
+            if (!this.isAuthorized(tenantAwareUsername)) {
+                throw new TOTPException("User is not authorized perform the operation");
+            }
             if (userRealm != null) {
                 Map<String, String> userClaimValues = userRealm.getUserStoreManager().
                         getUserClaimValues(tenantAwareUsername,
