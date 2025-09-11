@@ -26,24 +26,34 @@ import org.testng.IObjectFactory;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.ObjectFactory;
 import org.testng.annotations.Test;
+import org.wso2.carbon.base.CarbonBaseConstants;
+import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPTokenGenerator;
+import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorCredentials;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
+import org.wso2.carbon.identity.core.util.IdentityConfigParser;
+import org.wso2.carbon.user.api.AuthorizationManager;
 import org.wso2.carbon.user.api.UserRealm;
+import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.core.UserStoreManager;
+import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
-@PrepareForTest({TOTPUtil.class, TOTPTokenGenerator.class, MultitenantUtils.class, TOTPAuthenticatorCredentials.class})
+@PrepareForTest({TOTPUtil.class, TOTPTokenGenerator.class, MultitenantUtils.class, TOTPAuthenticatorCredentials.class,
+        IdentityConfigParser.class, CarbonContext.class})
 @PowerMockIgnore({"javax.crypto.*","org.mockito.*",})
 public class TOTPAdminServiceTest {
 
@@ -56,10 +66,14 @@ public class TOTPAdminServiceTest {
     @BeforeMethod
     public void setUp() {
 
+        prepareCarbonHome();
+
         initMocks(this);
         mockStatic(TOTPUtil.class);
         mockStatic(TOTPTokenGenerator.class);
         mockStatic(MultitenantUtils.class);
+        mockStatic(IdentityConfigParser.class);
+        mockStatic(CarbonContext.class);
     }
 
     @Test(description = "test ValidateTOTP() method for invalid verification code.")
@@ -83,8 +97,40 @@ public class TOTPAdminServiceTest {
         when(TOTPUtil.getWindowSize(tenantDomain)).thenReturn(3);
         when(TOTPUtil.getTimeStepSize(tenantDomain)).thenReturn(30L);
 
+        IdentityConfigParser identityConfigParser = mock(IdentityConfigParser.class);
+        when(IdentityConfigParser.getInstance()).thenReturn(identityConfigParser);
+        Map<String,Object> configMap = new HashMap<>();
+        configMap.put("AdminServices.TOTPAdminService.SelfOperations.Enabled", "false");
+        configMap.put("AdminServices.TOTPAdminService.Permission",
+                "/permission/admin/manage/identity/usermgt/update");
+        when(identityConfigParser.getConfiguration()).thenReturn(configMap);
+
+        mockRealm();
+
         TOTPAdminService totpAdminService = new TOTPAdminService();
         Assert.assertFalse(totpAdminService.validateTOTP(username, null, invalidOTP));
+    }
+
+    private void mockRealm() throws UserStoreException {
+
+        CarbonContext mockCarbonContext = mock(CarbonContext.class);
+        when(CarbonContext.getThreadLocalCarbonContext()).thenReturn(mockCarbonContext);
+        when(mockCarbonContext.getUsername()).thenReturn("admin");
+        when(mockCarbonContext.getTenantId()).thenReturn(-1234);
+        RealmService realmService = mock(RealmService.class);
+        TOTPDataHolder.getInstance().setRealmService(realmService);
+        when(realmService.getTenantUserRealm(anyInt())).thenReturn(mockUserRealm);
+        AuthorizationManager authorizationManager = mock(AuthorizationManager.class);
+        when(mockUserRealm.getAuthorizationManager()).thenReturn(authorizationManager);
+        when(authorizationManager.isUserAuthorized(anyString(), anyString(), anyString())).thenReturn(true);
+    }
+
+    private void prepareCarbonHome() {
+
+        System.setProperty(CarbonBaseConstants.CARBON_HOME, this.getClass().getResource("/").getFile());
+        System.setProperty("carbon.protocol", "https");
+        System.setProperty("carbon.host", "localhost");
+        System.setProperty("carbon.management.port", "9443");
     }
 
     @ObjectFactory
