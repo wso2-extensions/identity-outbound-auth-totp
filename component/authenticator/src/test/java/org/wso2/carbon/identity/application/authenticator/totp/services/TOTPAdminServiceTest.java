@@ -18,6 +18,7 @@
 package org.wso2.carbon.identity.application.authenticator.totp.services;
 
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.testng.PowerMockObjectFactory;
@@ -41,6 +42,8 @@ import org.wso2.carbon.user.core.UserStoreManager;
 import org.wso2.carbon.user.core.service.RealmService;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
+import java.net.URL;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -49,7 +52,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
 @PrepareForTest({TOTPUtil.class, TOTPTokenGenerator.class, MultitenantUtils.class, TOTPAuthenticatorCredentials.class,
@@ -68,7 +70,7 @@ public class TOTPAdminServiceTest {
 
         prepareCarbonHome();
 
-        initMocks(this);
+        MockitoAnnotations.openMocks(this);
         mockStatic(TOTPUtil.class);
         mockStatic(TOTPTokenGenerator.class);
         mockStatic(MultitenantUtils.class);
@@ -127,7 +129,21 @@ public class TOTPAdminServiceTest {
 
     private void prepareCarbonHome() {
 
-        System.setProperty(CarbonBaseConstants.CARBON_HOME, this.getClass().getResource("/").getFile());
+        URL resourceUrl = this.getClass().getResource("/");
+        String carbonHome;
+        if (resourceUrl != null) {
+            try {
+                Path resourcePath = java.nio.file.Paths.get(resourceUrl.toURI());
+                carbonHome = resourcePath.toString();
+            } catch (Exception e) {
+                // Fallback to temp directory if resource path conversion fails
+                carbonHome = System.getProperty("java.io.tmpdir") + "/carbon-home-test";
+            }
+        } else {
+            // Fallback to temp directory if resource is not found
+            carbonHome = System.getProperty("java.io.tmpdir") + "/carbon-home-test";
+        }
+        System.setProperty(CarbonBaseConstants.CARBON_HOME, carbonHome);
         System.setProperty("carbon.protocol", "https");
         System.setProperty("carbon.host", "localhost");
         System.setProperty("carbon.management.port", "9443");
