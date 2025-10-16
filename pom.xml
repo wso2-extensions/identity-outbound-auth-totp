@@ -139,23 +139,10 @@
                 <classifier>runtime</classifier>
                 <version>${jacoco.version}</version>
             </dependency>
-            <!-- https://mvnrepository.com/artifact/org.powermock/powermock-module-testng -->
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
                 <version>${mockito.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.powermock</groupId>
-                <artifactId>powermock-module-testng</artifactId>
-                <version>${powermock.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.powermock</groupId>
-                <artifactId>powermock-api-mockito2</artifactId>
-                <version>${powermock.version}</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>
@@ -382,8 +369,7 @@
         <!--Test Dependencies-->
         <testng.version>7.4.0</testng.version>
         <jacoco.version>0.8.7</jacoco.version>
-        <mockito.version>3.12.4</mockito.version>
-        <powermock.version>2.0.9</powermock.version>
+        <mockito.version>5.3.1</mockito.version>
         <slf4j.api.version>1.7.21</slf4j.api.version>
         <maven.surefire.plugin.version>2.22.2</maven.surefire.plugin.version>
 

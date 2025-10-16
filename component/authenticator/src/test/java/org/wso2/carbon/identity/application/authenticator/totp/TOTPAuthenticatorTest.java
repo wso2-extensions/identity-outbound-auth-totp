@@ -20,19 +20,15 @@ package org.wso2.carbon.identity.application.authenticator.totp;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.Spy;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.testng.PowerMockObjectFactory;
-import org.powermock.reflect.Whitebox;
+import org.mockito.MockitoAnnotations;
 import org.testng.Assert;
-import org.testng.IObjectFactory;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
-import org.testng.annotations.ObjectFactory;
 import org.testng.annotations.Test;
-import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.extension.identity.helper.FederatedAuthenticatorUtil;
 import org.wso2.carbon.extension.identity.helper.util.IdentityHelperUtil;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
@@ -70,6 +66,7 @@ import org.wso2.carbon.user.core.UserStoreManager;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -85,26 +82,35 @@ import javax.servlet.http.HttpServletResponse;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
-import static org.powermock.api.mockito.PowerMockito.doNothing;
-import static org.powermock.api.mockito.PowerMockito.doReturn;
-import static org.powermock.api.mockito.PowerMockito.mock;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.DISPLAY_TOKEN;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.TOKEN;
 
-@PrepareForTest({TOTPUtil.class, TOTPTokenGenerator.class, ConfigurationFacade.class, TOTPTokenGenerator.class,
-        FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, CarbonContext.class,
-        FederatedAuthenticatorUtil.class, IdentityUtil.class, ServiceURLBuilder.class, IdentityTenantUtil.class,
-        UserSessionStore.class, TOTPDataHolder.class, IdpManager.class, IdentityProvider.class,
-        JustInTimeProvisioningConfig.class, LoggerUtils.class})
-@PowerMockIgnore({"javax.crypto.*","org.mockito.*","org.powermock.api.mockito.invocation.*"})
 public class TOTPAuthenticatorTest {
 
     private static final String USER_STORE_DOMAIN = "PRIMARY";
+
+    // Static mocks
+    private MockedStatic<TOTPUtil> staticTOTPUtil;
+    private MockedStatic<ConfigurationFacade> staticConfigurationFacade;
+    private MockedStatic<TOTPTokenGenerator> staticTOTPTokenGenerator;
+    private MockedStatic<FileBasedConfigurationBuilder> staticFileBasedConfigurationBuilder;
+    private MockedStatic<IdentityHelperUtil> staticIdentityHelperUtil;
+    private MockedStatic<FederatedAuthenticatorUtil> staticFederatedAuthenticatorUtil;
+    private MockedStatic<IdentityUtil> staticIdentityUtil;
+    private MockedStatic<IdentityTenantUtil> staticIdentityTenantUtil;
+    private MockedStatic<LoggerUtils> staticLoggerUtils;
+    private MockedStatic<ServiceURLBuilder> staticServiceURLBuilder;
+    // Add static mock for TOTPDataHolder
+    private MockedStatic<TOTPDataHolder> staticTOTPDataHolder;
+
     @Mock
     private TOTPAuthenticator mockedTOTPAuthenticator;
 
@@ -174,19 +180,40 @@ public class TOTPAuthenticatorTest {
     public void setUp() {
 
         totpAuthenticator = new TOTPAuthenticator();
-        initMocks(this);
-        mockStatic(TOTPUtil.class);
-        mockStatic(ConfigurationFacade.class);
-        mockStatic(TOTPTokenGenerator.class);
-        when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
-        mockStatic(FileBasedConfigurationBuilder.class);
-        mockStatic(IdentityHelperUtil.class);
-        mockStatic(FederatedAuthenticatorUtil.class);
-        mockStatic(IdentityUtil.class);
-        mockStatic(IdentityTenantUtil.class);
-        when(IdentityTenantUtil.getTenantId(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)).thenReturn(1);
-        mockStatic(LoggerUtils.class);
-        when(LoggerUtils.isDiagnosticLogsEnabled()).thenReturn(true);
+        MockitoAnnotations.openMocks(this);
+
+        staticTOTPUtil = Mockito.mockStatic(TOTPUtil.class);
+        staticConfigurationFacade = Mockito.mockStatic(ConfigurationFacade.class);
+        staticTOTPTokenGenerator = Mockito.mockStatic(TOTPTokenGenerator.class);
+        staticFileBasedConfigurationBuilder = Mockito.mockStatic(FileBasedConfigurationBuilder.class);
+        staticIdentityHelperUtil = Mockito.mockStatic(IdentityHelperUtil.class);
+        staticFederatedAuthenticatorUtil = Mockito.mockStatic(FederatedAuthenticatorUtil.class);
+        staticIdentityUtil = Mockito.mockStatic(IdentityUtil.class);
+        staticIdentityTenantUtil = Mockito.mockStatic(IdentityTenantUtil.class);
+        staticLoggerUtils = Mockito.mockStatic(LoggerUtils.class);
+        staticServiceURLBuilder = Mockito.mockStatic(ServiceURLBuilder.class);
+        // Initialize static mock for TOTPDataHolder
+        staticTOTPDataHolder = Mockito.mockStatic(TOTPDataHolder.class);
+
+        staticConfigurationFacade.when(ConfigurationFacade::getInstance).thenReturn(configurationFacade);
+        staticIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)).thenReturn(1);
+        staticLoggerUtils.when(LoggerUtils::isDiagnosticLogsEnabled).thenReturn(true);
+    }
+
+    @AfterMethod
+    public void tearDown() {
+        if (staticServiceURLBuilder != null) staticServiceURLBuilder.close();
+        if (staticLoggerUtils != null) staticLoggerUtils.close();
+        if (staticIdentityTenantUtil != null) staticIdentityTenantUtil.close();
+        if (staticIdentityUtil != null) staticIdentityUtil.close();
+        if (staticFederatedAuthenticatorUtil != null) staticFederatedAuthenticatorUtil.close();
+        if (staticIdentityHelperUtil != null) staticIdentityHelperUtil.close();
+        if (staticFileBasedConfigurationBuilder != null) staticFileBasedConfigurationBuilder.close();
+        if (staticTOTPTokenGenerator != null) staticTOTPTokenGenerator.close();
+        if (staticConfigurationFacade != null) staticConfigurationFacade.close();
+        if (staticTOTPUtil != null) staticTOTPUtil.close();
+        // Close static mock for TOTPDataHolder
+        if (staticTOTPDataHolder != null) staticTOTPDataHolder.close();
     }
 
     private void mockServiceURLBuilder() throws URLBuilderException {
@@ -226,15 +253,21 @@ public class TOTPAuthenticatorTest {
             public ServiceURL build() throws URLBuilderException {
 
                 ServiceURL serviceURL = mock(ServiceURL.class);
-                PowerMockito.when(serviceURL.getAbsolutePublicURL()).thenReturn("https://localhost:9443" + path);
-                PowerMockito.when(serviceURL.getRelativePublicURL()).thenReturn(path);
-                PowerMockito.when(serviceURL.getRelativeInternalURL()).thenReturn(path);
+                when(serviceURL.getAbsolutePublicURL()).thenReturn("https://localhost:9443" + path);
+                when(serviceURL.getRelativePublicURL()).thenReturn(path);
+                when(serviceURL.getRelativeInternalURL()).thenReturn(path);
                 return serviceURL;
             }
         };
 
-        mockStatic(ServiceURLBuilder.class);
-        PowerMockito.when(ServiceURLBuilder.create()).thenReturn(builder);
+        staticServiceURLBuilder.when(ServiceURLBuilder::create).thenReturn(builder);
+    }
+
+    // Utility to invoke private methods via reflection (replaces PowerMock Whitebox)
+    private static Object invokePrivate(Object target, String methodName, Class<?>[] paramTypes, Object... args) throws Exception {
+        Method m = target.getClass().getDeclaredMethod(methodName, paramTypes);
+        m.setAccessible(true);
+        return m.invoke(target, args);
     }
 
     @Test(description = "Test case for canHandle() method true case.")
@@ -288,10 +321,9 @@ public class TOTPAuthenticatorTest {
     @Test(description = "TOTPAuthenticator:getLoginPage() test for get the loginPage url from authentication.xml file.")
     public void testGetLoginPageFromXMLFile() throws Exception {
 
-        mockStatic(TOTPUtil.class);
-        when(TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).
+        staticTOTPUtil.when(() -> TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
-        when(TOTPUtil.getTOTPLoginPage(any(AuthenticationContext.class))).thenCallRealMethod();
+        staticTOTPUtil.when(() -> TOTPUtil.getTOTPLoginPage(any(AuthenticationContext.class))).thenCallRealMethod();
 
         Assert.assertEquals(TOTPUtil.getTOTPLoginPage(new AuthenticationContext()),
                 TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
@@ -302,9 +334,8 @@ public class TOTPAuthenticatorTest {
 
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn("authenticationendpoint/login.do");
 
-        mockStatic(TOTPUtil.class);
-        when(TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).thenCallRealMethod();
-        when(TOTPUtil.getTOTPLoginPage(any(AuthenticationContext.class))).thenCallRealMethod();
+        staticTOTPUtil.when(() -> TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).thenCallRealMethod();
+        staticTOTPUtil.when(() -> TOTPUtil.getTOTPLoginPage(any(AuthenticationContext.class))).thenCallRealMethod();
         Assert.assertEquals(TOTPUtil.getTOTPLoginPage(new AuthenticationContext()),
                 TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
     }
@@ -314,9 +345,8 @@ public class TOTPAuthenticatorTest {
 
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn("authenticationendpoint/login.do");
 
-        mockStatic(TOTPUtil.class);
-        when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).thenCallRealMethod();
-        when(TOTPUtil.getTOTPErrorPage(any(AuthenticationContext.class))).thenCallRealMethod();
+        staticTOTPUtil.when(() -> TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).thenCallRealMethod();
+        staticTOTPUtil.when(() -> TOTPUtil.getTOTPErrorPage(any(AuthenticationContext.class))).thenCallRealMethod();
         Assert.assertEquals(TOTPUtil.getTOTPErrorPage(new AuthenticationContext()),
                 TOTPAuthenticatorConstants.ERROR_PAGE);
     }
@@ -326,9 +356,8 @@ public class TOTPAuthenticatorTest {
 
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn("authenticationendpoint/login.do");
 
-        mockStatic(TOTPUtil.class);
-        when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).thenCallRealMethod();
-        when(TOTPUtil.getTOTPErrorPage(any(AuthenticationContext.class))).thenCallRealMethod();
+        staticTOTPUtil.when(() -> TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).thenCallRealMethod();
+        staticTOTPUtil.when(() -> TOTPUtil.getTOTPErrorPage(any(AuthenticationContext.class))).thenCallRealMethod();
 
         Assert.assertEquals(TOTPUtil.getTOTPErrorPage(new AuthenticationContext()),
                 TOTPAuthenticatorConstants.ERROR_PAGE);
@@ -338,20 +367,19 @@ public class TOTPAuthenticatorTest {
     public void testGenerateTOTPToken() throws Exception {
 
         String username = "admin";
-        mockStatic(TOTPTokenGenerator.class);
-        when(TOTPTokenGenerator.generateTOTPTokenLocal(username, new AuthenticationContext())).thenReturn("123456");
+        staticTOTPTokenGenerator.when(() -> TOTPTokenGenerator.generateTOTPTokenLocal(eq(username), any(AuthenticationContext.class))).thenReturn("123456");
 
-        mockStatic(TOTPUtil.class);
-        when(TOTPUtil.isSendVerificationCodeByEmailEnabled()).thenReturn(true);
+        staticTOTPUtil.when(TOTPUtil::isSendVerificationCodeByEmailEnabled).thenReturn(true);
 
         AuthenticationContext authenticationContext = new AuthenticationContext();
         authenticationContext.setProperty("username", username);
 
         AuthenticatedUser user = new AuthenticatedUser();
         user.setAuthenticatedSubjectIdentifier("admin@carbon.super");
-        when(TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
-        Assert.assertTrue(Whitebox.invokeMethod(totpAuthenticator, "generateOTPAndSendByEmail",
-                authenticationContext));
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+        Object result = invokePrivate(totpAuthenticator, "generateOTPAndSendByEmail",
+                new Class<?>[]{AuthenticationContext.class}, authenticationContext);
+        Assert.assertTrue((Boolean) result);
     }
 
     @Test(description = "Test case for successful logout request.")
@@ -370,15 +398,14 @@ public class TOTPAuthenticatorTest {
         String username = "admin";
         authenticationContext.setProperty("username", username);
 
-        mockStatic(TOTPUtil.class);
-        when(TOTPUtil.isSendVerificationCodeByEmailEnabled()).thenReturn(true);
+        staticTOTPUtil.when(TOTPUtil::isSendVerificationCodeByEmailEnabled).thenReturn(true);
         doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
         when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn("true");
-        when(TOTPTokenGenerator.generateTOTPTokenLocal(username, authenticationContext)).thenReturn("123456");
+        staticTOTPTokenGenerator.when(() -> TOTPTokenGenerator.generateTOTPTokenLocal(eq(username), eq(authenticationContext))).thenReturn("123456");
 
         AuthenticatedUser user = new AuthenticatedUser();
         user.setAuthenticatedSubjectIdentifier("admin@carbon.super");
-        when(TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
         AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse,
                 authenticationContext);
         Assert.assertEquals(status, AuthenticatorFlowStatus.INCOMPLETE);
@@ -392,16 +419,15 @@ public class TOTPAuthenticatorTest {
         String username = "admin";
         authenticationContext.setProperty("username", username);
 
-        mockStatic(TOTPUtil.class);
-        when(TOTPUtil.isSendVerificationCodeByEmailEnabled()).thenReturn(false);
+        staticTOTPUtil.when(TOTPUtil::isSendVerificationCodeByEmailEnabled).thenReturn(false);
 
         doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
         when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn("true");
-        when(TOTPTokenGenerator.generateTOTPTokenLocal(username, authenticationContext)).thenReturn("123456");
+        staticTOTPTokenGenerator.when(() -> TOTPTokenGenerator.generateTOTPTokenLocal(eq(username), eq(authenticationContext))).thenReturn("123456");
 
         AuthenticatedUser user = new AuthenticatedUser();
         user.setAuthenticatedSubjectIdentifier("admin@carbon.super");
-        when(TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
         AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse,
                 authenticationContext);
         Assert.assertEquals(status, AuthenticatorFlowStatus.FAIL_COMPLETED);
@@ -411,10 +437,9 @@ public class TOTPAuthenticatorTest {
     public void testProcessWithSendTokenFalse() throws AuthenticationFailedException, LogoutFailedException {
 
         doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
-        mockStatic(TOTPUtil.class);
         AuthenticatedUser user = new AuthenticatedUser();
         user.setAuthenticatedSubjectIdentifier("admin@carbon.super");
-        when(TOTPUtil.getAuthenticatedUser(context)).thenReturn(user);
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(context)).thenReturn(user);
         when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn("true");
         AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse, context);
         Assert.assertEquals(status, AuthenticatorFlowStatus.FAIL_COMPLETED);
@@ -478,13 +503,13 @@ public class TOTPAuthenticatorTest {
     @Test(description = "Test case for isTOTPEnabledForLocalUser with TOTP enabled user ")
     public void testIsTOTPEnabledForLocalUser() throws Exception {
 
-        when(TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
+        staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
         when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
         String username = "admin";
         Map<String, String> claims = new HashMap<>();
         claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "AnySecretKey");
         userStoreManager.setUserClaimValues(MultitenantUtils.getTenantAwareUsername(username), claims, null);
-        Whitebox.invokeMethod(totpAuthenticator, "isSecretKeyExistForUser", "admin");
+        invokePrivate(totpAuthenticator, "isSecretKeyExistForUser", new Class<?>[]{String.class}, "admin");
     }
 
     @Test(description = "Test case for initiateAuthenticationRequest() method when authenticated user is null",
@@ -492,9 +517,9 @@ public class TOTPAuthenticatorTest {
     public void testInitiateAuthenticationRequestWithNullUser() throws AuthenticationFailedException {
 
         context.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-        when(TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
-        when(TOTPUtil.getAuthenticatedUser(context)).thenReturn(null);
-        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        staticTOTPUtil.when(() -> TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(context)).thenReturn(null);
+        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance).thenReturn(fileBasedConfigurationBuilder);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
     }
@@ -504,12 +529,13 @@ public class TOTPAuthenticatorTest {
             throws AuthenticationFailedException, UserStoreException, URLBuilderException {
 
         String username = "admin";
-        mockStatic(IdentityUtil.class);
-        when(IdentityUtil.getPrimaryDomainName()).thenReturn(USER_STORE_DOMAIN);
+        staticIdentityUtil.when(IdentityUtil::getPrimaryDomainName).thenReturn(USER_STORE_DOMAIN);
         AuthenticatedUser authenticatedUser =
                 AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
         authenticatedUser.setFederatedUser(false);
         authenticatedUser.setUserName(username);
+        // Ensure user id is available for the authenticated user to avoid UserIdNotFoundException
+        authenticatedUser.setUserId("dummyUserId");
         AuthenticationContext authenticationContext = new AuthenticationContext();
         authenticationContext.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
         authenticationContext.setProperty("username", username);
@@ -518,7 +544,7 @@ public class TOTPAuthenticatorTest {
 
         Map<String, String> claims = new HashMap<>();
         claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "AnySecretKey");
-        when(TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
+        staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
         when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
         when(userStoreManager.getUserClaimValues(username, new String[]
                 {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL}, null)).thenReturn(claims);
@@ -527,14 +553,14 @@ public class TOTPAuthenticatorTest {
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn("authenticationendpoint/login.do");
         mockServiceURLBuilder();
 
-        when(TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).
+        staticTOTPUtil.when(() -> TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
-        when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
+        staticTOTPUtil.when(() -> TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
-        when(TOTPUtil.getTOTPLoginPage(any(AuthenticationContext.class))).thenCallRealMethod();
-        when(TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(authenticatedUser);
-        when(TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
-        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        staticTOTPUtil.when(() -> TOTPUtil.getTOTPLoginPage(any(AuthenticationContext.class))).thenCallRealMethod();
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(authenticatedUser);
+        staticTOTPUtil.when(() -> TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
+        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance).thenReturn(fileBasedConfigurationBuilder);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
 
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, authenticationContext);
@@ -545,14 +571,9 @@ public class TOTPAuthenticatorTest {
     public void testInitiateAuthenticationRequestForInitialFederatedUserLogin()
             throws AuthenticationFailedException, IdentityProviderManagementException {
 
-        mockStatic(IdentityUtil.class);
-        mockStatic(IdentityTenantUtil.class);
-        mockStatic(UserSessionStore.class);
-        mockStatic(TOTPDataHolder.class);
-        mockStatic(IdpManager.class);
+        staticIdentityUtil.when(IdentityUtil::getPrimaryDomainName).thenReturn(USER_STORE_DOMAIN);
 
         String username = "admin";
-        when(IdentityUtil.getPrimaryDomainName()).thenReturn(USER_STORE_DOMAIN);
         AuthenticatedUser authenticatedUser =
                 AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
         authenticatedUser.setFederatedUser(true);
@@ -561,22 +582,23 @@ public class TOTPAuthenticatorTest {
         authenticatedUser.setUserId("dummyUserId");
         when(mockedContext.getTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
 
-        when(TOTPUtil.isLocalUser(mockedContext)).thenReturn(false);
-        when(TOTPUtil.getAuthenticatedUser(mockedContext)).thenReturn(authenticatedUser);
-        when(FederatedAuthenticatorUtil.getLoggedInFederatedUser(mockedContext)).
+        staticTOTPUtil.when(() -> TOTPUtil.isLocalUser(mockedContext)).thenReturn(false);
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(mockedContext)).thenReturn(authenticatedUser);
+        staticFederatedAuthenticatorUtil.when(() -> FederatedAuthenticatorUtil.getLoggedInFederatedUser(mockedContext)).
                 thenReturn("test@gmail.com@test.com");
-        when(FederatedAuthenticatorUtil.getLocalUsernameAssociatedWithFederatedUser("test@gmail.com",
+        staticFederatedAuthenticatorUtil.when(() -> FederatedAuthenticatorUtil.getLocalUsernameAssociatedWithFederatedUser("test@gmail.com",
                 mockedContext)).thenReturn(null);
 
-        when(TOTPDataHolder.getInstance()).thenReturn(totpDataHolder);
+        // Replace incorrect when(TOTPDataHolder.getInstance()) with static mock
+        staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(totpDataHolder);
         when(totpDataHolder.getIdpManager()).thenReturn(idpManager);
         when(idpManager.getIdPByName("Google", TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)).
                 thenReturn(identityProvider);
         when(identityProvider.getJustInTimeProvisioningConfig()).thenReturn(justInTimeProvisioningConfig);
         when(justInTimeProvisioningConfig.isProvisioningEnabled()).thenReturn(true);
-        when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any())).thenReturn(true);
+        staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any())).thenReturn(true);
         when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
-        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance).thenReturn(fileBasedConfigurationBuilder);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
 
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, mockedContext);
@@ -592,32 +614,33 @@ public class TOTPAuthenticatorTest {
             UserStoreException {
 
         String username = "admin";
-        mockStatic(IdentityUtil.class);
-        when(IdentityUtil.getPrimaryDomainName()).thenReturn(USER_STORE_DOMAIN);
+        staticIdentityUtil.when(IdentityUtil::getPrimaryDomainName).thenReturn(USER_STORE_DOMAIN);
         AuthenticatedUser authenticatedUser =
                 AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
         authenticatedUser.setFederatedUser(false);
         authenticatedUser.setUserName(username);
+        // Ensure user id is available for the authenticated user to avoid UserIdNotFoundException
+        authenticatedUser.setUserId("dummyUserId");
         mockedContext.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
         mockedContext.setProperty("username", username);
         mockedContext.setProperty("authenticatedUser", authenticatedUser);
         Map<String, String> claims = new HashMap<>();
         claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "AnySecretKey");
-        when(TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
-        when(TOTPUtil.getAuthenticatedUser(mockedContext)).thenReturn(authenticatedUser);
+        staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(mockedContext)).thenReturn(authenticatedUser);
         when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
         when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
-        when(TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).
+        staticTOTPUtil.when(() -> TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
-        when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
+        staticTOTPUtil.when(() -> TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
         when(mockedContext.getSequenceConfig()).thenReturn(sequenceConfig);
         when(sequenceConfig.getStepMap()).thenReturn(mockedMap);
         when(mockedMap.get(any())).thenReturn(stepConfig);
         when(stepConfig.getAuthenticatedAutenticator()).thenReturn(authenticatorConfig);
         when(authenticatorConfig.getApplicationAuthenticator()).thenReturn(applicationAuthenticator);
-        when(TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
-        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        staticTOTPUtil.when(() -> TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
+        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance).thenReturn(fileBasedConfigurationBuilder);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, mockedContext);
         Assert.assertEquals(mockedContext.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION),
@@ -632,12 +655,13 @@ public class TOTPAuthenticatorTest {
         String username = "admin";
         String multiOptionURL = "https://localhost:9443/samlsso";
 
-        mockStatic(IdentityUtil.class);
-        when(IdentityUtil.getPrimaryDomainName()).thenReturn(USER_STORE_DOMAIN);
+        staticIdentityUtil.when(IdentityUtil::getPrimaryDomainName).thenReturn(USER_STORE_DOMAIN);
         AuthenticatedUser authenticatedUser =
                 AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
         authenticatedUser.setFederatedUser(false);
         authenticatedUser.setUserName(username);
+        // Ensure user id is available for the authenticated user to avoid UserIdNotFoundException
+        authenticatedUser.setUserId("dummyUserId");
         context.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
         context.setProperty("username", username);
         context.setProperty("authenticatedUser", authenticatedUser);
@@ -645,22 +669,22 @@ public class TOTPAuthenticatorTest {
 
         Map<String, String> claims = new HashMap<>();
         claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "AnySecretKey");
-        when(TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
-        when(TOTPUtil.getMultiOptionURIQueryParam(any(HttpServletRequest.class))).thenCallRealMethod();
+        staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
+        staticTOTPUtil.when(() -> TOTPUtil.getMultiOptionURIQueryParam(any(HttpServletRequest.class))).thenCallRealMethod();
         when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
         when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
         when(httpServletRequest.getParameter("multiOptionURI")).thenReturn(multiOptionURL);
-        when(IdentityHelperUtil.checkSecondStepEnableByAdmin(context)).thenReturn(true);
-        when(TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).
+        staticIdentityHelperUtil.when(() -> IdentityHelperUtil.checkSecondStepEnableByAdmin(context)).thenReturn(true);
+        staticTOTPUtil.when(() -> TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
-        when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
+        staticTOTPUtil.when(() -> TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
                 thenReturn(TOTPAuthenticatorConstants.ERROR_PAGE);
-        when(TOTPUtil.getTOTPErrorPage(any(AuthenticationContext.class))).thenCallRealMethod();
-        when(TOTPUtil.getAuthenticatedUser(context)).thenReturn(authenticatedUser);
+        staticTOTPUtil.when(() -> TOTPUtil.getTOTPErrorPage(any(AuthenticationContext.class))).thenCallRealMethod();
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(context)).thenReturn(authenticatedUser);
         when(context.getSequenceConfig()).thenReturn(sequenceConfig);
         when(sequenceConfig.getStepMap()).thenReturn(mockedMap);
         when(mockedMap.get(any())).thenReturn(stepConfig);
-        when(TOTPUtil.getTOTPLoginPage(any(AuthenticationContext.class))).
+        staticTOTPUtil.when(() -> TOTPUtil.getTOTPLoginPage(any(AuthenticationContext.class))).
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
         when(stepConfig.getAuthenticatedAutenticator()).thenReturn(authenticatorConfig);
         when(authenticatorConfig.getApplicationAuthenticator()).thenReturn(applicationAuthenticator);
@@ -668,8 +692,8 @@ public class TOTPAuthenticatorTest {
 
         mockServiceURLBuilder();
 
-        when(TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
-        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        staticTOTPUtil.when(() -> TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
+        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance).thenReturn(fileBasedConfigurationBuilder);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
         verify(httpServletResponse).sendRedirect(captor.capture());
@@ -689,27 +713,28 @@ public class TOTPAuthenticatorTest {
             throws AuthenticationFailedException, UserStoreException, IOException {
 
         String username = "admin";
-        mockStatic(IdentityUtil.class);
-        when(IdentityUtil.getPrimaryDomainName()).thenReturn(USER_STORE_DOMAIN);
+        staticIdentityUtil.when(IdentityUtil::getPrimaryDomainName).thenReturn(USER_STORE_DOMAIN);
         AuthenticatedUser authenticatedUser =
                 AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
         authenticatedUser.setFederatedUser(false);
         authenticatedUser.setUserName(username);
+        // Ensure user id is available for the authenticated user to avoid UserIdNotFoundException
+        authenticatedUser.setUserId("dummyUserId");
         context.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
         context.setProperty("username", username);
         context.setProperty("authenticatedUser", authenticatedUser);
-        when(TOTPUtil.getAuthenticatedUser(context)).thenReturn(authenticatedUser);
-        when(TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(context)).thenReturn(authenticatedUser);
+        staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
         when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
         when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
-        when(IdentityHelperUtil.checkSecondStepEnableByAdmin(context)).thenReturn(true);
-        when(TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).
+        staticIdentityHelperUtil.when(() -> IdentityHelperUtil.checkSecondStepEnableByAdmin(context)).thenReturn(true);
+        staticTOTPUtil.when(() -> TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
-        when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
+        staticTOTPUtil.when(() -> TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
-        when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any())).thenReturn(true);
-        when(TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
-        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any())).thenReturn(true);
+        staticTOTPUtil.when(() -> TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
+        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance).thenReturn(fileBasedConfigurationBuilder);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
     }
@@ -728,7 +753,7 @@ public class TOTPAuthenticatorTest {
             "\"true\" within the runtime parameters")
     public void testIsEnrollmentAllowedInLoginFlowWithRuntimeParams(String isEnrolmentAllowedInRuntimeParams){
 
-        when(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any())).thenCallRealMethod();
+        staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any())).thenCallRealMethod();
         when(mockedRuntimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW)).thenReturn(isEnrolmentAllowedInRuntimeParams);
 
         if (isEnrolmentAllowedInRuntimeParams != null) {
@@ -739,11 +764,6 @@ public class TOTPAuthenticatorTest {
         }
     }
 
-    @ObjectFactory
-    public IObjectFactory getObjectFactory() {
-
-        return new PowerMockObjectFactory();
-    }
 
     @Test
     public void testIsAPIBasedAuthenticationSupported() {

@@ -18,21 +18,18 @@
 package org.wso2.carbon.identity.application.authenticator.totp.services;
 
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.testng.PowerMockObjectFactory;
 import org.testng.Assert;
-import org.testng.IObjectFactory;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.ObjectFactory;
 import org.testng.annotations.Test;
 import org.wso2.carbon.base.CarbonBaseConstants;
 import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPTokenGenerator;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
-import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorCredentials;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.core.util.IdentityConfigParser;
 import org.wso2.carbon.user.api.AuthorizationManager;
@@ -52,11 +49,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
-@PrepareForTest({TOTPUtil.class, TOTPTokenGenerator.class, MultitenantUtils.class, TOTPAuthenticatorCredentials.class,
-        IdentityConfigParser.class, CarbonContext.class})
-@PowerMockIgnore({"javax.crypto.*","org.mockito.*",})
 public class TOTPAdminServiceTest {
 
     @Mock
@@ -65,17 +58,32 @@ public class TOTPAdminServiceTest {
     @Mock
     private UserRealm mockUserRealm;
 
+    private MockedStatic<TOTPUtil> staticTOTPUtil;
+    private MockedStatic<TOTPTokenGenerator> staticTOTPTokenGenerator;
+    private MockedStatic<MultitenantUtils> staticMultitenantUtils;
+    private MockedStatic<IdentityConfigParser> staticIdentityConfigParser;
+    private MockedStatic<CarbonContext> staticCarbonContext;
+
     @BeforeMethod
     public void setUp() {
 
         prepareCarbonHome();
 
         MockitoAnnotations.openMocks(this);
-        mockStatic(TOTPUtil.class);
-        mockStatic(TOTPTokenGenerator.class);
-        mockStatic(MultitenantUtils.class);
-        mockStatic(IdentityConfigParser.class);
-        mockStatic(CarbonContext.class);
+        staticTOTPUtil = Mockito.mockStatic(TOTPUtil.class);
+        staticTOTPTokenGenerator = Mockito.mockStatic(TOTPTokenGenerator.class);
+        staticMultitenantUtils = Mockito.mockStatic(MultitenantUtils.class);
+        staticIdentityConfigParser = Mockito.mockStatic(IdentityConfigParser.class);
+        staticCarbonContext = Mockito.mockStatic(CarbonContext.class);
+    }
+
+    @AfterMethod
+    public void tearDown() {
+        if (staticCarbonContext != null) staticCarbonContext.close();
+        if (staticIdentityConfigParser != null) staticIdentityConfigParser.close();
+        if (staticMultitenantUtils != null) staticMultitenantUtils.close();
+        if (staticTOTPTokenGenerator != null) staticTOTPTokenGenerator.close();
+        if (staticTOTPUtil != null) staticTOTPUtil.close();
     }
 
     @Test(description = "test ValidateTOTP() method for invalid verification code.")
@@ -147,10 +155,5 @@ public class TOTPAdminServiceTest {
         System.setProperty("carbon.protocol", "https");
         System.setProperty("carbon.host", "localhost");
         System.setProperty("carbon.management.port", "9443");
-    }
-
-    @ObjectFactory
-    public IObjectFactory getObjectFactory() {
-        return new PowerMockObjectFactory();
     }
 }
