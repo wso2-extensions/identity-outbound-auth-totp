@@ -19,13 +19,12 @@
 package org.wso2.carbon.identity.application.authenticator.totp;
 
 import org.mockito.Mock;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.testng.PowerMockObjectFactory;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.testng.Assert;
-import org.testng.IObjectFactory;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.ObjectFactory;
 import org.testng.annotations.Test;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
@@ -41,11 +40,8 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
-import static org.powermock.api.mockito.PowerMockito.when;
+import static org.mockito.Mockito.when;
 
-@PrepareForTest({TOTPUtil.class})
-@PowerMockIgnore({"org.mockito.*","org.powermock.api.mockito.invocation.*"})
 public class TOTPKeyGeneratorTest {
 
     @Mock
@@ -57,17 +53,25 @@ public class TOTPKeyGeneratorTest {
     @Mock
     AuthenticationContext authenticationContext;
 
+    private MockedStatic<TOTPUtil> staticTOTPUtil;
+
     @BeforeMethod
     public void setUp() {
-        mockStatic(TOTPUtil.class);
+        MockitoAnnotations.openMocks(this);
+        staticTOTPUtil = Mockito.mockStatic(TOTPUtil.class);
+    }
+
+    @AfterMethod
+    public void tearDown() {
+        if (staticTOTPUtil != null) staticTOTPUtil.close();
     }
 
     @Test
     public void testGenerateClaims() throws UserStoreException, TOTPException, AuthenticationFailedException {
         Map<String, String> claims = new HashMap<>();
         String username = "admin";
-        when(TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
-        when(TOTPUtil.getTOTPIssuerDisplayName(anyString(), any())).thenReturn("carbon.super");
+        staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
+        staticTOTPUtil.when(() -> TOTPUtil.getTOTPIssuerDisplayName(anyString(), any())).thenReturn("carbon.super");
         claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "AnySecretKey");
         when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
         when(userStoreManager.getUserClaimValues(MultitenantUtils.getTenantAwareUsername(username), new String[] {
@@ -88,7 +92,7 @@ public class TOTPKeyGeneratorTest {
         String qrCodeUrl = "http://wso2.org/claims/identity/" +
                 "qrcodeurl=b3RwYXV0aDovL3RvdHAvY2FyYm9uLnN1cGVyOmFkbWluP3NlY3JldD1udWxsJmlzc3Vlcj1jYXJib24uc3VwZXI=";
         String username = "admin";
-        when(TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
+        staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
         claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, qrCodeUrl);
         when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
         Assert.assertEquals(TOTPKeyGenerator.addTOTPClaimsAndRetrievingQRCodeURL(claims, username,
@@ -97,13 +101,8 @@ public class TOTPKeyGeneratorTest {
 
     @Test
     public void testResetLocal() throws Exception {
-        when(TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
+        staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
         when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
         Assert.assertTrue(TOTPKeyGenerator.resetLocal("admin"));
-    }
-
-    @ObjectFactory
-    public IObjectFactory getObjectFactory() {
-        return new PowerMockObjectFactory();
     }
 }

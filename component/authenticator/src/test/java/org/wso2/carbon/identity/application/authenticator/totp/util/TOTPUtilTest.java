@@ -21,17 +21,13 @@ package org.wso2.carbon.identity.application.authenticator.totp.util;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.testng.PowerMockObjectFactory;
-import org.powermock.reflect.Whitebox;
+import org.mockito.MockitoAnnotations;
 import org.testng.Assert;
-import org.testng.IObjectFactory;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
-import org.testng.annotations.ObjectFactory;
 import org.testng.annotations.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
@@ -63,6 +59,7 @@ import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -76,19 +73,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.MockitoAnnotations.initMocks;
-import static org.powermock.api.mockito.PowerMockito.doNothing;
-import static org.powermock.api.mockito.PowerMockito.mock;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
-import static org.powermock.api.mockito.PowerMockito.spy;
-import static org.powermock.api.mockito.PowerMockito.when;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 
-@PrepareForTest({FileBasedConfigurationBuilder.class, IdentityHelperUtil.class, ConfigurationFacade.class,
-        IdentityTenantUtil.class, ServiceURLBuilder.class, TOTPDataHolder.class, PrivilegedCarbonContext.class,
-        DocumentBuilderFactory.class, OrganizationManagementUtil.class})
 @WithCarbonHome
-@PowerMockIgnore({"org.mockito.*", "org.powermock.api.mockito.invocation.*"})
 public class TOTPUtilTest {
 
     private TOTPUtil totpUtil;
@@ -111,20 +101,52 @@ public class TOTPUtilTest {
     @Mock
     private TOTPDataHolder dataHolder;
 
+    // Static mocks
+    private MockedStatic<FileBasedConfigurationBuilder> staticFileBasedConfigurationBuilder;
+    private MockedStatic<IdentityHelperUtil> staticIdentityHelperUtil;
+    private MockedStatic<ConfigurationFacade> staticConfigurationFacade;
+    private MockedStatic<IdentityTenantUtil> staticIdentityTenantUtil;
+    private MockedStatic<TOTPDataHolder> staticTOTPDataHolder;
+    private MockedStatic<PrivilegedCarbonContext> staticPrivilegedCarbonContext;
+    private MockedStatic<DocumentBuilderFactory> staticDocumentBuilderFactory;
+    private MockedStatic<OrganizationManagementUtil> staticOrganizationManagementUtil;
+    private MockedStatic<ServiceURLBuilder> staticServiceURLBuilder;
+
     @BeforeMethod
     public void setUp() {
 
-        totpUtil = spy(new TOTPUtil());
+        totpUtil = Mockito.spy(new TOTPUtil());
 
-        initMocks(this);
-        mockStatic(FileBasedConfigurationBuilder.class);
-        mockStatic(IdentityHelperUtil.class);
-        mockStatic(ConfigurationFacade.class);
-        mockStatic(IdentityTenantUtil.class);
-        mockStatic(TOTPDataHolder.class);
-        mockStatic(PrivilegedCarbonContext.class);
-        mockStatic(DocumentBuilderFactory.class);
-        mockStatic(OrganizationManagementUtil.class);
+        MockitoAnnotations.openMocks(this);
+        staticFileBasedConfigurationBuilder = Mockito.mockStatic(FileBasedConfigurationBuilder.class);
+        staticIdentityHelperUtil = Mockito.mockStatic(IdentityHelperUtil.class);
+        staticConfigurationFacade = Mockito.mockStatic(ConfigurationFacade.class);
+        staticIdentityTenantUtil = Mockito.mockStatic(IdentityTenantUtil.class);
+        staticTOTPDataHolder = Mockito.mockStatic(TOTPDataHolder.class);
+        staticPrivilegedCarbonContext = Mockito.mockStatic(PrivilegedCarbonContext.class);
+        staticDocumentBuilderFactory = Mockito.mockStatic(DocumentBuilderFactory.class);
+        staticOrganizationManagementUtil = Mockito.mockStatic(OrganizationManagementUtil.class);
+        staticServiceURLBuilder = Mockito.mockStatic(ServiceURLBuilder.class);
+    }
+
+    @AfterMethod
+    public void tearDown() {
+        if (staticServiceURLBuilder != null) staticServiceURLBuilder.close();
+        if (staticOrganizationManagementUtil != null) staticOrganizationManagementUtil.close();
+        if (staticDocumentBuilderFactory != null) staticDocumentBuilderFactory.close();
+        if (staticPrivilegedCarbonContext != null) staticPrivilegedCarbonContext.close();
+        if (staticTOTPDataHolder != null) staticTOTPDataHolder.close();
+        if (staticIdentityTenantUtil != null) staticIdentityTenantUtil.close();
+        if (staticConfigurationFacade != null) staticConfigurationFacade.close();
+        if (staticIdentityHelperUtil != null) staticIdentityHelperUtil.close();
+        if (staticFileBasedConfigurationBuilder != null) staticFileBasedConfigurationBuilder.close();
+    }
+
+    // Utility to invoke private methods via reflection (replaces PowerMock Whitebox)
+    private static Object invokePrivate(Object target, String methodName, Class<?>[] paramTypes, Object... args) throws Exception {
+        Method m = target.getClass().getDeclaredMethod(methodName, paramTypes);
+        m.setAccessible(true);
+        return m.invoke(target, args);
     }
 
     @Test
@@ -134,16 +156,16 @@ public class TOTPUtilTest {
         Map<String, String> parameters = new HashMap<>();
         parameters.put(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ENDPOINT_URL,
                 "totpauthenticationendpoint/custom/totp.jsp");
-        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance).thenReturn(fileBasedConfigurationBuilder);
 
         //test with empty parameters map.
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
-        Assert.assertNull(Whitebox.invokeMethod(totpUtil, "getTOTPParameters"));
+        Assert.assertNull(invokePrivate(totpUtil, "getTOTPParameters", new Class<?>[]{}));
 
         //test with non-empty parameters map.
         authenticatorConfig.setParameterMap(parameters);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
-        assertEquals(Whitebox.invokeMethod(totpUtil, "getTOTPParameters"), parameters);
+        assertEquals(invokePrivate(totpUtil, "getTOTPParameters", new Class<?>[]{}), parameters);
 
     }
 
@@ -170,7 +192,7 @@ public class TOTPUtilTest {
                 IdentityHelperConstants.GET_PROPERTY_FROM_REGISTRY);
         parameters.put(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ENDPOINT_URL,
                 "totpauthenticationendpoint/custom/totp.jsp");
-        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance).thenReturn(fileBasedConfigurationBuilder);
         authenticatorConfig.setParameterMap(parameters);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
 
@@ -202,7 +224,7 @@ public class TOTPUtilTest {
         parameters.put(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ERROR_PAGE_URL,
                 "totpauthenticationendpoint/custom/error.jsp");
         authenticatorConfig.setParameterMap(parameters);
-        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance).thenReturn(fileBasedConfigurationBuilder);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
 
         assertEquals(TOTPUtil.getErrorPageFromXMLFile(authenticationContext,
@@ -217,11 +239,11 @@ public class TOTPUtilTest {
         authenticationContext.setProperty(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE_URL,
                 TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
 
-        when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
+        staticConfigurationFacade.when(ConfigurationFacade::getInstance).thenReturn(configurationFacade);
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(TOTPAuthenticatorConstants.LOGIN_PAGE);
 
-        assertEquals(Whitebox.invokeMethod(totpUtil, "getEnableTOTPPage",
-                authenticationContext), TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
+        assertEquals(invokePrivate(totpUtil, "getEnableTOTPPage",
+                new Class<?>[]{AuthenticationContext.class}, authenticationContext), TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
     }
 
     @Test(description = "Test case for getEnableTOTPPageFromXMLFile(): getEnableTOTPPage from registry file.")
@@ -229,11 +251,11 @@ public class TOTPUtilTest {
 
         AuthenticationContext authenticationContext = new AuthenticationContext();
         authenticationContext.setTenantDomain("wso2.org");
-        when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
+        staticConfigurationFacade.when(ConfigurationFacade::getInstance).thenReturn(configurationFacade);
         when(configurationFacade.getAuthenticationEndpointURL()).
                 thenReturn(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
-        assertEquals(Whitebox.invokeMethod(totpUtil, "getEnableTOTPPage",
-                authenticationContext), TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
+        assertEquals(invokePrivate(totpUtil, "getEnableTOTPPage",
+                new Class<?>[]{AuthenticationContext.class}, authenticationContext), TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
     }
 
     @Test(description = "TOTPAuthenticator:getEnableTOTPPage() test for get the enableTOTPPage url from authentication.xml file.")
@@ -249,12 +271,12 @@ public class TOTPUtilTest {
                 TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
         authenticatorConfig.setParameterMap(parameters);
 
-        when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
+        staticConfigurationFacade.when(ConfigurationFacade::getInstance).thenReturn(configurationFacade);
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(TOTPAuthenticatorConstants.LOGIN_PAGE);
-        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance).thenReturn(fileBasedConfigurationBuilder);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
-        assertEquals(Whitebox.invokeMethod(totpUtil, "getEnableTOTPPage",
-                authenticationContext), TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
+        assertEquals(invokePrivate(totpUtil, "getEnableTOTPPage",
+                new Class<?>[]{AuthenticationContext.class}, authenticationContext), TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
     }
 
     @Test(description = "Test case for getTimeStepSize with super tenant use case")
@@ -275,7 +297,7 @@ public class TOTPUtilTest {
                 TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
         Map<String, String> parameters = new HashMap<>();
         parameters.put(TOTPAuthenticatorConstants.TIME_STEP_SIZE, "60");
-        when(IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
+        staticIdentityHelperUtil.when(() -> IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
         assertEquals(TOTPUtil.getTimeStepSize(authenticationContext), 60);
     }
 
@@ -289,7 +311,7 @@ public class TOTPUtilTest {
                 TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
         Map<String, String> parameters = new HashMap<>();
         parameters.put(TOTPAuthenticatorConstants.TIME_STEP_SIZE, "60");
-        when(IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
+        staticIdentityHelperUtil.when(() -> IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
         assertEquals(TOTPUtil.getTimeStepSize(authenticationContext), 60);
     }
 
@@ -312,7 +334,7 @@ public class TOTPUtilTest {
                 TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
         Map<String, String> parameters = new HashMap<>();
         parameters.put(TOTPAuthenticatorConstants.WINDOW_SIZE, "5");
-        when(IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
+        staticIdentityHelperUtil.when(() -> IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
         assertEquals(TOTPUtil.getWindowSize(authenticationContext), 5);
     }
 
@@ -326,7 +348,7 @@ public class TOTPUtilTest {
                 TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
         Map<String, String> parameters = new HashMap<>();
         parameters.put(TOTPAuthenticatorConstants.WINDOW_SIZE, "5");
-        when(IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
+        staticIdentityHelperUtil.when(() -> IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
         assertEquals(TOTPUtil.getWindowSize(authenticationContext), 5);
     }
 
@@ -346,10 +368,10 @@ public class TOTPUtilTest {
         parameters.put(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE_URL,
                 TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
         authenticatorConfig.setParameterMap(parameters);
-        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance).thenReturn(fileBasedConfigurationBuilder);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
-        when(IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
-        when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
+        staticIdentityHelperUtil.when(() -> IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
+        staticConfigurationFacade.when(ConfigurationFacade::getInstance).thenReturn(configurationFacade);
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(TOTPAuthenticatorConstants.LOGIN_PAGE);
         TOTPUtil.redirectToEnableTOTPReqPage(httpServletResponse, authenticationContext,
                 TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
@@ -366,7 +388,7 @@ public class TOTPUtilTest {
         authenticationContext.setProperty(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "false");
         Map<String, String> parameters = new HashMap<>();
         parameters.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "true");
-        when(IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
+        staticIdentityHelperUtil.when(() -> IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
         TOTPUtil.redirectToEnableTOTPReqPage(httpServletResponse, authenticationContext,
                 TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
     }
@@ -385,10 +407,10 @@ public class TOTPUtilTest {
         parameters.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "true");
         parameters.put(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE_URL,
                 TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE);
-        when(IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
+        staticIdentityHelperUtil.when(() -> IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
         AuthenticatorConfig authenticatorConfig = new AuthenticatorConfig();
         authenticatorConfig.setParameterMap(parameters);
-        when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
+        staticConfigurationFacade.when(ConfigurationFacade::getInstance).thenReturn(configurationFacade);
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(TOTPAuthenticatorConstants.LOGIN_PAGE);
         doNothing().when(httpServletResponse).sendRedirect(anyString());
         TOTPUtil.redirectToEnableTOTPReqPage(httpServletResponse, authenticationContext,
@@ -402,7 +424,7 @@ public class TOTPUtilTest {
         Map<String, String> parameters = new HashMap<>();
         parameters.put(TOTPAuthenticatorConstants.ENCODING_METHOD,
                 TOTPAuthenticatorConstants.BASE64);
-        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance).thenReturn(fileBasedConfigurationBuilder);
         authenticatorConfig.setParameterMap(parameters);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
         assertEquals(TOTPUtil.getEncodingMethod(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN, context),
@@ -426,7 +448,7 @@ public class TOTPUtilTest {
         Map<String, String> parameters = new HashMap<>();
         parameters.put(TOTPAuthenticatorConstants.ENCODING_METHOD,
                 TOTPAuthenticatorConstants.BASE32);
-        when(IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
+        staticIdentityHelperUtil.when(() -> IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
         authenticationContext.setProperty(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME,
                 TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
         authenticationContext.setProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG,
@@ -442,7 +464,7 @@ public class TOTPUtilTest {
         Map<String, String> parameters = new HashMap<>();
         parameters.put(TOTPAuthenticatorConstants.ENCODING_METHOD,
                 TOTPAuthenticatorConstants.BASE64);
-        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance).thenReturn(fileBasedConfigurationBuilder);
         authenticatorConfig.setParameterMap(parameters);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
         assertEquals(TOTPUtil.getEncodingMethod(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN),
@@ -489,11 +511,10 @@ public class TOTPUtilTest {
     public void testGetTOTPEnablePage(String tenantDomain, String urlFromConfig,
                                       String expectedURL) throws Exception {
 
-        mockStatic(IdentityTenantUtil.class);
-        when(IdentityTenantUtil.isTenantQualifiedUrlsEnabled()).thenReturn(true);
-        when(IdentityTenantUtil.getTenantDomainFromContext()).thenReturn(tenantDomain);
+        staticIdentityTenantUtil.when(IdentityTenantUtil::isTenantQualifiedUrlsEnabled).thenReturn(true);
+        staticIdentityTenantUtil.when(IdentityTenantUtil::getTenantDomainFromContext).thenReturn(tenantDomain);
 
-        when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
+        staticConfigurationFacade.when(ConfigurationFacade::getInstance).thenReturn(configurationFacade);
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(urlFromConfig);
         mockServiceURLBuilder();
 
@@ -523,11 +544,10 @@ public class TOTPUtilTest {
     public void testGetTOTPLoginPage(String tenantDomain, String urlFromConfig,
                                      String expectedURL) throws Exception {
 
-        mockStatic(IdentityTenantUtil.class);
-        when(IdentityTenantUtil.isTenantQualifiedUrlsEnabled()).thenReturn(true);
-        when(IdentityTenantUtil.getTenantDomainFromContext()).thenReturn(tenantDomain);
+        staticIdentityTenantUtil.when(IdentityTenantUtil::isTenantQualifiedUrlsEnabled).thenReturn(true);
+        staticIdentityTenantUtil.when(IdentityTenantUtil::getTenantDomainFromContext).thenReturn(tenantDomain);
 
-        when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
+        staticConfigurationFacade.when(ConfigurationFacade::getInstance).thenReturn(configurationFacade);
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(urlFromConfig);
         mockServiceURLBuilder();
 
@@ -557,11 +577,10 @@ public class TOTPUtilTest {
     public void testGetTOTPErrorPage(String tenantDomain, String urlFromConfig,
                                      String expectedURL) throws Exception {
 
-        mockStatic(IdentityTenantUtil.class);
-        when(IdentityTenantUtil.isTenantQualifiedUrlsEnabled()).thenReturn(true);
-        when(IdentityTenantUtil.getTenantDomainFromContext()).thenReturn(tenantDomain);
+        staticIdentityTenantUtil.when(IdentityTenantUtil::isTenantQualifiedUrlsEnabled).thenReturn(true);
+        staticIdentityTenantUtil.when(IdentityTenantUtil::getTenantDomainFromContext).thenReturn(tenantDomain);
 
-        when(ConfigurationFacade.getInstance()).thenReturn(configurationFacade);
+        staticConfigurationFacade.when(ConfigurationFacade::getInstance).thenReturn(configurationFacade);
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(urlFromConfig);
         mockServiceURLBuilder();
 
@@ -611,21 +630,14 @@ public class TOTPUtilTest {
                 if (!MultitenantConstants.SUPER_TENANT_DOMAIN_NAME.equals(tenantFromContext)) {
                     path = "/t/" + tenantFromContext + path;
                 }
-                PowerMockito.when(serviceURL.getAbsolutePublicURL()).thenReturn("https://localhost:9443" + path);
-                PowerMockito.when(serviceURL.getRelativePublicURL()).thenReturn(path);
-                PowerMockito.when(serviceURL.getRelativeInternalURL()).thenReturn(path);
+                when(serviceURL.getAbsolutePublicURL()).thenReturn("https://localhost:9443" + path);
+                when(serviceURL.getRelativePublicURL()).thenReturn(path);
+                when(serviceURL.getRelativeInternalURL()).thenReturn(path);
                 return serviceURL;
             }
         };
 
-        mockStatic(ServiceURLBuilder.class);
-        PowerMockito.when(ServiceURLBuilder.create()).thenReturn(builder);
-    }
-
-    @ObjectFactory
-    public IObjectFactory getObjectFactory() {
-
-        return new PowerMockObjectFactory();
+        staticServiceURLBuilder.when(ServiceURLBuilder::create).thenReturn(builder);
     }
 
     @Test
@@ -636,7 +648,7 @@ public class TOTPUtilTest {
         mockParameters.put(TOTPAuthenticatorConstants.TOTP_COMMON_ISSUER, "true");
         mockParameters.put(TOTPAuthenticatorConstants.TOTP_ISSUER, "IssuerFromParams");
 
-        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance).thenReturn(fileBasedConfigurationBuilder);
         Mockito.when(fileBasedConfigurationBuilder.getAuthenticatorBean(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)).thenReturn(mockAuthConfig);
         Mockito.when(mockAuthConfig.getParameterMap()).thenReturn(mockParameters);
 
@@ -648,7 +660,7 @@ public class TOTPUtilTest {
     public void testGetIssuerFromBranding_BrandingEnabled() throws TOTPException, BrandingPreferenceMgtException {
 
         AuthenticatorConfig mockAuthConfig = Mockito.mock(AuthenticatorConfig.class);
-        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance).thenReturn(fileBasedConfigurationBuilder);
         Mockito.when(fileBasedConfigurationBuilder.getAuthenticatorBean(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME))
                 .thenReturn(mockAuthConfig);
         Mockito.when(mockAuthConfig.getParameterMap()).thenReturn(new HashMap<>());
@@ -661,7 +673,7 @@ public class TOTPUtilTest {
         preferenceNode.putObject("organizationDetails").put("displayName", "BrandedIssuer");
         brandingPreference.setPreference(preferenceNode);
 
-        Mockito.when(TOTPDataHolder.getInstance()).thenReturn(dataHolder);
+        staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(dataHolder);
         Mockito.when(dataHolder.getBrandingPreferenceManager()).thenReturn(mockBrandingManager);
         when(mockBrandingManager.resolveBrandingPreference(anyString(), anyString(), anyString(), anyBoolean()))
                 .thenReturn(brandingPreference);
@@ -674,7 +686,7 @@ public class TOTPUtilTest {
     public void testGetIssuerFromBranding_BrandingDisabled() throws Exception {
 
         AuthenticatorConfig mockAuthConfig = Mockito.mock(AuthenticatorConfig.class);
-        Mockito.when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance).thenReturn(fileBasedConfigurationBuilder);
         Mockito.when(fileBasedConfigurationBuilder.getAuthenticatorBean(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME))
                 .thenReturn(mockAuthConfig);
         Mockito.when(mockAuthConfig.getParameterMap()).thenReturn(new HashMap<>());
@@ -686,23 +698,23 @@ public class TOTPUtilTest {
         preferenceNode.putObject("configs").put("isBrandingEnabled", false);
         brandingPreference.setPreference(preferenceNode);
 
-        Mockito.when(TOTPDataHolder.getInstance()).thenReturn(dataHolder);
+        staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(dataHolder);
         Mockito.when(dataHolder.getBrandingPreferenceManager()).thenReturn(mockBrandingManager);
         PrivilegedCarbonContext privilegedCarbonContext = Mockito.mock(PrivilegedCarbonContext.class);
         Registry mockRegistry = Mockito.mock(Registry.class);
         Resource mockResource = Mockito.mock(Resource.class);
 
-        Mockito.when(PrivilegedCarbonContext.getThreadLocalCarbonContext()).thenReturn(privilegedCarbonContext);
+        staticPrivilegedCarbonContext.when(PrivilegedCarbonContext::getThreadLocalCarbonContext).thenReturn(privilegedCarbonContext);
         when(mockBrandingManager.resolveBrandingPreference(anyString(), anyString(), anyString(), anyBoolean()))
                 .thenReturn(brandingPreference);
-        doNothing().when(privilegedCarbonContext, "setTenantId", anyInt());
-        doNothing().when(PrivilegedCarbonContext.class, "endTenantFlow");
+        doNothing().when(privilegedCarbonContext).setTenantId(anyInt());
+        staticPrivilegedCarbonContext.when(PrivilegedCarbonContext::endTenantFlow).thenAnswer(inv -> null);
         when(privilegedCarbonContext.getRegistry(RegistryType.SYSTEM_GOVERNANCE)).thenReturn(mockRegistry);
         when(mockRegistry.get(anyString())).thenReturn(mockResource);
         when(mockResource.getContent()).thenReturn(new byte[0]);
 
         DocumentBuilderFactory mockedDocumentBuilderFactory = Mockito.mock(DocumentBuilderFactory.class);
-        when(DocumentBuilderFactory.newInstance()).thenReturn(mockedDocumentBuilderFactory);
+        staticDocumentBuilderFactory.when(DocumentBuilderFactory::newInstance).thenReturn(mockedDocumentBuilderFactory);
         DocumentBuilder mockedDocumentBuilder = Mockito.mock(DocumentBuilder.class);
         when(mockedDocumentBuilderFactory.newDocumentBuilder()).thenReturn(mockedDocumentBuilder);
         Document mockedDocument = Mockito.mock(Document.class);
@@ -712,11 +724,11 @@ public class TOTPUtilTest {
         Mockito.when(emptyNodeList.getLength()).thenReturn(0);
         when(mockedDocument.getElementsByTagName("AuthenticatorConfig")).thenReturn(emptyNodeList);
 
-        Mockito.when(OrganizationManagementUtil.isOrganization(anyString())).thenReturn(false);
+        staticOrganizationManagementUtil.when(() -> OrganizationManagementUtil.isOrganization("example.com")).thenReturn(false);
         String result = TOTPUtil.getTOTPIssuerDisplayName("example.com", null);
         assertEquals(result, "example.com");
 
-        Mockito.when(OrganizationManagementUtil.isOrganization(anyString())).thenReturn(true);
+        staticOrganizationManagementUtil.when(() -> OrganizationManagementUtil.isOrganization("example.com")).thenReturn(true);
         OrganizationManager mockedOrganizationManager = Mockito.mock(OrganizationManager.class);
         Mockito.when(dataHolder.getOrganizationManager()).thenReturn(mockedOrganizationManager);
         Mockito.when(mockedOrganizationManager.resolveOrganizationId(anyString())).thenReturn("123");
@@ -724,52 +736,4 @@ public class TOTPUtilTest {
         result = TOTPUtil.getTOTPIssuerDisplayName("example.com", null);
         assertEquals(result, "org1");
     }
-
-   /* @Test(description = "Test case for getProcessedClaimValue()", dataProvider = "processedClaimValueTestDataProvider")
-    public void testGetProcessedClaimValue(String claimURI, Map<String, String> claimProperties, String claimValue,
-                                           String expectedClaimValue) throws Exception {
-
-        1st approach
-        spy(TOTPUtil.class);
-        given(TOTPUtil.getClaimProperties("testDomain", claimURI)).willReturn(claimProperties);
-
-        2nd approach
-        doReturn(claimProperties).when(totpUtil).getClaimProperties("testDomain", claimURI);
-        when(totpUtil.getClaimProperties("testDomain", claimURI)).thenReturn(claimProperties);
-
-        3rd approach
-        mockStatic(TOTPUtil.class);
-        TOTPUtil totpUtilSpy = spy(new TOTPUtil());
-        when(TOTPUtil.getClaimProperties("testDomain", "claimURI")).thenReturn(claimProperties);
-        String processedClaimValue = totpUtilSpy.getProcessedClaimValue(claimURI, claimValue, "testDomain");
-
-        4th approach
-        TOTPUtil totpUtilMocked = Mockito.mock(TOTPUtil.class, Mockito.CALLS_REAL_METHODS);
-
-        String processedClaimValue = totpUtil.getProcessedClaimValue(claimURI, claimValue, "testDomain");
-
-        // Verify the result
-        assertEquals(expectedClaimValue, processedClaimValue);
-    }
-
-    @DataProvider(name = "processedClaimValueTestDataProvider")
-    public static Object[][] getProcessedClaimValueTestData() {
-
-        HashMap<String, String> claimProperties_1 = new HashMap<>();
-        claimProperties_1.put("EnableEncryption", "true");
-
-        HashMap<String, String> claimProperties_2 = new HashMap<>();
-        claimProperties_2.put("EnableEncryption", "false");
-
-        HashMap<String, String> claimProperties_3 = new HashMap<>();
-
-
-        return new Object[][]{
-                {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, claimProperties_1, "AER2BRI0LK4XCSC1", "AER2BRI0LK4XCSC1"},
-                {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, claimProperties_1, "", ""},
-                {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, claimProperties_2, "AER2BRI0LK4XCSC1", "AER2BRI0LK4XCSC1"},
-                {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, claimProperties_2, "", ""},
-                {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, claimProperties_3, "", ""},
-        };
-    }*/
 }
