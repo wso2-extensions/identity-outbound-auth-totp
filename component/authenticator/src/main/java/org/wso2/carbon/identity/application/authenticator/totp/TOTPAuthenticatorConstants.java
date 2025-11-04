@@ -88,7 +88,8 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String PROPERTY_ACCOUNT_LOCK_TIME = "account.lock.handler.Time";
 	public static final String ERROR_CODE = "errorCode";
 	public static final String LOCKED_REASON = "lockedReason";
-	public static final String UNLOCK_TIME = "unlockTime";
+    public static final String REMAINING_ATTEMPTS = "remainingAttempts";
+    public static final String UNLOCK_TIME = "unlockTime";
 	public static final String CONF_SHOW_AUTH_FAILURE_REASON = "showAuthFailureReason";
 	public static final String CONF_SHOW_AUTH_FAILURE_REASON_ON_LOGIN_PAGE = "showAuthFailureReasonOnLoginPage";
 	public static final String ADMIN_INITIATED = "AdminInitiated";

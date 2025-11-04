@@ -194,10 +194,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 							reason = errorCodeWithReason[1];
 						}
 					}
-					// Only adds error code if it is locked error code.
+
+                    // Adds error information based on the error code type.
 					if (UserCoreConstants.ErrorCode.USER_IS_LOCKED.equals(errorCode)) {
-						Map<String, String> paramMap = new HashMap<>();
-						paramMap.put(TOTPAuthenticatorConstants.ERROR_CODE, errorCode);
+                        Map<String, String> paramMap = new HashMap<>();
+                        paramMap.put(TOTPAuthenticatorConstants.ERROR_CODE, errorCode);
 						if (StringUtils.isNotBlank(reason)) {
 							paramMap.put(TOTPAuthenticatorConstants.LOCKED_REASON, reason);
 						}
@@ -208,9 +209,15 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 							paramMap.put(TOTPAuthenticatorConstants.UNLOCK_TIME,
 									String.valueOf(Math.round((double) timeToUnlock / 1000 / 60)));
 						}
-						errorParam = buildErrorParamString(paramMap);
-					}
-				}
+                        errorParam = buildErrorParamString(paramMap);
+					} else if (UserCoreConstants.ErrorCode.INVALID_CREDENTIAL.equals(errorCode)) {
+                        Map<String, String> paramMap = new HashMap<>();
+                        int remainingAttempts = Math.max(0, errorContext.getMaximumLoginAttempts() -
+                                errorContext.getFailedLoginAttempts());
+                        paramMap.put(TOTPAuthenticatorConstants.REMAINING_ATTEMPTS, String.valueOf(remainingAttempts));
+                        errorParam = buildErrorParamString(paramMap);
+                    }
+                }
 			}
 
 			boolean isTOTPEnabled = isTOTPEnabledForLocalUser(username);
@@ -739,6 +746,10 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 			updatedClaims
 					.put(TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM, String.valueOf(currentAttempts + 1));
 			setUserClaimValues(authenticatedUser, username, updatedClaims);
+            IdentityErrorMsgContext customErrorMessageContext =
+                    new IdentityErrorMsgContext(UserCoreConstants.ErrorCode.INVALID_CREDENTIAL, currentAttempts + 1,
+                            maxAttempts);
+            IdentityUtil.setIdentityErrorMsg(customErrorMessageContext);
 		}
 	}
 

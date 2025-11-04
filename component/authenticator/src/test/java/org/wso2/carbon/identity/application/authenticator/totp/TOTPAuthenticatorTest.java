@@ -521,4 +521,60 @@ public class TOTPAuthenticatorTest {
         PowerMockito.when(ServiceURLBuilder.create()).thenReturn(builder);
     }
 
+    @Test(description = "Test case for initiateAuthenticationRequest() with INVALID_CREDENTIAL error code showing remaining attempts.")
+    public void testInitiateAuthenticationRequestWithInvalidCredentialError() throws Exception {
+        
+        String username = "admin";
+        mockStatic(IdentityUtil.class);
+        mockServiceURLBuilder();
+        when(IdentityUtil.getPrimaryDomainName()).thenReturn(USER_STORE_DOMAIN);
+        
+        AuthenticatedUser authenticatedUser = AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
+        AuthenticationContext authenticationContext = new AuthenticationContext();
+        authenticationContext.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+        authenticationContext.setProperty("username", username);
+        authenticationContext.setProperty("authenticatedUser", authenticatedUser);
+        authenticationContext.setRetrying(true);
+        
+        // Mock IdentityErrorMsgContext for INVALID_CREDENTIAL error
+        org.wso2.carbon.identity.core.model.IdentityErrorMsgContext errorContext = 
+                mock(org.wso2.carbon.identity.core.model.IdentityErrorMsgContext.class);
+        when(errorContext.getErrorCode()).thenReturn(org.wso2.carbon.user.core.UserCoreConstants.ErrorCode.INVALID_CREDENTIAL);
+        when(errorContext.getMaximumLoginAttempts()).thenReturn(5);
+        when(errorContext.getFailedLoginAttempts()).thenReturn(2);
+        when(IdentityUtil.getIdentityErrorMsg()).thenReturn(errorContext);
+        
+        // Mock TOTP enabled
+        Map<String, String> claims = new HashMap<>();
+        claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "AnySecretKey");
+        when(TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
+        when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
+        when(userStoreManager.getUserClaimValues(username, new String[]
+                { TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL }, null)).thenReturn(claims);
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
+        when(TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).
+                thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
+        when(TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
+                thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
+        when(FileBasedConfigurationBuilder.getInstance()).thenReturn(fileBasedConfigurationBuilder);
+        when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
+        
+        Map<String, String> parameterMap = new HashMap<>();
+        parameterMap.put(TOTPAuthenticatorConstants.CONF_SHOW_AUTH_FAILURE_REASON, "true");
+        parameterMap.put(TOTPAuthenticatorConstants.CONF_SHOW_AUTH_FAILURE_REASON_ON_LOGIN_PAGE, "true");
+        when(authenticatorConfig.getParameterMap()).thenReturn(parameterMap);
+        
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        
+        totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, authenticationContext);
+        
+        // Verify that redirect was called and the URL contains remaining attempts parameter
+        verify(httpServletResponse).sendRedirect(captor.capture());
+        String redirectUrl = captor.getValue();
+        
+        // Verify that the URL contains the remainingAttempts parameter with value 3 (5 max - 2 failed)
+        Assert.assertTrue(redirectUrl.contains("remainingAttempts=3"), 
+                "Redirect URL should contain remainingAttempts parameter with value 3");
+    }
+
 }
