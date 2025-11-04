@@ -210,8 +210,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 									String.valueOf(Math.round((double) timeToUnlock / 1000 / 60)));
 						}
 					} else if (UserCoreConstants.ErrorCode.INVALID_CREDENTIAL.equals(errorCode)) {
-                        int remainingAttempts = errorContext.getMaximumLoginAttempts() -
-                                errorContext.getFailedLoginAttempts();
+                        int remainingAttempts = Math.max(0, errorContext.getMaximumLoginAttempts() -
+                                errorContext.getFailedLoginAttempts());
                         paramMap.put(TOTPAuthenticatorConstants.REMAINING_ATTEMPTS, String.valueOf(remainingAttempts));
                     }
                     errorParam = buildErrorParamString(paramMap);
