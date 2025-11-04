@@ -196,7 +196,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 					}
                     Map<String, String> paramMap = new HashMap<>();
 
-                    // Only adds error code if it is locked error code.
+                    // Adds error information based on the error code type.
 					if (UserCoreConstants.ErrorCode.USER_IS_LOCKED.equals(errorCode)) {
 						paramMap.put(TOTPAuthenticatorConstants.ERROR_CODE, errorCode);
 						if (StringUtils.isNotBlank(reason)) {
