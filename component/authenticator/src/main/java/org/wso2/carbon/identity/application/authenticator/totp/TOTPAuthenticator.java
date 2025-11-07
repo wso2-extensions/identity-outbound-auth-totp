@@ -291,7 +291,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                             reason = errorCodeWithReason[1];
                         }
                     }
-                    // Only adds error code if it is locked error code.
+                    // Adds error information based on the error code type.
                     if (UserCoreConstants.ErrorCode.USER_IS_LOCKED.equals(errorCode)) {
                         // Change auth failure message if the error code is locked.
                         if (context.isRetrying()) {
@@ -316,6 +316,12 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                                         getUserStoreAppendedName(username));
                         AuthenticatorMessage authenticatorMessage = getAuthenticatorMessage(message, messageContext);
                         setAuthenticatorMessageToContext(authenticatorMessage, context);
+                    } else if (UserCoreConstants.ErrorCode.INVALID_CREDENTIAL.equals(errorCode)) {
+                        Map<String, String> paramMap = new HashMap<>();
+                        int remainingAttempts = Math.max(0, errorContext.getMaximumLoginAttempts() -
+                                errorContext.getFailedLoginAttempts());
+                        paramMap.put(TOTPAuthenticatorConstants.REMAINING_ATTEMPTS, String.valueOf(remainingAttempts));
+                        errorParam = buildErrorParamString(paramMap);
                     }
                 }
             }
@@ -1084,6 +1090,10 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             updatedClaims
                     .put(TOTPAuthenticatorConstants.TOTP_FAILED_ATTEMPTS_CLAIM, String.valueOf(currentAttempts + 1));
             setUserClaimValues(authenticatedUser, updatedClaims);
+            IdentityErrorMsgContext customErrorMessageContext =
+                    new IdentityErrorMsgContext(UserCoreConstants.ErrorCode.INVALID_CREDENTIAL, currentAttempts + 1,
+                            maxAttempts);
+            IdentityUtil.setIdentityErrorMsg(customErrorMessageContext);
         }
     }
 
