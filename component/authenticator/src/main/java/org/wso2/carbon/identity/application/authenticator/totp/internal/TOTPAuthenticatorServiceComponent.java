@@ -28,10 +28,12 @@ import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticator;
+import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConfigImpl;
 import org.wso2.carbon.identity.branding.preference.management.core.BrandingPreferenceManager;
 import org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataManagementService;
 import org.wso2.carbon.identity.event.services.IdentityEventService;
 import org.wso2.carbon.identity.governance.IdentityGovernanceService;
+import org.wso2.carbon.identity.governance.common.IdentityConnectorConfig;
 import org.wso2.carbon.identity.handler.event.account.lock.service.AccountLockService;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.idp.mgt.IdpManager;
@@ -59,6 +61,18 @@ public class TOTPAuthenticatorServiceComponent {
 
 		ctxt.getBundleContext()
 		    .registerService(ApplicationAuthenticator.class.getName(), totpAuth, props);
+
+		// Register TOTP Configuration Impl
+		try {
+			TOTPAuthenticatorConfigImpl totpConfigImpl = new TOTPAuthenticatorConfigImpl();
+			ctxt.getBundleContext()
+			    .registerService(IdentityConnectorConfig.class.getName(), totpConfigImpl, new Hashtable<>());
+			if (log.isDebugEnabled()) {
+				log.debug("TOTPAuthenticatorConfigImpl is registered as IdentityConnectorConfig service");
+			}
+		} catch (Exception e) {
+			log.error("Failed to register TOTPAuthenticatorConfigImpl: " + e.getMessage(), e);
+		}
 
 		if (log.isDebugEnabled()) {
 			log.debug("TOTPAuthenticator bundle is activated");
