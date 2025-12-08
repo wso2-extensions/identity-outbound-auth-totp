@@ -8,10 +8,10 @@ import java.util.Properties;
 
 public class TOTPAuthenticatorConfigImpl implements IdentityConnectorConfig {
 
-    private static final String CONNECTOR_NAME = "totp-config";
+    private static final String CONNECTOR_NAME = "totp";
     private static final String CATEGORY = "Multi Factor Authenticators";
     private static final String FRIENDLY_NAME = "TOTP Authenticator";
-    private static final String SUB_CATEGORY = "TOTP";
+    private static final String SUB_CATEGORY = "DEFAULT";
     
     // The key used to store the config
     public static final String ENROLL_USER_IN_FLOW_CONFIG = "TOTP.EnrolUserInAuthenticationFlow";
@@ -44,7 +44,7 @@ public class TOTPAuthenticatorConfigImpl implements IdentityConnectorConfig {
     @Override
     public Map<String, String> getPropertyNameMapping() {
         Map<String, String> nameMapping = new HashMap<>();
-        nameMapping.put(ENROLL_USER_IN_FLOW_CONFIG, "Enable TOTP enrollment during login");
+        nameMapping.put(ENROLL_USER_IN_FLOW_CONFIG, "Enable TOTP Device Progressive Enrollment");
         return nameMapping;
     }
 
@@ -52,7 +52,7 @@ public class TOTPAuthenticatorConfigImpl implements IdentityConnectorConfig {
     public Map<String, String> getPropertyDescriptionMapping() {
         Map<String, String> descriptionMapping = new HashMap<>();
         descriptionMapping.put(ENROLL_USER_IN_FLOW_CONFIG, 
-            "If enabled, users will be prompted to enroll TOTP during authentication if they haven't already.");
+            "Allow users to enroll TOTP devices during the authentication flow.");
         return descriptionMapping;
     }
 
@@ -72,6 +72,12 @@ public class TOTPAuthenticatorConfigImpl implements IdentityConnectorConfig {
     @Override
     public Map<String, String> getDefaultPropertyValues(String[] propertyNames, String tenantDomain) 
             throws IdentityGovernanceException {
-        return new HashMap<>();
+        Map<String, String> defaultValues = new HashMap<>();
+        for (String propertyName : propertyNames) {
+            if (ENROLL_USER_IN_FLOW_CONFIG.equals(propertyName)) {
+                defaultValues.put(propertyName, "true");
+            }
+        }
+        return defaultValues;
     }
 }

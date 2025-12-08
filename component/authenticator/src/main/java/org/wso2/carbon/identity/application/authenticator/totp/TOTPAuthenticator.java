@@ -71,6 +71,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -346,7 +347,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             String multiOptionURI = getMultiOptionURIQueryParam(request);
 
             // Check if TOTP is allowed globally before showing verification or enrollment
-            boolean isTOTPAllowed = isTOTPEnrollmentAllowed(context);
+            boolean isTOTPAllowed = !isTOTPDisabled(context);  // Inverted: if disabled config is true, TOTP is not allowed
             
             if (isSecretKeyExistForUser &&
                     request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null &&
@@ -384,7 +385,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             } else {
                 Map<String, String> runtimeParams = getRuntimeParams(context);
 
-                boolean enrolUserInAuthenticationFlowEnabled = isTOTPEnrollmentAllowed(context);
+                boolean isTOTPDisabledValue = isTOTPDisabled(context);
+                boolean enrolUserInAuthenticationFlowEnabled = !isTOTPDisabledValue;  // Inverted
                 if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
                     diagnosticLogBuilder.inputParam("user enrollment enabled", enrolUserInAuthenticationFlowEnabled);
                 }
@@ -1409,17 +1411,18 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
      * Conditional Auth Script can override this decision if provided.
      *
      * @param context The authentication context.
-     * @return true if TOTP enrollment is allowed, false otherwise.
+     * @return true if TOTP is disabled, false if enabled.
      */
-    private boolean isTOTPEnrollmentAllowed(AuthenticationContext context) {
+    private boolean isTOTPDisabled(AuthenticationContext context) {
         
         // Default hardcoded fallback (in case config is missing entirely)
-        boolean isEnrollmentAllowed = true;
+        // false = TOTP is enabled (default behavior)
+        boolean isTOTPDisabledValue = false;
 
         // 1. Check Global Configuration (Identity Governance) 
         try {
             String tenantDomain = context.getTenantDomain();
-            log.info("Checking TOTP enrollment config for tenant: " + tenantDomain);
+            log.info("Checking TOTP disabled config for tenant: " + tenantDomain);
             
             Property[] connectorConfigs = TOTPDataHolder.getInstance()
                     .getIdentityGovernanceService()
@@ -1430,31 +1433,67 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             if (connectorConfigs != null && connectorConfigs.length > 0) {
                 String configValue = connectorConfigs[0].getValue();
                 log.info("Config property name: " + connectorConfigs[0].getName() + ", value: " + configValue);
-                isEnrollmentAllowed = Boolean.parseBoolean(configValue);
-                log.info("TOTP enrollment setting from Identity Governance for tenant " + tenantDomain + 
-                        ": " + isEnrollmentAllowed);
+                // true = TOTP disabled, false = TOTP enabled
+                isTOTPDisabledValue = Boolean.parseBoolean(configValue);
+                log.info("TOTP disabled setting from Identity Governance for tenant " + tenantDomain + 
+                        ": " + isTOTPDisabledValue);
             } else {
-                log.info("No connector configs found. Using default value: " + isEnrollmentAllowed);
+                log.info("No connector configs found. TOTP is enabled by default (disabled=false)");
             }
         } catch (IdentityGovernanceException e) {
-            // If the global config fails, we log it but keep the hardcoded default (true)
-            log.error("Error while retrieving global TOTP config. Defaulting to enrollment enabled.", e);
+            log.error("Error while retrieving global TOTP config. Defaulting to TOTP enabled (disabled=false).", e);
         } catch (Exception e) {
             log.error("Unexpected error while retrieving global TOTP config.", e);
         }
 
         // 2. Check Conditional Auth Script (Runtime param) - Acts as an OVERRIDE
         Map<String, String> runtimeParams = getRuntimeParams(context);
-        if (runtimeParams != null && runtimeParams.containsKey("enrolUserInAuthenticationFlow")) {
+        if (runtimeParams != null && runtimeParams.containsKey("disableTOTP")) {
             // If the script explicitly sets a value, it overrides the global config
-            String runtimeValue = runtimeParams.get("enrolUserInAuthenticationFlow");
-            isEnrollmentAllowed = Boolean.parseBoolean(runtimeValue);
-            log.info("TOTP enrollment setting overridden by conditional auth script: " + isEnrollmentAllowed);
+            String runtimeValue = runtimeParams.get("disableTOTP");
+            isTOTPDisabledValue = Boolean.parseBoolean(runtimeValue);
+            log.info("TOTP disabled setting overridden by conditional auth script: " + isTOTPDisabledValue);
         }
 
-        log.info("Final TOTP enrollment allowed decision: " + isEnrollmentAllowed);
+        log.info("Final TOTP disabled decision: " + isTOTPDisabledValue);
 
-        return isEnrollmentAllowed;
+        return isTOTPDisabledValue;
+    }
+
+    /**
+     * Get authenticator properties from Identity Governance configuration.
+     *
+     * @return List of Property objects containing authenticator configuration
+     */
+    public List<Property> getProperties() {
+        List<Property> propertyList = new ArrayList<>();
+        
+        try {
+            String tenantDomain = org.wso2.carbon.utils.multitenancy.MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
+            log.info("Retrieving TOTP properties for tenant: " + tenantDomain);
+            
+            Property[] configs = TOTPDataHolder.getInstance()
+                    .getIdentityGovernanceService()
+                    .getConfiguration(
+                            new String[]{TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG}, 
+                            tenantDomain);
+            
+            log.info("Retrieved " + (configs != null ? configs.length : 0) + " properties from governance");
+            
+            if (configs != null && configs.length > 0) {
+                for (Property config : configs) {
+                    log.info("Adding property: " + config.getName() + " = " + config.getValue());
+                }
+                propertyList.addAll(Arrays.asList(configs));
+            } else {
+                log.warn("No properties returned from governance service");
+            }
+        } catch (Exception e) {
+            log.error("Failed to retrieve TOTP governance properties: " + e.getMessage(), e);
+        }
+        
+        log.info("Returning " + propertyList.size() + " properties from getProperties()");
+        return propertyList;
     }
 
     /**
