@@ -346,13 +346,12 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             // authentication option from TOTP pages.
             String multiOptionURI = getMultiOptionURIQueryParam(request);
 
-            // Check if TOTP is allowed globally before showing verification or enrollment
-            boolean isTOTPAllowed = !isTOTPDisabled(context);  // Inverted: if disabled config is true, TOTP is not allowed
-            
+            // Scenario 1: User already has TOTP configured → Always show TOTP verification page
             if (isSecretKeyExistForUser &&
-                    request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null &&
-                    isTOTPAllowed) {
-                //if TOTP is enabled for the user and TOTP is allowed globally.
+                    request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("User " + username + " has TOTP configured. Showing TOTP verification page.");
+                }
                 if (!showAuthFailureReasonOnLoginPage) {
                     errorParam = StringUtils.EMPTY;
                 }
@@ -360,43 +359,26 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         errorParam, multiOptionURI);
                 response.sendRedirect(totpLoginPageUrl);
                 if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
-                    diagnosticLogBuilder.resultMessage("Redirecting to TOTP login page.");
+                    diagnosticLogBuilder.resultMessage("User has TOTP configured. Redirecting to TOTP verification page.");
                     LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
                 }
-            } else if (!isTOTPAllowed) {
-                // If TOTP is globally disabled, skip TOTP entirely and allow user to proceed
-                log.info("TOTP is disabled globally. Skipping TOTP for user: " + username);
-                context.setSubject(authenticatingUser);
-                StepConfig stepConfig = context.getSequenceConfig().getStepMap()
-                        .get(context.getCurrentStep() - 1);
-                if (stepConfig.getAuthenticatedAutenticator()
-                        .getApplicationAuthenticator() instanceof LocalApplicationAuthenticator) {
-                    context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
-                            TOTPAuthenticatorConstants.BASIC);
-                } else {
-                    context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
-                            TOTPAuthenticatorConstants.FEDERETOR);
-                }
-                if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
-                    diagnosticLogBuilder.resultMessage("TOTP is disabled globally. Skipping TOTP authentication.");
-                    LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
-                }
-                return;
             } else {
+                // Scenario 2 & 3: User does NOT have TOTP configured
                 Map<String, String> runtimeParams = getRuntimeParams(context);
-
-                boolean isTOTPDisabledValue = isTOTPDisabled(context);
-                boolean enrolUserInAuthenticationFlowEnabled = !isTOTPDisabledValue;  // Inverted
+                boolean isProgressiveEnrollmentEnabled = isProgressiveEnrollmentEnabled(context);
+                
                 if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
-                    diagnosticLogBuilder.inputParam("user enrollment enabled", enrolUserInAuthenticationFlowEnabled);
+                    diagnosticLogBuilder.inputParam("progressive enrollment enabled", isProgressiveEnrollmentEnabled);
                 }
-                if (enrolUserInAuthenticationFlowEnabled &&
-                        request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
+
+                // Scenario 2 & 3: Handle new users (no TOTP setup yet)
+                if (request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
                     if (context.getProperty(IS_API_BASED) == null) {
-                        // If TOTP is not enabled for the user and he hasn't redirected to the enrollment page yet.
                         if (log.isDebugEnabled()) {
-                            log.debug("User has not enabled TOTP: " + username);
+                            log.debug("User has not enabled TOTP yet: " + username);
                         }
+                        
+                        // Generate secret key and QR code for the user
                         Map<String, String> claims;
                         if (isInitialFederationAttempt) {
                             claims = TOTPKeyGenerator.generateClaimsForFedUser(username, tenantDomain, context);
@@ -406,7 +388,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         }
                         Map<String, String> claimProperties = TOTPUtil.getClaimProperties(tenantDomain,
                                 TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
-                        // Context will have the decrypted secret key all the time.
+                        
+                        // Context will have the decrypted secret key all the time
                         if (claimProperties.containsKey(TOTPAuthenticatorConstants.ENABLE_ENCRYPTION)) {
                             context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
                                     claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
@@ -417,15 +400,28 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         context.setProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
                                 claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL));
                         String qrURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
-                        TOTPUtil.redirectToEnableTOTPReqPage(request, response, context, qrURL, runtimeParams);
-                        if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
-                            diagnosticLogBuilder.resultMessage("Redirecting user to the TOTP enable page.");
-                            LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
+                        
+                        if (isProgressiveEnrollmentEnabled) {
+                            // Progressive enrollment ENABLED: Skip QR page, go directly to verification page with skip option
+                            log.info("Progressive enrollment is enabled. Redirecting to verification page (user can skip).");
+                            context.setProperty(TOTPAuthenticatorConstants.ENABLE_TOTP, true);
+                            if (!showAuthFailureReason) {
+                                errorParam = StringUtils.EMPTY;
+                            }
+                            String totpLoginPageUrl = buildTOTPLoginPageURL(context, username, retryParam,
+                                    errorParam, multiOptionURI);
+                            response.sendRedirect(totpLoginPageUrl);
+                            if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
+                                diagnosticLogBuilder.resultMessage("Progressive enrollment disabled. Redirecting to verification page (skip enrollment).");
+                                LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
+                            }
                         }
                     }
-                } else if (Boolean.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)) ||
+                }
+                // User clicked "Enable TOTP" button or admin enforced TOTP → Show verification page
+                else if (Boolean.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)) ||
                         isTOTPEnabledByAdmin) {
-                    //if TOTP is not enabled for the user and user continued the enrollment.
+                    log.info("User opted to enable TOTP or admin enforced. Showing TOTP verification page.");
                     context.setProperty(TOTPAuthenticatorConstants.ENABLE_TOTP, true);
                     if (!showAuthFailureReason || isTOTPEnabledByAdmin) {
                         errorParam = StringUtils.EMPTY;
@@ -434,24 +430,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                             errorParam, multiOptionURI);
                     response.sendRedirect(totpLoginPageUrl);
                     if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
-                        diagnosticLogBuilder.resultMessage("Redirecting to TOTP login page.");
-                        LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
-                    }
-                } else {
-                    //if admin does not enforce TOTP and TOTP is not enabled for the user.
-                    context.setSubject(authenticatingUser);
-                    StepConfig stepConfig = context.getSequenceConfig().getStepMap()
-                            .get(context.getCurrentStep() - 1);
-                    if (stepConfig.getAuthenticatedAutenticator()
-                            .getApplicationAuthenticator() instanceof LocalApplicationAuthenticator) {
-                        context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
-                                TOTPAuthenticatorConstants.BASIC);
-                    } else {
-                        context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
-                                TOTPAuthenticatorConstants.FEDERETOR);
-                    }
-                    if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
-                        diagnosticLogBuilder.resultMessage("TOTP is not enabled for the user.");
+                        diagnosticLogBuilder.resultMessage("Redirecting to TOTP verification page.");
                         LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
                     }
                 }
@@ -1406,58 +1385,52 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     }
 
     /**
-     * Check if TOTP enrollment is allowed.
-     * Logic: Global Config is checked first as the default. 
-     * Conditional Auth Script can override this decision if provided.
+     * Check if progressive enrollment is enabled globally via Identity Governance config.
+     * Progressive enrollment allows users to enroll TOTP devices during their login flow.
+     * 
+     * Priority (highest to lowest):
+     * 1. Application-level Conditional Auth Script (runtime params) - HIGHEST PRIORITY
+     * 2. Organization-level Identity Governance config (global setting)
+     * 3. Default value (true - enrollment enabled)
+     * 
+     * This ensures application-specific requirements always take precedence over organization defaults.
      *
      * @param context The authentication context.
-     * @return true if TOTP is disabled, false if enabled.
+     * @return true if progressive enrollment is enabled (show QR code for enrollment), false if disabled (skip enrollment).
      */
-    private boolean isTOTPDisabled(AuthenticationContext context) {
+    private boolean isProgressiveEnrollmentEnabled(AuthenticationContext context) {
         
-        // Default hardcoded fallback (in case config is missing entirely)
-        // false = TOTP is enabled (default behavior)
-        boolean isTOTPDisabledValue = false;
+        // Default: true = Allow progressive enrollment (users can enroll TOTP during login)
+        boolean isProgressiveEnrollmentEnabled = true;
 
-        // 1. Check Global Configuration (Identity Governance) 
+        // Step 1: Check Organization-level Configuration (Identity Governance) 
         try {
             String tenantDomain = context.getTenantDomain();
-            log.info("Checking TOTP disabled config for tenant: " + tenantDomain);
-            
             Property[] connectorConfigs = TOTPDataHolder.getInstance()
                     .getIdentityGovernanceService()
                     .getConfiguration(new String[]{TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG}, tenantDomain);
-
-            log.info("Retrieved connector configs. Array length: " + (connectorConfigs != null ? connectorConfigs.length : "null"));
             
             if (connectorConfigs != null && connectorConfigs.length > 0) {
                 String configValue = connectorConfigs[0].getValue();
-                log.info("Config property name: " + connectorConfigs[0].getName() + ", value: " + configValue);
-                // true = TOTP disabled, false = TOTP enabled
-                isTOTPDisabledValue = Boolean.parseBoolean(configValue);
-                log.info("TOTP disabled setting from Identity Governance for tenant " + tenantDomain + 
-                        ": " + isTOTPDisabledValue);
-            } else {
-                log.info("No connector configs found. TOTP is enabled by default (disabled=false)");
+                // true = Progressive enrollment enabled (users CAN enroll TOTP during login - show QR code)
+                // false = Progressive enrollment disabled (skip enrollment - go directly to verification page)
+                isProgressiveEnrollmentEnabled = Boolean.parseBoolean(configValue);
             }
         } catch (IdentityGovernanceException e) {
-            log.error("Error while retrieving global TOTP config. Defaulting to TOTP enabled (disabled=false).", e);
+            log.error("Error while retrieving progressive enrollment config. Defaulting to enabled.", e);
         } catch (Exception e) {
-            log.error("Unexpected error while retrieving global TOTP config.", e);
+            log.error("Unexpected error while retrieving progressive enrollment config.", e);
         }
 
-        // 2. Check Conditional Auth Script (Runtime param) - Acts as an OVERRIDE
+        // Step 2: Check Application-level Conditional Auth Script (Runtime param) - HIGHEST PRIORITY
+        // This allows applications to override organization-level settings
         Map<String, String> runtimeParams = getRuntimeParams(context);
-        if (runtimeParams != null && runtimeParams.containsKey("disableTOTP")) {
-            // If the script explicitly sets a value, it overrides the global config
-            String runtimeValue = runtimeParams.get("disableTOTP");
-            isTOTPDisabledValue = Boolean.parseBoolean(runtimeValue);
-            log.info("TOTP disabled setting overridden by conditional auth script: " + isTOTPDisabledValue);
+        if (runtimeParams != null && runtimeParams.containsKey(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW)) {
+            String runtimeValue = runtimeParams.get(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW);
+            isProgressiveEnrollmentEnabled = Boolean.parseBoolean(runtimeValue);
         }
 
-        log.info("Final TOTP disabled decision: " + isTOTPDisabledValue);
-
-        return isTOTPDisabledValue;
+        return isProgressiveEnrollmentEnabled;
     }
 
     /**
