@@ -684,8 +684,25 @@ public class TOTPUtil {
     public static void redirectToEnableTOTPReqPage(HttpServletRequest request, HttpServletResponse response,
                                                    AuthenticationContext context, String skey)
             throws AuthenticationFailedException {
-        // Delegate to the updated method
-        redirectToEnableTOTPReqPage(request, response, context, skey, null);
+
+        if (isEnrolUserInAuthenticationFlowEnabled(context)) {
+            String multiOptionURI = getMultiOptionURIQueryParam(request);
+            String queryParams = "t=" + context.getLoginTenantDomain() + "&sessionDataKey=" +
+                    context.getContextIdentifier() + "&authenticators=" + TOTPAuthenticatorConstants.AUTHENTICATOR_NAME
+                    + "&type=totp" + "&sp=" + Encode.forUriComponent(context.getServiceProviderName()) +
+                    "&ske=" + skey + multiOptionURI;
+            String enableTOTPReqPageUrl =
+                    FrameworkUtils.appendQueryParamsStringToUrl(getEnableTOTPPage(context), queryParams);
+
+            try {
+                response.sendRedirect(enableTOTPReqPageUrl);
+            } catch (IOException e) {
+                throw new AuthenticationFailedException(
+                        "Error while redirecting the request to get enableTOTP " + "request page. ", e);
+            }
+        } else {
+            throw new AuthenticationFailedException("Error while getting value for EnrolUserInAuthenticationFlow");
+        }
     }
 
     /**
@@ -703,21 +720,23 @@ public class TOTPUtil {
                                                    Map<String, String> runtimeParams)
             throws AuthenticationFailedException {
 
-        // Note: The caller (TOTPAuthenticator) now controls when to show enrollment page
-        // based on progressive enrollment setting. This method just performs the redirect.
-        String multiOptionURI = getMultiOptionURIQueryParam(request);
-        String queryParams = "sessionDataKey=" + context.getContextIdentifier() + "&authenticators=" +
-                TOTPAuthenticatorConstants.AUTHENTICATOR_NAME + "&type=totp" + "&ske=" + skey +
-                "&t=" + context.getLoginTenantDomain() + "&sp=" +
-                Encode.forUriComponent(context.getServiceProviderName()) + multiOptionURI;
-        String enableTOTPReqPageUrl =
-                FrameworkUtils.appendQueryParamsStringToUrl(getEnableTOTPPage(context), queryParams);
+        if (isEnrolUserInAuthenticationFlowEnabled(context, runtimeParams)) {
+            String multiOptionURI = getMultiOptionURIQueryParam(request);
+            String queryParams = "sessionDataKey=" + context.getContextIdentifier() + "&authenticators=" +
+                    TOTPAuthenticatorConstants.AUTHENTICATOR_NAME + "&type=totp" + "&ske=" + skey +
+                    "&t=" + context.getLoginTenantDomain() + "&sp=" +
+                    Encode.forUriComponent(context.getServiceProviderName()) + multiOptionURI;
+            String enableTOTPReqPageUrl =
+                    FrameworkUtils.appendQueryParamsStringToUrl(getEnableTOTPPage(context), queryParams);
 
-        try {
-            response.sendRedirect(enableTOTPReqPageUrl);
-        } catch (IOException e) {
-            throw new AuthenticationFailedException(
-                    "Error while redirecting the request to get enableTOTP request page. ", e);
+            try {
+                response.sendRedirect(enableTOTPReqPageUrl);
+            } catch (IOException e) {
+                throw new AuthenticationFailedException(
+                        "Error while redirecting the request to get enableTOTP request page. ", e);
+            }
+        } else {
+            throw new AuthenticationFailedException("Error while getting value for configuration EnrolUserInAuthenticationFlow.");
         }
     }
 
