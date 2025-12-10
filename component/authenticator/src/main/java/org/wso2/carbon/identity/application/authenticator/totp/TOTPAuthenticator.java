@@ -30,7 +30,6 @@ import org.wso2.carbon.extension.identity.helper.util.IdentityHelperUtil;
 import org.wso2.carbon.identity.application.authentication.framework.AbstractApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authentication.framework.AuthenticatorFlowStatus;
 import org.wso2.carbon.identity.application.authentication.framework.LocalApplicationAuthenticator;
-import org.wso2.carbon.identity.application.authentication.framework.config.model.StepConfig;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.exception.LogoutFailedException;
@@ -50,7 +49,6 @@ import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPUtil;
 import org.wso2.carbon.identity.application.common.model.IdentityProvider;
 import org.wso2.carbon.identity.application.common.model.JustInTimeProvisioningConfig;
 import org.wso2.carbon.identity.application.common.model.Property;
-import org.wso2.carbon.identity.governance.IdentityGovernanceException;
 import org.wso2.carbon.identity.central.log.mgt.utils.LogConstants;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
 import org.wso2.carbon.identity.claim.metadata.mgt.exception.ClaimMetadataException;
@@ -58,6 +56,7 @@ import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.model.IdentityErrorMsgContext;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.governance.IdentityGovernanceException;
 import org.wso2.carbon.idp.mgt.IdentityProviderManagementException;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
@@ -402,9 +401,16 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         String qrURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
                         
                         if (isProgressiveEnrollmentEnabled) {
-                            // Progressive enrollment ENABLED: Skip QR page, go directly to verification page with skip option
-                            log.info("Progressive enrollment is enabled. Redirecting to verification page (user can skip).");
-                            context.setProperty(TOTPAuthenticatorConstants.ENABLE_TOTP, true);
+                            // Progressive enrollment ENABLED: Show QR code enrollment page
+                            log.info("Progressive enrollment is enabled. Redirecting to QR code enrollment page.");
+                            TOTPUtil.redirectToEnableTOTPReqPage(request, response, context, qrURL, runtimeParams);
+                            if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
+                                diagnosticLogBuilder.resultMessage("Progressive enrollment enabled. Redirecting to QR code enrollment page.");
+                                LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
+                            }
+                        } else {
+                            // Progressive enrollment DISABLED: Show TOTP verification page 
+                            log.info("Progressive enrollment is disabled. Showing verification page without enrollment option. User can skip TOTP.");
                             if (!showAuthFailureReason) {
                                 errorParam = StringUtils.EMPTY;
                             }
@@ -412,7 +418,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                                     errorParam, multiOptionURI);
                             response.sendRedirect(totpLoginPageUrl);
                             if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
-                                diagnosticLogBuilder.resultMessage("Progressive enrollment disabled. Redirecting to verification page (skip enrollment).");
+                                diagnosticLogBuilder.resultMessage("Progressive enrollment disabled. Showing verification page without enrollment. User can skip.");
                                 LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
                             }
                         }
@@ -1439,6 +1445,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
      * @return List of Property objects containing authenticator configuration
      */
     public List<Property> getProperties() {
+
         List<Property> propertyList = new ArrayList<>();
         
         try {
