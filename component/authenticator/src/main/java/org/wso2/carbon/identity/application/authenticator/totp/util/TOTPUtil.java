@@ -167,13 +167,11 @@ public class TOTPUtil {
         }
         if (StringUtils.isBlank(issuer)) {
             try {
-                // For organizations, issuer display name should be the organization name.
-                if (OrganizationManagementUtil.isOrganization(tenantDomain)) {
-                    OrganizationManager organizationManager = TOTPDataHolder.getInstance().getOrganizationManager();
+                issuer = tenantDomain;
+                OrganizationManager organizationManager = TOTPDataHolder.getInstance().getOrganizationManager();
+                if (organizationManager != null) {
                     String organizationId = organizationManager.resolveOrganizationId(tenantDomain);
                     issuer = organizationManager.getOrganizationNameById(organizationId);
-                } else {
-                    issuer = tenantDomain;
                 }
             } catch (OrganizationManagementException e) {
                 throw new TOTPException("Error while resolving organization for tenant domain: " + tenantDomain, e);
