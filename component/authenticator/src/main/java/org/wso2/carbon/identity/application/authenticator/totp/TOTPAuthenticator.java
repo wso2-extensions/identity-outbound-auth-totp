@@ -1440,43 +1440,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     }
 
     /**
-     * Get authenticator properties from Identity Governance configuration.
-     *
-     * @return List of Property objects containing authenticator configuration
-     */
-    public List<Property> getProperties() {
-
-        List<Property> propertyList = new ArrayList<>();
-        
-        try {
-            String tenantDomain = org.wso2.carbon.utils.multitenancy.MultitenantConstants.SUPER_TENANT_DOMAIN_NAME;
-            log.info("Retrieving TOTP properties for tenant: " + tenantDomain);
-            
-            Property[] configs = TOTPDataHolder.getInstance()
-                    .getIdentityGovernanceService()
-                    .getConfiguration(
-                            new String[]{TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG}, 
-                            tenantDomain);
-            
-            log.info("Retrieved " + (configs != null ? configs.length : 0) + " properties from governance");
-            
-            if (configs != null && configs.length > 0) {
-                for (Property config : configs) {
-                    log.info("Adding property: " + config.getName() + " = " + config.getValue());
-                }
-                propertyList.addAll(Arrays.asList(configs));
-            } else {
-                log.warn("No properties returned from governance service");
-            }
-        } catch (Exception e) {
-            log.error("Failed to retrieve TOTP governance properties: " + e.getMessage(), e);
-        }
-        
-        log.info("Returning " + propertyList.size() + " properties from getProperties()");
-        return propertyList;
-    }
-
-    /**
      * Set i18n key.
      *
      * @return the i18n key
