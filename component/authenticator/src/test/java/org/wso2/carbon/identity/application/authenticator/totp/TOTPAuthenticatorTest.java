@@ -58,6 +58,8 @@ import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.governance.IdentityGovernanceService;
+import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.idp.mgt.IdentityProviderManagementException;
 import org.wso2.carbon.idp.mgt.IdpManager;
 import org.wso2.carbon.user.core.UserRealm;
@@ -75,6 +77,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
@@ -136,6 +139,9 @@ public class TOTPAuthenticatorTest {
 
     @Mock
     private JustInTimeProvisioningConfig justInTimeProvisioningConfig;
+
+    @Mock
+    private IdentityGovernanceService identityGovernanceService;
 
     @Mock
     private HttpServletResponse httpServletResponse;
@@ -608,12 +614,12 @@ public class TOTPAuthenticatorTest {
                 true);
     }
 
-    @Test(description = "Test case for initiateAuthenticationRequest() method when admin does not enforces TOTP and " +
-            "TOTP is not enabled for the user.")
-    public void testInitiateAuthenticationRequestWithEnrollment() throws AuthenticationFailedException,
-            UserStoreException {
+    @Test(description = "Test case for initiateAuthenticationRequest() when progressive enrollment is disabled and " +
+            "TOTP is not enabled for the user. Should show verification page without QR enrollment option.")
+    public void testInitiateAuthenticationRequestWithEnrollment() throws Exception {
 
         String username = "admin";
+        mockServiceURLBuilder();
         staticIdentityUtil.when(IdentityUtil::getPrimaryDomainName).thenReturn(USER_STORE_DOMAIN);
         AuthenticatedUser authenticatedUser =
                 AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
@@ -624,16 +630,34 @@ public class TOTPAuthenticatorTest {
         mockedContext.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
         mockedContext.setProperty("username", username);
         mockedContext.setProperty("authenticatedUser", authenticatedUser);
-        Map<String, String> claims = new HashMap<>();
-        claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "AnySecretKey");
+        mockedContext.setContextIdentifier(UUID.randomUUID().toString());
+        when(mockedContext.getTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+        when(mockedContext.getCurrentStep()).thenReturn(2);
+        
+        // Mock organization-level governance config to return false (progressive enrollment disabled)
+        Property progressiveEnrollmentProperty = new Property();
+        progressiveEnrollmentProperty.setName(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG);
+        progressiveEnrollmentProperty.setValue("false");
+        Property[] governanceProperties = new Property[]{progressiveEnrollmentProperty};
+        
+        staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(totpDataHolder);
+        when(totpDataHolder.getIdentityGovernanceService()).thenReturn(identityGovernanceService);
+        when(identityGovernanceService.getConfiguration(
+                new String[]{TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG}, 
+                TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)).thenReturn(governanceProperties);
+        
+        // User does NOT have TOTP secret key yet (userStoreManager returns null/empty)
         staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
         staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(mockedContext)).thenReturn(authenticatedUser);
         when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
+        when(userStoreManager.getUserClaimValues(anyString(), any(String[].class), anyString())).thenReturn(new HashMap<>());
+        
         when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
         staticTOTPUtil.when(() -> TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
         staticTOTPUtil.when(() -> TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
-                thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
+                thenReturn(TOTPAuthenticatorConstants.ERROR_PAGE);
+        staticTOTPUtil.when(() -> TOTPUtil.getTOTPLoginPage(any(AuthenticationContext.class))).thenCallRealMethod();
         when(mockedContext.getSequenceConfig()).thenReturn(sequenceConfig);
         when(sequenceConfig.getStepMap()).thenReturn(mockedMap);
         when(mockedMap.get(any())).thenReturn(stepConfig);
@@ -642,15 +666,24 @@ public class TOTPAuthenticatorTest {
         staticTOTPUtil.when(() -> TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
         staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance).thenReturn(fileBasedConfigurationBuilder);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
+        
+        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, mockedContext);
+        
+        // Verify redirect to TOTP login page (not enrollment page) when progressive enrollment is disabled
+        verify(httpServletResponse).sendRedirect(captor.capture());
+        Assert.assertTrue(captor.getValue().contains("authenticationendpoint/totp.do"),
+                "Should redirect to TOTP verification page when progressive enrollment is disabled");
         Assert.assertEquals(mockedContext.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION),
-                TOTPAuthenticatorConstants.FEDERETOR);
+                TOTPAuthenticatorConstants.AUTHENTICATOR_NAME, 
+                "AUTHENTICATION property should remain as 'totp' authenticator name");
     }
 
     @Test(description = "Test case for initiateAuthenticationRequest() method when admin enforces TOTP and " +
             "TOTP is not enabled for the user.", priority = 2)
     public void testInitiateAuthenticationRequestAdminEnforces()
-            throws AuthenticationFailedException, UserStoreException, IOException, URLBuilderException {
+            throws Exception {
 
         String username = "admin";
         String multiOptionURL = "https://localhost:9443/samlsso";
@@ -666,6 +699,18 @@ public class TOTPAuthenticatorTest {
         context.setProperty("username", username);
         context.setProperty("authenticatedUser", authenticatedUser);
         context.setContextIdentifier(UUID.randomUUID().toString());
+
+        // Mock organization-level governance config to return false (progressive enrollment disabled)
+        Property progressiveEnrollmentProperty = new Property();
+        progressiveEnrollmentProperty.setName(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG);
+        progressiveEnrollmentProperty.setValue("false");
+        Property[] governanceProperties = new Property[]{progressiveEnrollmentProperty};
+        
+        staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(totpDataHolder);
+        when(totpDataHolder.getIdentityGovernanceService()).thenReturn(identityGovernanceService);
+        when(identityGovernanceService.getConfiguration(
+                new String[]{TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG}, 
+                TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)).thenReturn(governanceProperties);
 
         Map<String, String> claims = new HashMap<>();
         claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "AnySecretKey");
@@ -762,6 +807,254 @@ public class TOTPAuthenticatorTest {
         } else {
             Assert.assertFalse(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, mockedRuntimeParams));
         }
+    }
+
+    @Test(description = "Test isProgressiveEnrollmentEnabled() returns default true when no org config exists")
+    public void testProgressiveEnrollmentDefaultBehavior() throws Exception {
+        
+        when(context.getTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+        
+        // Mock governance service to return null (no org-level config)
+        staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(totpDataHolder);
+        when(totpDataHolder.getIdentityGovernanceService()).thenReturn(identityGovernanceService);
+        when(identityGovernanceService.getConfiguration(
+                new String[]{TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG},
+                TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)).thenReturn(null);
+        
+        // Use reflection to call the private method
+        boolean result = (boolean) invokePrivate(totpAuthenticator, "isProgressiveEnrollmentEnabled",
+                new Class<?>[]{AuthenticationContext.class}, context);
+        
+        Assert.assertTrue(result, "Progressive enrollment should be enabled by default (true)");
+    }
+
+    @Test(description = "Test isProgressiveEnrollmentEnabled() returns true when org config is true")
+    public void testProgressiveEnrollmentEnabledByOrgConfig() throws Exception {
+        
+        when(context.getTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+        
+        // Mock organization-level governance config to return true
+        Property progressiveEnrollmentProperty = new Property();
+        progressiveEnrollmentProperty.setName(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG);
+        progressiveEnrollmentProperty.setValue("true");
+        Property[] governanceProperties = new Property[]{progressiveEnrollmentProperty};
+        
+        staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(totpDataHolder);
+        when(totpDataHolder.getIdentityGovernanceService()).thenReturn(identityGovernanceService);
+        when(identityGovernanceService.getConfiguration(
+                new String[]{TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG},
+                TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)).thenReturn(governanceProperties);
+        
+        boolean result = (boolean) invokePrivate(totpAuthenticator, "isProgressiveEnrollmentEnabled",
+                new Class<?>[]{AuthenticationContext.class}, context);
+        
+        Assert.assertTrue(result, "Progressive enrollment should be enabled when org config is 'true'");
+    }
+
+    @Test(description = "Test isProgressiveEnrollmentEnabled() returns false when org config is false")
+    public void testProgressiveEnrollmentDisabledByOrgConfig() throws Exception {
+        
+        when(context.getTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+        
+        // Mock organization-level governance config to return false
+        Property progressiveEnrollmentProperty = new Property();
+        progressiveEnrollmentProperty.setName(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG);
+        progressiveEnrollmentProperty.setValue("false");
+        Property[] governanceProperties = new Property[]{progressiveEnrollmentProperty};
+        
+        staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(totpDataHolder);
+        when(totpDataHolder.getIdentityGovernanceService()).thenReturn(identityGovernanceService);
+        when(identityGovernanceService.getConfiguration(
+                new String[]{TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG},
+                TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)).thenReturn(governanceProperties);
+        
+        boolean result = (boolean) invokePrivate(totpAuthenticator, "isProgressiveEnrollmentEnabled",
+                new Class<?>[]{AuthenticationContext.class}, context);
+        
+        Assert.assertFalse(result, "Progressive enrollment should be disabled when org config is 'false'");
+    }
+
+    @Test(description = "Test runtime param overrides org config - runtime=true, org=false")
+    public void testRuntimeParamOverridesOrgConfigToTrue() throws Exception {
+        
+        when(mockedContext.getTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+        
+        // Mock organization-level governance config to return false
+        Property progressiveEnrollmentProperty = new Property();
+        progressiveEnrollmentProperty.setName(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG);
+        progressiveEnrollmentProperty.setValue("false");
+        Property[] governanceProperties = new Property[]{progressiveEnrollmentProperty};
+        
+        staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(totpDataHolder);
+        when(totpDataHolder.getIdentityGovernanceService()).thenReturn(identityGovernanceService);
+        when(identityGovernanceService.getConfiguration(
+                new String[]{TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG},
+                TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)).thenReturn(governanceProperties);
+        
+        // Set runtime param to true (should override org config)
+        Map<String, String> runtimeParams = new HashMap<>();
+        runtimeParams.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "true");
+        
+        // Create a spy to mock getRuntimeParams method
+        TOTPAuthenticator spyAuthenticator = Mockito.spy(totpAuthenticator);
+        doReturn(runtimeParams).when(spyAuthenticator).getRuntimeParams(mockedContext);
+        
+        boolean result = (boolean) invokePrivate(spyAuthenticator, "isProgressiveEnrollmentEnabled",
+                new Class<?>[]{AuthenticationContext.class}, mockedContext);
+        
+        Assert.assertTrue(result, "Runtime param (true) should override org config (false)");
+    }
+
+    @Test(description = "Test runtime param overrides org config - runtime=false, org=true")
+    public void testRuntimeParamOverridesOrgConfigToFalse() throws Exception {
+        
+        when(mockedContext.getTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+        
+        // Mock organization-level governance config to return true
+        Property progressiveEnrollmentProperty = new Property();
+        progressiveEnrollmentProperty.setName(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG);
+        progressiveEnrollmentProperty.setValue("true");
+        Property[] governanceProperties = new Property[]{progressiveEnrollmentProperty};
+        
+        staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(totpDataHolder);
+        when(totpDataHolder.getIdentityGovernanceService()).thenReturn(identityGovernanceService);
+        when(identityGovernanceService.getConfiguration(
+                new String[]{TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG},
+                TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)).thenReturn(governanceProperties);
+        
+        // Set runtime param to false (should override org config)
+        Map<String, String> runtimeParams = new HashMap<>();
+        runtimeParams.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "false");
+        
+        // Create a spy to mock getRuntimeParams method
+        TOTPAuthenticator spyAuthenticator = Mockito.spy(totpAuthenticator);
+        doReturn(runtimeParams).when(spyAuthenticator).getRuntimeParams(mockedContext);
+        
+        boolean result = (boolean) invokePrivate(spyAuthenticator, "isProgressiveEnrollmentEnabled",
+                new Class<?>[]{AuthenticationContext.class}, mockedContext);
+        
+        Assert.assertFalse(result, "Runtime param (false) should override org config (true)");
+    }
+
+    @Test(description = "Test progressive enrollment enabled shows QR code enrollment page")
+    public void testProgressiveEnrollmentEnabledShowsQRCodePage() throws Exception {
+        
+        String username = "admin";
+        mockServiceURLBuilder();
+        staticIdentityUtil.when(IdentityUtil::getPrimaryDomainName).thenReturn(USER_STORE_DOMAIN);
+        
+        AuthenticatedUser authenticatedUser =
+                AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
+        authenticatedUser.setFederatedUser(false);
+        authenticatedUser.setUserName(username);
+        authenticatedUser.setUserId("dummyUserId");
+        
+        mockedContext.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+        mockedContext.setProperty("username", username);
+        mockedContext.setProperty("authenticatedUser", authenticatedUser);
+        mockedContext.setContextIdentifier(UUID.randomUUID().toString());
+        when(mockedContext.getTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+        when(mockedContext.getCurrentStep()).thenReturn(2);
+        
+        // Mock organization-level governance config to return true (progressive enrollment enabled)
+        Property progressiveEnrollmentProperty = new Property();
+        progressiveEnrollmentProperty.setName(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG);
+        progressiveEnrollmentProperty.setValue("true");
+        Property[] governanceProperties = new Property[]{progressiveEnrollmentProperty};
+        
+        staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(totpDataHolder);
+        when(totpDataHolder.getIdentityGovernanceService()).thenReturn(identityGovernanceService);
+        when(identityGovernanceService.getConfiguration(
+                new String[]{TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG},
+                TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)).thenReturn(governanceProperties);
+        
+        // User does NOT have TOTP secret key yet
+        staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(mockedContext)).thenReturn(authenticatedUser);
+        when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
+        when(userStoreManager.getUserClaimValues(anyString(), any(String[].class), anyString()))
+                .thenReturn(new HashMap<>());
+        
+        // Mock TOTPKeyGenerator to generate claims
+        Map<String, String> generatedClaims = new HashMap<>();
+        generatedClaims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "TESTSECRET123");
+        generatedClaims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, "data:image/png;base64,test");
+        staticTOTPUtil.when(() -> TOTPUtil.getClaimProperties(anyString(), anyString()))
+                .thenReturn(new HashMap<>());
+        
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
+        staticTOTPUtil.when(() -> TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString()))
+                .thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
+        staticTOTPUtil.when(() -> TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString()))
+                .thenReturn(TOTPAuthenticatorConstants.ERROR_PAGE);
+        staticTOTPUtil.when(() -> TOTPUtil.redirectToEnableTOTPReqPage(any(), any(), any(), anyString(), any()))
+                .thenAnswer(invocation -> null);
+        
+        when(mockedContext.getSequenceConfig()).thenReturn(sequenceConfig);
+        when(sequenceConfig.getStepMap()).thenReturn(mockedMap);
+        when(mockedMap.get(any())).thenReturn(stepConfig);
+        when(stepConfig.getAuthenticatedAutenticator()).thenReturn(authenticatorConfig);
+        when(authenticatorConfig.getApplicationAuthenticator()).thenReturn(applicationAuthenticator);
+        staticTOTPUtil.when(() -> TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
+        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance)
+                .thenReturn(fileBasedConfigurationBuilder);
+        when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
+        
+        totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, mockedContext);
+        
+        // Verify that redirectToEnableTOTPReqPage was called (QR code enrollment page)
+        staticTOTPUtil.verify(() -> TOTPUtil.redirectToEnableTOTPReqPage(
+                any(HttpServletRequest.class),
+                any(HttpServletResponse.class),
+                any(AuthenticationContext.class),
+                anyString(),
+                any()));
+    }
+
+    @Test(description = "Test TOTPAuthenticatorConfigImpl returns correct default property values")
+    public void testTOTPAuthenticatorConfigImplDefaultValues() throws Exception {
+        
+        TOTPAuthenticatorConfigImpl configImpl = new TOTPAuthenticatorConfigImpl();
+        
+        // Test getName
+        Assert.assertEquals(configImpl.getName(), "totp", "Connector name should be 'totp'");
+        
+        // Test getFriendlyName
+        Assert.assertEquals(configImpl.getFriendlyName(), "TOTP Authenticator",
+                "Friendly name should be 'TOTP Authenticator'");
+        
+        // Test getCategory
+        Assert.assertEquals(configImpl.getCategory(), "Multi Factor Authenticators",
+                "Category should be 'Multi Factor Authenticators'");
+        
+        // Test getDefaultPropertyValues returns "true" for progressive enrollment
+        Properties defaultValues = configImpl.getDefaultPropertyValues(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+        Assert.assertNotNull(defaultValues, "Default property values should not be null");
+        Assert.assertEquals(defaultValues.size(), 1, "Should have one default property");
+        Assert.assertEquals(defaultValues.getProperty(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG), "true",
+                "Default value for progressive enrollment should be 'true' (backward compatible)");
+        
+        // Test getPropertyNames
+        String[] propertyNames = configImpl.getPropertyNames();
+        Assert.assertNotNull(propertyNames, "Property names should not be null");
+        Assert.assertEquals(propertyNames.length, 1, "Should have one property name");
+        Assert.assertEquals(propertyNames[0], TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG,
+                "Property name should match");
+        
+        // Test getPropertyNameMapping
+        Map<String, String> nameMapping = configImpl.getPropertyNameMapping();
+        Assert.assertNotNull(nameMapping, "Property name mapping should not be null");
+        Assert.assertTrue(nameMapping.containsKey(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG),
+                "Name mapping should contain the property");
+        Assert.assertEquals(nameMapping.get(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG),
+                "Enable TOTP Device Progressive Enrollment",
+                "Display name should be correct");
+        
+        // Test getPropertyDescriptionMapping
+        Map<String, String> descMapping = configImpl.getPropertyDescriptionMapping();
+        Assert.assertNotNull(descMapping, "Property description mapping should not be null");
+        Assert.assertTrue(descMapping.containsKey(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG),
+                "Description mapping should contain the property");
     }
 
 
