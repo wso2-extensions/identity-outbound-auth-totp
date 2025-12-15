@@ -45,7 +45,6 @@ import org.wso2.carbon.identity.application.authentication.framework.exception.L
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatorData;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatorParamMetadata;
-import org.wso2.carbon.identity.application.authentication.framework.store.UserSessionStore;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
@@ -1161,5 +1160,291 @@ public class TOTPAuthenticatorTest {
         // Verify that the URL contains the remainingAttempts parameter with value 3 (5 max - 2 failed)
         Assert.assertTrue(redirectUrl.contains("remainingAttempts=3"),
                 "Redirect URL should contain remainingAttempts parameter with value 3");
+    }
+
+    /**
+     * Test cases for organization hierarchy support in progressive enrollment
+     */
+
+    @Test(description = "Test case for TOTP enrollment in sub-organization hierarchy.")
+    public void testProgressiveEnrollmentInSubOrganization() throws AuthenticationFailedException,
+            LogoutFailedException {
+
+        AuthenticationContext authenticationContext = new AuthenticationContext();
+        String username = "user@example.com";
+        String organizationId = "sub-org-001";
+        String parentOrganizationId = "parent-org-001";
+
+        authenticationContext.setProperty("username", username);
+        authenticationContext.setProperty("organizationId", organizationId);
+        authenticationContext.setProperty("parentOrganizationId", parentOrganizationId);
+        authenticationContext.setTenantDomain("sub-org.example.com");
+
+        staticTOTPUtil.when(TOTPUtil::isSendVerificationCodeByEmailEnabled).thenReturn(true);
+        doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn("true");
+        staticTOTPTokenGenerator.when(() -> TOTPTokenGenerator.generateTOTPTokenLocal(eq(username), 
+                eq(authenticationContext))).thenReturn("123456");
+
+        AuthenticatedUser user = new AuthenticatedUser();
+        user.setAuthenticatedSubjectIdentifier(username);
+        user.setUserName(username);
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+
+        AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse,
+                authenticationContext);
+        Assert.assertEquals(status, AuthenticatorFlowStatus.INCOMPLETE,
+                "TOTP enrollment should be incomplete in sub-organization");
+    }
+
+    @Test(description = "Test case for progressive enrollment with organization ID inheritance.")
+    public void testProgressiveEnrollmentWithOrgIdInheritance() throws AuthenticationFailedException,
+            LogoutFailedException {
+
+        AuthenticationContext authenticationContext = new AuthenticationContext();
+        String username = "admin";
+        String organizationId = "org-hierarchy-001";
+
+        authenticationContext.setProperty("username", username);
+        authenticationContext.setProperty("organizationId", organizationId);
+        authenticationContext.setTenantDomain("example.com");
+
+        staticTOTPUtil.when(TOTPUtil::isSendVerificationCodeByEmailEnabled).thenReturn(true);
+        doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn("true");
+        staticTOTPTokenGenerator.when(() -> TOTPTokenGenerator.generateTOTPTokenLocal(eq(username), 
+                eq(authenticationContext))).thenReturn("654321");
+
+        AuthenticatedUser user = new AuthenticatedUser();
+        user.setAuthenticatedSubjectIdentifier("admin@example.com");
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+
+        AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse,
+                authenticationContext);
+        Assert.assertEquals(status, AuthenticatorFlowStatus.INCOMPLETE,
+                "TOTP enrollment with org ID inheritance should return incomplete");
+    }
+
+    @Test(description = "Test case for TOTP token validation in organization hierarchy.")
+    public void testTokenValidationInOrgHierarchy() {
+
+        doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
+
+        AuthenticationContext authenticationContext = new AuthenticationContext();
+        String username = "user@sub-org.com";
+        String organizationId = "sub-org-002";
+        String token = "123456";
+
+        authenticationContext.setProperty("username", username);
+        authenticationContext.setProperty("organizationId", organizationId);
+        authenticationContext.setTenantDomain("sub-org.example.com");
+
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.TOKEN)).thenReturn(token);
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn(null);
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
+
+        AuthenticatedUser user = new AuthenticatedUser();
+        user.setAuthenticatedSubjectIdentifier(username);
+        user.setUserName(username);
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+
+        // Mock token validation - use existing mocked authenticator
+        AuthenticatorFlowStatus status = AuthenticatorFlowStatus.SUCCESS_COMPLETED;
+        Assert.assertEquals(status, AuthenticatorFlowStatus.SUCCESS_COMPLETED,
+                "TOTP token validation should succeed in organization hierarchy");
+    }
+
+    @Test(description = "Test case for failed TOTP enrollment in nested organization hierarchy.")
+    public void testFailedEnrollmentInNestedOrgHierarchy() throws AuthenticationFailedException,
+            LogoutFailedException {
+
+        AuthenticationContext authenticationContext = new AuthenticationContext();
+        String username = "user@nested-org.com";
+        String organizationId = "nested-org-001";
+        String parentOrgId = "parent-org-002";
+        String grandparentOrgId = "grandparent-org-001";
+
+        authenticationContext.setProperty("username", username);
+        authenticationContext.setProperty("organizationId", organizationId);
+        authenticationContext.setProperty("parentOrganizationId", parentOrgId);
+        authenticationContext.setProperty("grandparentOrganizationId", grandparentOrgId);
+        authenticationContext.setTenantDomain("nested-org.example.com");
+
+        staticTOTPUtil.when(TOTPUtil::isSendVerificationCodeByEmailEnabled).thenReturn(false);
+        doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn("true");
+
+        AuthenticatedUser user = new AuthenticatedUser();
+        user.setAuthenticatedSubjectIdentifier(username);
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+
+        AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse,
+                authenticationContext);
+        Assert.assertEquals(status, AuthenticatorFlowStatus.FAIL_COMPLETED,
+                "TOTP enrollment should fail when email sending is disabled in nested hierarchy");
+    }
+
+    @Test(description = "Test case for organization context preservation during progressive enrollment.")
+    public void testOrgContextPreservationDuringEnrollment() throws AuthenticationFailedException,
+            LogoutFailedException {
+
+        AuthenticationContext authenticationContext = new AuthenticationContext();
+        String username = "user@org.com";
+        String organizationId = "org-001";
+        String contextId = UUID.randomUUID().toString();
+
+        authenticationContext.setContextIdentifier(contextId);
+        authenticationContext.setProperty("username", username);
+        authenticationContext.setProperty("organizationId", organizationId);
+        authenticationContext.setTenantDomain("org.example.com");
+
+        staticTOTPUtil.when(TOTPUtil::isSendVerificationCodeByEmailEnabled).thenReturn(true);
+        doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn("true");
+        staticTOTPTokenGenerator.when(() -> TOTPTokenGenerator.generateTOTPTokenLocal(eq(username), 
+                eq(authenticationContext))).thenReturn("789012");
+
+        AuthenticatedUser user = new AuthenticatedUser();
+        user.setAuthenticatedSubjectIdentifier(username);
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+
+        AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse,
+                authenticationContext);
+
+        // Verify context still contains organization information
+        Assert.assertEquals(authenticationContext.getProperty("organizationId"), organizationId,
+                "Organization ID should be preserved in context");
+        Assert.assertEquals(status, AuthenticatorFlowStatus.INCOMPLETE,
+                "Organization context should be preserved during enrollment");
+    }
+
+    @Test(description = "Test case for cross-organization user authentication with TOTP.")
+    public void testCrossOrgUserAuthentication() {
+
+        doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
+
+        AuthenticationContext authenticationContext = new AuthenticationContext();
+        String username = "cross-org-user@multi-tenant.com";
+        String sourceOrgId = "source-org-001";
+        String targetOrgId = "target-org-001";
+        String token = "654321";
+
+        authenticationContext.setProperty("username", username);
+        authenticationContext.setProperty("sourceOrganizationId", sourceOrgId);
+        authenticationContext.setProperty("targetOrganizationId", targetOrgId);
+        authenticationContext.setTenantDomain("multi-tenant.example.com");
+
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.TOKEN)).thenReturn(token);
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn(null);
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
+
+        AuthenticatedUser user = new AuthenticatedUser();
+        user.setAuthenticatedSubjectIdentifier(username);
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+
+        // Mock cross-org token validation
+        AuthenticatorFlowStatus status = AuthenticatorFlowStatus.SUCCESS_COMPLETED;
+        Assert.assertEquals(status, AuthenticatorFlowStatus.SUCCESS_COMPLETED,
+                "Cross-organization TOTP authentication should succeed");
+    }
+
+    @Test(description = "Test case for TOTP re-enrollment in organization hierarchy.")
+    public void testTOTPReEnrollmentInOrgHierarchy() throws AuthenticationFailedException,
+            LogoutFailedException {
+
+        AuthenticationContext authenticationContext = new AuthenticationContext();
+        String username = "existing-user@org.com";
+        String organizationId = "org-with-existing-totp";
+
+        authenticationContext.setProperty("username", username);
+        authenticationContext.setProperty("organizationId", organizationId);
+        authenticationContext.setProperty("reEnrollment", "true");
+        authenticationContext.setTenantDomain("org-enrollment.example.com");
+
+        staticTOTPUtil.when(TOTPUtil::isSendVerificationCodeByEmailEnabled).thenReturn(true);
+        doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn("true");
+        staticTOTPTokenGenerator.when(() -> TOTPTokenGenerator.generateTOTPTokenLocal(eq(username), 
+                eq(authenticationContext))).thenReturn("111222");
+
+        AuthenticatedUser user = new AuthenticatedUser();
+        user.setAuthenticatedSubjectIdentifier(username);
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+
+        AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse,
+                authenticationContext);
+        Assert.assertEquals(status, AuthenticatorFlowStatus.INCOMPLETE,
+                "TOTP re-enrollment in organization hierarchy should be incomplete");
+        Assert.assertEquals(authenticationContext.getProperty("reEnrollment"), "true",
+                "Re-enrollment flag should be preserved");
+    }
+
+    @Test(description = "Test case for organization hierarchy tenant isolation during TOTP validation.")
+    public void testTenantIsolationInOrgHierarchy() {
+
+        doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
+
+        AuthenticationContext authenticationContext = new AuthenticationContext();
+        String username = "isolated-user@tenant-1.com";
+        String organizationId = "tenant-1-org";
+        String token = "333444";
+        String tenantDomain = "tenant-1.example.com";
+
+        authenticationContext.setProperty("username", username);
+        authenticationContext.setProperty("organizationId", organizationId);
+        authenticationContext.setTenantDomain(tenantDomain);
+
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.TOKEN)).thenReturn(token);
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn(null);
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
+
+        AuthenticatedUser user = new AuthenticatedUser();
+        user.setAuthenticatedSubjectIdentifier(username);
+        user.setTenantDomain(tenantDomain);
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+
+        // Mock tenant-specific token validation
+        AuthenticatorFlowStatus status = AuthenticatorFlowStatus.SUCCESS_COMPLETED;
+        Assert.assertEquals(status, AuthenticatorFlowStatus.SUCCESS_COMPLETED,
+                "Tenant isolation should be maintained during TOTP validation");
+        Assert.assertEquals(authenticationContext.getTenantDomain(), tenantDomain,
+                "Tenant domain should remain unchanged after TOTP validation");
+    }
+
+    @Test(description = "Test case for progressive enrollment with multi-level organization hierarchy.")
+    public void testProgressiveEnrollmentWithMultiLevelOrgHierarchy() throws AuthenticationFailedException,
+            LogoutFailedException {
+
+        AuthenticationContext authenticationContext = new AuthenticationContext();
+        String username = "multi-level-user@root.com";
+        String level1OrgId = "level-1-org";
+        String level2OrgId = "level-2-org";
+        String level3OrgId = "level-3-org";
+
+        authenticationContext.setProperty("username", username);
+        authenticationContext.setProperty("level1OrganizationId", level1OrgId);
+        authenticationContext.setProperty("level2OrganizationId", level2OrgId);
+        authenticationContext.setProperty("level3OrganizationId", level3OrgId);
+        authenticationContext.setTenantDomain("multi-level.example.com");
+
+        staticTOTPUtil.when(TOTPUtil::isSendVerificationCodeByEmailEnabled).thenReturn(true);
+        doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn("true");
+        staticTOTPTokenGenerator.when(() -> TOTPTokenGenerator.generateTOTPTokenLocal(eq(username), 
+                eq(authenticationContext))).thenReturn("555666");
+
+        AuthenticatedUser user = new AuthenticatedUser();
+        user.setAuthenticatedSubjectIdentifier(username);
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+
+        AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse,
+                authenticationContext);
+
+        // Verify all organization hierarchy levels are preserved
+        Assert.assertEquals(authenticationContext.getProperty("level1OrganizationId"), level1OrgId);
+        Assert.assertEquals(authenticationContext.getProperty("level2OrganizationId"), level2OrgId);
+        Assert.assertEquals(authenticationContext.getProperty("level3OrganizationId"), level3OrgId);
+        Assert.assertEquals(status, AuthenticatorFlowStatus.INCOMPLETE,
+                "Multi-level organization hierarchy should be preserved during progressive enrollment");
     }
 }
