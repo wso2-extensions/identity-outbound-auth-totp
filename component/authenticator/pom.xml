@@ -127,6 +127,14 @@
             <groupId>org.wso2.carbon.identity.organization.management.core</groupId>
             <artifactId>org.wso2.carbon.identity.organization.management.service</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.organization.management</groupId>
+            <artifactId>org.wso2.carbon.identity.organization.application.resource.hierarchy.traverse.service</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.organization.management</groupId>
+            <artifactId>org.wso2.carbon.identity.organization.resource.hierarchy.traverse.service</artifactId>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -162,9 +170,12 @@
                             org.wso2.carbon.identity.handler.event.account.lock.exception;
                             version="${carbon.identity.account.lock.handler.imp.pkg.version.range}",
                             org.owasp.encoder; version="${encoder.wso2.import.version.range}",
-                            org.wso2.carbon.identity.organization.management.service;version="${org.wso2.carbon.identity.organization.management.core.version.range}",
-                            org.wso2.carbon.identity.organization.management.service.exception;version="${org.wso2.carbon.identity.organization.management.core.version.range}",
-                            org.wso2.carbon.identity.organization.management.service.util;version="${org.wso2.carbon.identity.organization.management.core.version.range}",
+                            org.wso2.carbon.identity.organization.management.service;version="${identity.organization.management.core.version.range}",
+                            org.wso2.carbon.identity.organization.management.service.exception;version="${identity.organization.management.core.version.range}",
+                            org.wso2.carbon.identity.organization.management.service.util;version="${identity.organization.management.core.version.range}",
+                            org.wso2.carbon.identity.organization.application.resource.hierarchy.traverse.service;version="${identity.organization.management.version.range}",
+                            org.wso2.carbon.identity.organization.resource.hierarchy.traverse.service.strategy;version="${identity.organization.management.version.range}",
+                            org.wso2.carbon.identity.organization.resource.hierarchy.traverse.service.exception;version="${identity.organization.management.version.range}",
                         </Import-Package>
                         <DynamicImport-Package>*</DynamicImport-Package>
                         <Export-Package>!org.wso2.carbon.identity.application.authenticator.totp.internal.*,

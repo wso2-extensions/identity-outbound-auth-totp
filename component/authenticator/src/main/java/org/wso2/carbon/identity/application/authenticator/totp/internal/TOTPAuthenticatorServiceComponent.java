@@ -35,6 +35,7 @@ import org.wso2.carbon.identity.event.services.IdentityEventService;
 import org.wso2.carbon.identity.governance.IdentityGovernanceService;
 import org.wso2.carbon.identity.governance.common.IdentityConnectorConfig;
 import org.wso2.carbon.identity.handler.event.account.lock.service.AccountLockService;
+import org.wso2.carbon.identity.organization.application.resource.hierarchy.traverse.service.OrgAppResourceResolverService;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.idp.mgt.IdpManager;
 import org.wso2.carbon.user.core.service.RealmService;
@@ -287,5 +288,20 @@ public class TOTPAuthenticatorServiceComponent {
 	protected void unsetBrandingPreferenceManager(BrandingPreferenceManager brandingPreferenceManager) {
 
 		TOTPDataHolder.getInstance().setBrandingPreferenceManager(null);
+	}
+
+	@Reference(name = "org.wso2.carbon.identity.organization.application.resource.hierarchy.traverse.service",
+			service = OrgAppResourceResolverService.class,
+			cardinality = ReferenceCardinality.OPTIONAL,
+			policy = ReferencePolicy.DYNAMIC,
+			unbind = "unsetOrgAppResourceResolverService")
+	protected void setOrgAppResourceResolverService(OrgAppResourceResolverService orgAppResourceResolverService) {
+
+		TOTPDataHolder.getInstance().setOrgAppResourceResolverService(orgAppResourceResolverService);
+	}
+
+	protected void unsetOrgAppResourceResolverService(OrgAppResourceResolverService orgAppResourceResolverService) {
+
+		TOTPDataHolder.getInstance().setOrgAppResourceResolverService(null);
 	}
 }

@@ -23,6 +23,7 @@ import org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataManagementServic
 import org.wso2.carbon.identity.event.services.IdentityEventService;
 import org.wso2.carbon.identity.governance.IdentityGovernanceService;
 import org.wso2.carbon.identity.handler.event.account.lock.service.AccountLockService;
+import org.wso2.carbon.identity.organization.application.resource.hierarchy.traverse.service.OrgAppResourceResolverService;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.idp.mgt.IdpManager;
 import org.wso2.carbon.user.core.service.RealmService;
@@ -42,6 +43,7 @@ public class TOTPDataHolder {
 	private IdentityGovernanceService identityGovernanceService;
 	private IdpManager idpManager;
 	private OrganizationManager organizationManager;
+	private OrgAppResourceResolverService orgAppResourceResolverService;
 	private BrandingPreferenceManager brandingPreferenceManager;
 	private ClaimMetadataManagementService claimMetadataManagementService;
 
@@ -246,5 +248,25 @@ public class TOTPDataHolder {
 	public void setBrandingPreferenceManager(BrandingPreferenceManager brandingPreferenceManager) {
 
 		this.brandingPreferenceManager = brandingPreferenceManager;
+	}
+
+	/**
+	 * Get the OrgAppResourceResolverService.
+	 *
+	 * @return OrgAppResourceResolverService instance.
+	 */
+	public OrgAppResourceResolverService getOrgAppResourceResolverService() {
+
+		return orgAppResourceResolverService;
+	}
+
+	/**
+	 * Set the OrgAppResourceResolverService.
+	 *
+	 * @param orgAppResourceResolverService The OrgAppResourceResolverService instance.
+	 */
+	public void setOrgAppResourceResolverService(OrgAppResourceResolverService orgAppResourceResolverService) {
+
+		this.orgAppResourceResolverService = orgAppResourceResolverService;
 	}
 }

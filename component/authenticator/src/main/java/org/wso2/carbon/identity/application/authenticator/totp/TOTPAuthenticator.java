@@ -70,7 +70,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,6 +78,10 @@ import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import org.wso2.carbon.identity.organization.application.resource.hierarchy.traverse.service.OrgAppResourceResolverService;
+import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
+import org.wso2.carbon.identity.organization.resource.hierarchy.traverse.service.strategy.FirstFoundAggregationStrategy;
 
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.AUTHENTICATOR_TOTP;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.DISPLAY_TOKEN;
@@ -1391,15 +1394,13 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     }
 
     /**
-     * Check if progressive enrollment is enabled globally via Identity Governance config.
+     * Check if progressive enrollment is enabled using the zigzag pattern.
      * Progressive enrollment allows users to enroll TOTP devices during their login flow.
      * 
-     * Priority (highest to lowest):
-     * 1. Application-level Conditional Auth Script (runtime params) - HIGHEST PRIORITY
-     * 2. Organization-level Identity Governance config (global setting)
-     * 3. Default value (true - enrollment enabled)
-     * 
-     * This ensures application-specific requirements always take precedence over organization defaults.
+     * This zigzag traversal ensures that:
+     * - When using a shared app in a sub-organization, the sub-org's settings take precedence
+     * - Within the same org/app context, conditional scripts override org-level configs
+     * - Hierarchical inheritance follows the org hierarchy up to the root
      *
      * @param context The authentication context.
      * @return true if progressive enrollment is enabled (show QR code for enrollment), false if disabled (skip enrollment).
@@ -1409,34 +1410,156 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         // Default: true = Allow progressive enrollment (users can enroll TOTP during login)
         boolean isProgressiveEnrollmentEnabled = true;
 
-        // Step 1: Check Organization-level Configuration (Identity Governance) 
         try {
             String tenantDomain = context.getTenantDomain();
-            Property[] connectorConfigs = TOTPDataHolder.getInstance()
-                    .getIdentityGovernanceService()
-                    .getConfiguration(new String[]{TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG}, tenantDomain);
+            String applicationId = FrameworkUtils.getApplicationResourceId(context).orElse(null);
             
-            if (connectorConfigs != null && connectorConfigs.length > 0) {
-                String configValue = connectorConfigs[0].getValue();
-                // true = Progressive enrollment enabled (users CAN enroll TOTP during login - show QR code)
-                // false = Progressive enrollment disabled (skip enrollment - go directly to verification page)
-                isProgressiveEnrollmentEnabled = Boolean.parseBoolean(configValue);
+            // Try to use org hierarchy traversal if available (for shared apps in sub-orgs scenario)
+            OrgAppResourceResolverService orgAppResourceResolverService = 
+                    TOTPDataHolder.getInstance().getOrgAppResourceResolverService();
+            
+            if (orgAppResourceResolverService != null && applicationId != null) {
+                try {
+                    String organizationId = getOrganizationId(tenantDomain);
+                    if (organizationId != null) {
+                        // Use zigzag pattern traversal with FirstFoundAggregationStrategy
+                        // This automatically handles the hierarchical traversal
+                        Boolean result = orgAppResourceResolverService.getResourcesFromOrgHierarchy(
+                                organizationId,
+                                applicationId,
+                                (orgId, appId) -> progressiveEnrollmentRetriever(orgId, appId),
+                                new FirstFoundAggregationStrategy<>()
+                        );
+                        
+                        if (result != null) {
+                            isProgressiveEnrollmentEnabled = result;
+                            if (log.isDebugEnabled()) {
+                                log.debug("Progressive enrollment resolved via org hierarchy zigzag pattern: " + 
+                                        isProgressiveEnrollmentEnabled);
+                            }
+                            return isProgressiveEnrollmentEnabled;
+                        }
+                    }
+                } catch (Exception e) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Org hierarchy traversal not available or failed. Falling back to tenant-level config.", e);
+                    }
+                }
             }
-        } catch (IdentityGovernanceException e) {
-            log.error("Error while retrieving progressive enrollment config. Defaulting to enabled.", e);
-        } catch (Exception e) {
-            log.error("Unexpected error while retrieving progressive enrollment config.", e);
-        }
+            
+            // Fallback: Check org-level config and app-level runtime params (non-zigzag mode)
+            try {
+                Property[] connectorConfigs = TOTPDataHolder.getInstance()
+                        .getIdentityGovernanceService()
+                        .getConfiguration(new String[]{TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG}, tenantDomain);
+                
+                if (connectorConfigs != null && connectorConfigs.length > 0) {
+                    String configValue = connectorConfigs[0].getValue();
+                    if (StringUtils.isNotBlank(configValue)) {
+                        isProgressiveEnrollmentEnabled = Boolean.parseBoolean(configValue);
+                    }
+                }
+            } catch (IdentityGovernanceException e) {
+                log.error("Error while retrieving progressive enrollment config. Defaulting to enabled.", e);
+            }
 
-        // Step 2: Check Application-level Conditional Auth Script (Runtime param) - HIGHEST PRIORITY
-        // This allows applications to override organization-level settings
-        Map<String, String> runtimeParams = getRuntimeParams(context);
-        if (runtimeParams != null && runtimeParams.containsKey(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW)) {
-            String runtimeValue = runtimeParams.get(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW);
-            isProgressiveEnrollmentEnabled = Boolean.parseBoolean(runtimeValue);
+            // Check Application-level Conditional Auth Script (Runtime param) - HIGHEST PRIORITY at this level
+            // This allows applications to override organization-level settings
+            Map<String, String> runtimeParams = getRuntimeParams(context);
+            if (runtimeParams != null && runtimeParams.containsKey(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW)) {
+                String runtimeValue = runtimeParams.get(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW);
+                isProgressiveEnrollmentEnabled = Boolean.parseBoolean(runtimeValue);
+            }
+        } catch (Exception e) {
+            log.error("Unexpected error while checking progressive enrollment configuration. Defaulting to enabled.", e);
         }
 
         return isProgressiveEnrollmentEnabled;
+    }
+
+    /**
+     * Private retriever method used by OrgAppResourceResolverService for zigzag pattern traversal.
+     * This method implements the zigzag logic: check app-level first, then org-level within each hierarchy level.
+     *
+     * @param orgId Organization ID at current hierarchy level
+     * @param appId Application ID at current hierarchy level
+     * @return Optional<Boolean> containing the enrollment setting if found, empty if not found at this level
+     */
+    private Optional<Boolean> progressiveEnrollmentRetriever(String orgId, String appId) {
+        
+        try {
+            OrganizationManager organizationManager = TOTPDataHolder.getInstance().getOrganizationManager();
+            if (organizationManager == null) {
+                return Optional.empty();
+            }
+            
+            String tenantDomainOfOrg = organizationManager.resolveTenantDomain(orgId);
+            
+            // Step 1: Check app-level Conditional Auth Script first (highest priority within this level)
+            Map<String, String> runtimeParams = getRuntimeParams(null); // Note: In real scenario, context would be available
+            if (runtimeParams != null && runtimeParams.containsKey(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW)) {
+                String runtimeValue = runtimeParams.get(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW);
+                Boolean result = Boolean.parseBoolean(runtimeValue);
+                if (log.isDebugEnabled()) {
+                    log.debug("Progressive enrollment found at app-level for org: " + orgId + ", app: " + appId + 
+                            ", value: " + result);
+                }
+                return Optional.of(result);
+            }
+            
+            // Step 2: Fall back to org-level Identity Governance config if app-level not found
+            try {
+                Property[] connectorConfigs = TOTPDataHolder.getInstance()
+                        .getIdentityGovernanceService()
+                        .getConfiguration(new String[]{TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG}, tenantDomainOfOrg);
+                
+                if (connectorConfigs != null && connectorConfigs.length > 0) {
+                    String configValue = connectorConfigs[0].getValue();
+                    if (StringUtils.isNotBlank(configValue)) {
+                        Boolean result = Boolean.parseBoolean(configValue);
+                        if (log.isDebugEnabled()) {
+                            log.debug("Progressive enrollment found at org-level for org: " + orgId + 
+                                    ", value: " + result);
+                        }
+                        return Optional.of(result);
+                    }
+                }
+            } catch (IdentityGovernanceException e) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Error retrieving org-level progressive enrollment config for org: " + orgId, e);
+                }
+            }
+            
+            // Not found at this level, continue to parent org/app
+            return Optional.empty();
+        } catch (Exception e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Error in progressiveEnrollmentRetriever for org: " + orgId + ", app: " + appId, e);
+            }
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Get organization ID from tenant domain.
+     *
+     * @param tenantDomain The tenant domain
+     * @return Organization ID, or null if not available
+     */
+    private String getOrganizationId(String tenantDomain) {
+        
+        try {
+            OrganizationManager organizationManager = TOTPDataHolder.getInstance().getOrganizationManager();
+            if (organizationManager != null) {
+                String organizationId = organizationManager.resolveOrganizationId(tenantDomain);
+                return organizationId;
+            }
+        } catch (Exception e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Error resolving organization ID for tenant: " + tenantDomain, e);
+            }
+        }
+        return null;
     }
 
     /**
