@@ -244,15 +244,24 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 						buildTOTPLoginPageURL(context, username, retryParam, errorParam, multiOptionURI);
 				response.sendRedirect(buildAbsoluteURL(totpLoginPageUrl));
 			} else {
-				if (TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context)
+                if (TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context) && !retryParam.isEmpty()) {
+                    // if retrying after a failure during enrolment, redirect to the TOTP enter page to retry.
+                    if (!showAuthFailureReasonOnLoginPage) {
+                        errorParam = StringUtils.EMPTY;
+                    }
+                    String totpLoginPageUrl =
+                            buildTOTPLoginPageURL(context, username, retryParam, errorParam, multiOptionURI);
+                    response.sendRedirect(totpLoginPageUrl);
+                } else if (TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context)
 						&& request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
 					//if TOTP is not enabled for the user and he hasn't redirected to the enrolment page yet.
 					if (log.isDebugEnabled()) {
 						log.debug("User has not enabled TOTP: " + username);
 					}
-					Map<String, String> claims = TOTPKeyGenerator.generateClaims(username, false, context);
-					context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
-							claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
+					Map<String, String> claims = TOTPKeyGenerator.generateClaimsWithVerifySecretKey
+                            (username, false, context);
+					context.setProperty(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL,
+							claims.get(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL));
 					context.setProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
 							claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL));
 					String qrURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
@@ -403,10 +412,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 		checkTotpEnabled(context, username);
 		try {
 			int tokenValue = Integer.parseInt(token);
-			if (!isValidTokenLocalUser(tokenValue, username, context)) {
-				handleTotpVerificationFail(context);
-				throw new AuthenticationFailedException("Invalid Token. Authentication failed, user :  " + username);
-			}
+            if (!isValidTokenLocalUser(tokenValue, username, context)) {
+                handleTotpVerificationFail(context);
+                throw new AuthenticationFailedException("Invalid Token. Authentication failed, user :  " + username);
+            }
+
 			if (StringUtils.isNotBlank(username)) {
 				AuthenticatedUser authenticatedUser = new AuthenticatedUser();
 				authenticatedUser.setAuthenticatedSubjectIdentifier(username);
@@ -434,10 +444,14 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 				.valueOf(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString())) {
 			//adds the claims to the profile if the user enrol and continued.
 			Map<String, String> claims = new HashMap<>();
-			if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
-				claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
-						context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString());
+			if (context.getProperty(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL) != null) {
+				claims.put(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL,
+						context.getProperty(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL).toString());
 			}
+            if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
+                claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
+                        context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString());
+            }
 			if (context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL) != null) {
 				claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
 						context.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL).toString());
@@ -600,59 +614,35 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 		}
 	}
 
-	/**
-	 * Verify whether a given token is valid for a stored local user.
-	 *
-	 * @param token    TOTP Token which needs to be validated
-	 * @param context  Authentication context
-	 * @param username Username of the user
-	 * @return true if token is valid otherwise false
-	 * @throws TOTPException UserRealm for user or tenant domain is null
-	 */
+    /**
+     * Verify whether a given token is valid for a stored local user.
+     *
+     * @param token          TOTP Token which needs to be validated
+     * @param context        Authentication context
+     * @param username       Username of the user
+     * @return true if token is valid otherwise false
+     * @throws TOTPException UserRealm for user or tenant domain is null
+     */
 	private boolean isValidTokenLocalUser(int token, String username, AuthenticationContext context)
 			throws TOTPException {
-		TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;
+
+        TOTPKeyRepresentation encoding = TOTPKeyRepresentation.BASE32;
 		String tenantDomain = MultitenantUtils.getTenantDomain(username);
-		String tenantAwareUsername = null;
-		try {
-			if (TOTPAuthenticatorConstants.BASE64
-					.equals(TOTPUtil.getEncodingMethod(tenantDomain, context))) {
-				encoding = TOTPKeyRepresentation.BASE64;
-			}
-			long timeStep = TimeUnit.SECONDS.toMillis(TOTPUtil.getTimeStepSize(context));
-			int windowSize = TOTPUtil.getWindowSize(context);
-			TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder totpAuthenticatorConfigBuilder =
-					new TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder()
-							.setKeyRepresentation(encoding).setWindowSize(windowSize)
-							.setTimeStepSizeInMillis(timeStep);
-			TOTPAuthenticatorCredentials totpAuthenticator =
-					new TOTPAuthenticatorCredentials(totpAuthenticatorConfigBuilder.build());
-			tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
-			UserRealm userRealm = TOTPUtil.getUserRealm(username);
-			if (userRealm != null) {
-				Map<String, String> userClaimValues = userRealm
-						.getUserStoreManager().getUserClaimValues
-								(tenantAwareUsername, new String[]
-										{ TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL }, null);
-				byte[] secretKey = TOTPUtil.decryptSecret(
-						userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
-				return totpAuthenticator.authorize(secretKey, token);
-			} else {
-				throw new TOTPException(
-						"Cannot find the user realm for the given tenant domain : " +
-						CarbonContext.getThreadLocalCarbonContext().getTenantDomain());
-			}
-		} catch (UserStoreException e) {
-			throw new TOTPException(
-					"TOTPTokenVerifier failed while trying to access userRealm of the user : " +
-					tenantAwareUsername, e);
-		} catch (CryptoException e) {
-			throw new TOTPException("Error while decrypting the key", e);
-		} catch (AuthenticationFailedException e) {
-			throw new TOTPException(
-					"TOTPTokenVerifier cannot find the property value for encodingMethod");
-		}
-	}
+        if (TOTPAuthenticatorConstants.BASE64
+                .equals(TOTPUtil.getEncodingMethod(tenantDomain, context))) {
+            encoding = TOTPKeyRepresentation.BASE64;
+        }
+        long timeStep = TimeUnit.SECONDS.toMillis(TOTPUtil.getTimeStepSize(context));
+        int windowSize = TOTPUtil.getWindowSize(context);
+        TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder totpAuthenticatorConfigBuilder =
+                new TOTPAuthenticatorConfig.TOTPAuthenticatorConfigBuilder()
+                        .setKeyRepresentation(encoding).setWindowSize(windowSize)
+                        .setTimeStepSizeInMillis(timeStep);
+        TOTPAuthenticatorCredentials totpAuthenticator =
+                new TOTPAuthenticatorCredentials(totpAuthenticatorConfigBuilder.build());
+
+        return totpAuthenticator.isValidVerificationCode(token, username);
+    }
 
 	/**
 	 * Execute account lock flow for TOTP verification failures.
@@ -661,7 +651,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 	 * @throws AuthenticationFailedException Exception on authentication failure.
 	 */
 	private void handleTotpVerificationFail(AuthenticationContext context) throws AuthenticationFailedException {
-		
+
 		AuthenticatedUser authenticatedUser =
 				(AuthenticatedUser) context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER);
 		/*

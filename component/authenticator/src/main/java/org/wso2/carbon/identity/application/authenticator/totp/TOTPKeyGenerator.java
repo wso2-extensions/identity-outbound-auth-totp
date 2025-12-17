@@ -73,6 +73,22 @@ public class TOTPKeyGenerator {
         return generateClaims(username, refresh, null, TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL);
     }
 
+    /**
+     * Generate TOTP secret key, encoding method and QR Code url for user during authentication flow.
+     *
+     * @param username Username of the user
+     * @param refresh  Boolean type of refreshing the secret token
+     * @param context  Authentication context
+     * @return claims
+     * @throws TOTPException when user realm is null or while decrypting the key
+     */
+    public static Map<String, String> generateClaimsWithVerifySecretKey(String username, boolean refresh,
+                                                                        AuthenticationContext context)
+            throws TOTPException {
+
+        return generateClaims(username, refresh, context, TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL);
+    }
+
     private static Map<String, String> generateClaims(String username, boolean refresh, AuthenticationContext context,
                                                       String secretKeyClaim) throws TOTPException {
 
