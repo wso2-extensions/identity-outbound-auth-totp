@@ -344,11 +344,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             if (log.isDebugEnabled()) {
                 log.debug("TOTP  is enabled by admin: " + isTOTPEnabledByAdmin);
             }
-            // This multi option URI is used to navigate back to multi option page to select a different
+            // This multi option URI is used to navigate back to multi option page to select a different.
             // authentication option from TOTP pages.
             String multiOptionURI = getMultiOptionURIQueryParam(request);
 
-            // Scenario 1: User already has TOTP configured → Always show TOTP verification page
+            // Scenario 1: User already has TOTP configured → Always show TOTP verification page.
             if (isSecretKeyExistForUser &&
                     request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
                 if (log.isDebugEnabled()) {
@@ -365,7 +365,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
                 }
             } else {
-                // Scenario 2 & 3: User does NOT have TOTP configured
+                // Scenario 2 & 3: User does NOT have TOTP configured.
                 Map<String, String> runtimeParams = getRuntimeParams(context);
                 boolean isProgressiveEnrollmentEnabled = isProgressiveEnrollmentEnabled(context);
                 
@@ -373,14 +373,14 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     diagnosticLogBuilder.inputParam("progressive enrollment enabled", isProgressiveEnrollmentEnabled);
                 }
 
-                // Scenario 2 & 3: Handle new users (no TOTP setup yet)
+                // Scenario 2 & 3: Handle new users (no TOTP setup yet).
                 if (request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
                     if (context.getProperty(IS_API_BASED) == null) {
                         if (log.isDebugEnabled()) {
                             log.debug("User has not enabled TOTP yet: " + username);
                         }
                         
-                        // Generate secret key and QR code for the user
+                        // Generate secret key and QR code for the user.
                         Map<String, String> claims;
                         if (isInitialFederationAttempt) {
                             claims = TOTPKeyGenerator.generateClaimsForFedUser(username, tenantDomain, context);
@@ -391,7 +391,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         Map<String, String> claimProperties = TOTPUtil.getClaimProperties(tenantDomain,
                                 TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
                         
-                        // Context will have the decrypted secret key all the time
+                        // Context will have the decrypted secret key all the time.
                         if (claimProperties.containsKey(TOTPAuthenticatorConstants.ENABLE_ENCRYPTION)) {
                             context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
                                     claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
@@ -404,7 +404,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         String qrURL = claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
                         
                         if (isProgressiveEnrollmentEnabled) {
-                            // Progressive enrollment ENABLED: Show QR code enrollment page
+                            // Progressive enrollment ENABLED: Show QR code enrollment page.
                             log.info("Progressive enrollment is enabled. Redirecting to QR code enrollment page.");
                             TOTPUtil.redirectToEnableTOTPReqPage(request, response, context, qrURL, runtimeParams);
                             if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
@@ -412,7 +412,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                                 LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
                             }
                         } else {
-                            // Progressive enrollment DISABLED: Show TOTP verification page 
+                            // Progressive enrollment DISABLED: Show TOTP verification page.
                             log.info("Progressive enrollment is disabled. Showing verification page without enrollment option. User can skip TOTP.");
                             if (!showAuthFailureReason) {
                                 errorParam = StringUtils.EMPTY;
@@ -427,7 +427,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         }
                     }
                 }
-                // User clicked "Enable TOTP" button or admin enforced TOTP → Show verification page
+                // User clicked "Enable TOTP" button or admin enforced TOTP → Show verification page.
                 else if (Boolean.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)) ||
                         isTOTPEnabledByAdmin) {
                     log.info("User opted to enable TOTP or admin enforced. Showing TOTP verification page.");
@@ -1398,20 +1398,20 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
      * Progressive enrollment allows users to enroll TOTP devices during their login flow.
      * 
      * This zigzag traversal ensures that:
-     * - When using a shared app in a sub-organization, the sub-org's settings take precedence
-     * - Within the same org/app context, conditional scripts override org-level configs
-     * - Hierarchical inheritance follows the org hierarchy up to the root
+     * - When using a shared app in a sub-organization, the sub-org's settings take precedence.
+     * - Within the same org/app context, conditional scripts override org-level configs.
+     * - Hierarchical inheritance follows the org hierarchy up to the root.
      *
      * @param context The authentication context.
      * @return true if progressive enrollment is enabled (show QR code for enrollment), false if disabled (skip enrollment).
      */
     private boolean isProgressiveEnrollmentEnabled(AuthenticationContext context) {
         
-        // Default: true = Allow progressive enrollment (users can enroll TOTP during login)
+        // Default: true = Allow progressive enrollment (users can enroll TOTP during login).
         boolean isProgressiveEnrollmentEnabled = true;
 
         try {
-            // Validate context to prevent NPE
+            // Validate context to prevent NPE.
             if (context == null) {
                 log.warn("Authentication context is null. Defaulting progressive enrollment to enabled.");
                 return true;
@@ -1420,13 +1420,13 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             String tenantDomain = context.getTenantDomain();
             String applicationId = FrameworkUtils.getApplicationResourceId(context).orElse(null);
             
-            // Try org hierarchy traversal first if available
+            // Try org hierarchy traversal first if available.
             Boolean hierarchyResult = resolveProgressiveEnrollmentViaHierarchy(context, tenantDomain, applicationId);
             if (hierarchyResult != null) {
                 return hierarchyResult;
             }
             
-            // Fallback: Check org-level config and app-level runtime params
+            // Fallback: Check org-level config and app-level runtime params.
             isProgressiveEnrollmentEnabled = resolveProgressiveEnrollmentViaFallback(context, tenantDomain);
         } catch (Exception e) {
             log.error("Unexpected error while checking progressive enrollment configuration. Defaulting to enabled.", e);
@@ -1438,10 +1438,10 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     /**
      * Resolve progressive enrollment via organization hierarchy traversal.
      *
-     * @param context The authentication context
-     * @param tenantDomain The tenant domain
-     * @param applicationId The application ID
-     * @return Boolean result if found, null if not available or not found
+     * @param context The authentication context.
+     * @param tenantDomain The tenant domain.
+     * @param applicationId The application ID.
+     * @return Boolean result if found, null if not available or not found.
      */
     private Boolean resolveProgressiveEnrollmentViaHierarchy(AuthenticationContext context, String tenantDomain, 
                                                              String applicationId) {
@@ -1459,8 +1459,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 return null;
             }
             
-            // Use zigzag pattern traversal with FirstFoundAggregationStrategy
-            // Pass context to retriever via lambda to preserve script override capability
+            // Use zigzag pattern traversal with FirstFoundAggregationStrategy.
+            // Pass context to retriever via lambda to preserve script override capability.
             Boolean result = orgAppResourceResolverService.getResourcesFromOrgHierarchy(
                     organizationId,
                     applicationId,
@@ -1480,23 +1480,23 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             }
         }
         
-        return null; // Fallback to non-hierarchy resolution
+        return null; // Fallback to non-hierarchy resolution.
     }
 
     /**
      * Resolve progressive enrollment via fallback configuration (no hierarchy traversal).
      *
-     * @param context The authentication context
-     * @param tenantDomain The tenant domain
-     * @return true if enrollment enabled, false if explicitly disabled
+     * @param context The authentication context.
+     * @param tenantDomain The tenant domain.
+     * @return true if enrollment enabled, false if explicitly disabled.
      */
     private boolean resolveProgressiveEnrollmentViaFallback(AuthenticationContext context, String tenantDomain) {
         
-        // Check org-level config first
+        // Check org-level config first.
         boolean isProgressiveEnrollmentEnabled = resolveOrgLevelProgressiveEnrollment(tenantDomain);
         
-        // Check Application-level Conditional Auth Script (Runtime param) - HIGHEST PRIORITY
-        // This allows applications to override organization-level settings
+        // Check Application-level Conditional Auth Script (Runtime param) - HIGHEST PRIORITY.
+        // This allows applications to override organization-level settings.
         Map<String, String> runtimeParams = getRuntimeParamsSafely(context);
         if (runtimeParams.containsKey(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW)) {
             String runtimeValue = runtimeParams.get(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW);
@@ -1513,8 +1513,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     /**
      * Resolve progressive enrollment at the organization level.
      *
-     * @param tenantDomain The tenant domain
-     * @return true if enabled, false if explicitly disabled, true (default) if not configured
+     * @param tenantDomain The tenant domain.
+     * @return true if enabled, false if explicitly disabled, true (default) if not configured.
      */
     private boolean resolveOrgLevelProgressiveEnrollment(String tenantDomain) {
         
@@ -1544,9 +1544,9 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
      * ensuring that script-based overrides are not missed during hierarchy traversal.
      *
      * @param context The authentication context (may contain conditional auth script settings).
-     * @param orgId Organization ID at current hierarchy level
-     * @param appId Application ID at current hierarchy level
-     * @return Optional<Boolean> containing the enrollment setting if found, empty if not found at this level
+     * @param orgId Organization ID at current hierarchy level.
+     * @param appId Application ID at current hierarchy level.
+     * @return Optional<Boolean> containing the enrollment setting if found, empty if not found at this level.
      */
     private Optional<Boolean> progressiveEnrollmentRetriever(AuthenticationContext context, String orgId, String appId) {
         
@@ -1565,13 +1565,13 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             
             String tenantDomainOfOrg = organizationManager.resolveTenantDomain(orgId);
             
-            // Step 1: Check app-level Conditional Auth Script first (highest priority within this level)
+            // Step 1: Check app-level Conditional Auth Script first (highest priority within this level).
             Optional<Boolean> scriptOverride = resolveAppLevelScriptOverride(context, orgId, appId);
             if (scriptOverride.isPresent()) {
                 return scriptOverride;
             }
             
-            // Step 2: Fall back to org-level Identity Governance config if app-level not found
+            // Step 2: Fall back to org-level Identity Governance config if app-level not found.
             return resolveOrgLevelEnrollment(tenantDomainOfOrg, orgId);
             
         } catch (Exception e) {
@@ -1585,10 +1585,10 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     /**
      * Resolve app-level conditional authentication script override.
      *
-     * @param context The authentication context
-     * @param orgId The organization ID
-     * @param appId The application ID
-     * @return Optional<Boolean> if script override found, empty otherwise
+     * @param context The authentication context.
+     * @param orgId The organization ID.
+     * @param appId The application ID.
+     * @return Optional<Boolean> if script override found, empty otherwise.
      */
     private Optional<Boolean> resolveAppLevelScriptOverride(AuthenticationContext context, String orgId, String appId) {
         
@@ -1613,9 +1613,9 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     /**
      * Resolve org-level enrollment configuration.
      *
-     * @param tenantDomainOfOrg The tenant domain of the organization
-     * @param orgId The organization ID
-     * @return Optional<Boolean> if org-level config found, empty otherwise
+     * @param tenantDomainOfOrg The tenant domain of the organization.
+     * @param orgId The organization ID.
+     * @return Optional<Boolean> if org-level config found, empty otherwise.
      */
     private Optional<Boolean> resolveOrgLevelEnrollment(String tenantDomainOfOrg, String orgId) {
         
@@ -1650,8 +1650,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
      * Fallback retriever when context is not available during hierarchy traversal.
      * Only checks org-level governance configs without script overrides.
      *
-     * @param orgId Organization ID at current hierarchy level
-     * @return Optional<Boolean> containing the enrollment setting if found at org-level
+     * @param orgId Organization ID at current hierarchy level.
+     * @return Optional<Boolean> containing the enrollment setting if found at org-level.
      */
     private Optional<Boolean> progressiveEnrollmentRetrieverWithoutContext(String orgId) {
         
@@ -1675,8 +1675,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
      * Safely retrieve runtime parameters from context without throwing NPE.
      * Gracefully handles null context and missing runtime params.
      *
-     * @param context The authentication context (may be null)
-     * @return Map of runtime parameters, or empty map if not available
+     * @param context The authentication context (may be null).
+     * @return Map of runtime parameters, or empty map if not available.
      */
     private Map<String, String> getRuntimeParamsSafely(AuthenticationContext context) {
         
@@ -1701,8 +1701,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     /**
      * Get organization ID from tenant domain.
      *
-     * @param tenantDomain The tenant domain
-     * @return Organization ID, or null if not available
+     * @param tenantDomain The tenant domain.
+     * @return Organization ID, or null if not available.
      */
     private String getOrganizationId(String tenantDomain) {
         

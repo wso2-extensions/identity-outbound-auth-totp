@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.identity.application.authenticator.totp;
 
+import org.apache.commons.lang.StringUtils;
 import org.wso2.carbon.identity.governance.IdentityGovernanceException;
 import org.wso2.carbon.identity.governance.common.IdentityConnectorConfig;
 
@@ -36,13 +37,13 @@ public class TOTPAuthenticatorConfigImpl implements IdentityConnectorConfig {
     private static final String FRIENDLY_NAME = "TOTP Authenticator";
     private static final String SUB_CATEGORY = "DEFAULT";
     
-    // The key used to store the config
+    // The configuration key for enabling or disabling progressive enrollment.
     public static final String ENROLL_USER_IN_FLOW_CONFIG = "TOTP.EnrolUserInAuthenticationFlow";
 
     /**
      * Get the connector name.
      * 
-     * @return The connector name
+     * @return The connector name.
      */
     @Override
     public String getName() {
@@ -53,7 +54,7 @@ public class TOTPAuthenticatorConfigImpl implements IdentityConnectorConfig {
     /**
      * Get the friendly name of the connector.
      * 
-     * @return The friendly name
+     * @return The friendly name.
      */
     @Override
     public String getFriendlyName() {
@@ -64,7 +65,7 @@ public class TOTPAuthenticatorConfigImpl implements IdentityConnectorConfig {
     /**
      * Get the category of the connector.
      * 
-     * @return The category
+     * @return The category.
      */
     @Override
     public String getCategory() {
@@ -75,7 +76,7 @@ public class TOTPAuthenticatorConfigImpl implements IdentityConnectorConfig {
     /**
      * Get the sub-category of the connector.
      * 
-     * @return The sub-category
+     * @return The sub-category.
      */
     @Override
     public String getSubCategory() {
@@ -86,7 +87,7 @@ public class TOTPAuthenticatorConfigImpl implements IdentityConnectorConfig {
     /**
      * Get the order of the connector for UI display.
      * 
-     * @return The order value
+     * @return The order value.
      */
     @Override
     public int getOrder() {
@@ -97,7 +98,7 @@ public class TOTPAuthenticatorConfigImpl implements IdentityConnectorConfig {
     /**
      * Get the mapping of property keys to display names.
      * 
-     * @return Map of property name to display name
+     * @return Map of property name to display name.
      */
     @Override
     public Map<String, String> getPropertyNameMapping() {
@@ -110,7 +111,7 @@ public class TOTPAuthenticatorConfigImpl implements IdentityConnectorConfig {
     /**
      * Get the mapping of property keys to descriptions.
      * 
-     * @return Map of property name to description
+     * @return Map of property name to description.
      */
     @Override
     public Map<String, String> getPropertyDescriptionMapping() {
@@ -125,7 +126,7 @@ public class TOTPAuthenticatorConfigImpl implements IdentityConnectorConfig {
     /**
      * Get the list of property names managed by this connector.
      * 
-     * @return Array of property names
+     * @return Array of property names.
      */
     @Override
     public String[] getPropertyNames() {
@@ -136,19 +137,19 @@ public class TOTPAuthenticatorConfigImpl implements IdentityConnectorConfig {
     /**
      * Get default property values for the given tenant.
      * 
-     * @param tenantDomain The tenant domain
-     * @return Properties with default values
-     * @throws IdentityGovernanceException If an error occurs while retrieving default values
+     * @param tenantDomain The tenant domain.
+     * @return Properties with default values.
+     * @throws IdentityGovernanceException If an error occurs while retrieving default values.
      */
     @Override
     public Properties getDefaultPropertyValues(String tenantDomain) throws IdentityGovernanceException {
         
-        // Input validation
-        if (tenantDomain == null || tenantDomain.trim().isEmpty()) {
+        // Input validation.
+        if (StringUtils.isBlank(tenantDomain)) {
             throw new IdentityGovernanceException("Tenant domain cannot be null or empty");
         }
         
-        // Default is true to maintain backward compatibility
+        // Default is true to maintain backward compatibility.
         Properties properties = new Properties();
         properties.setProperty(ENROLL_USER_IN_FLOW_CONFIG, "true"); 
         return properties;
@@ -157,10 +158,10 @@ public class TOTPAuthenticatorConfigImpl implements IdentityConnectorConfig {
     /**
      * Get default values for specific properties.
      * 
-     * @param propertyNames Array of property names to get defaults for
-     * @param tenantDomain The tenant domain
-     * @return Map of property name to default value
-     * @throws IdentityGovernanceException If an error occurs while retrieving default values
+     * @param propertyNames Array of property names to get defaults for.
+     * @param tenantDomain The tenant domain.
+     * @return Map of property name to default value.
+     * @throws IdentityGovernanceException If an error occurs while retrieving default values.
      */
     @Override
     public Map<String, String> getDefaultPropertyValues(String[] propertyNames, String tenantDomain) 
@@ -171,7 +172,7 @@ public class TOTPAuthenticatorConfigImpl implements IdentityConnectorConfig {
             throw new IdentityGovernanceException("Property names array cannot be null");
         }
         
-        if (tenantDomain == null || tenantDomain.trim().isEmpty()) {
+        if (StringUtils.isBlank(tenantDomain)) {
             throw new IdentityGovernanceException("Tenant domain cannot be null or empty");
         }
         

@@ -63,7 +63,7 @@ public class TOTPAuthenticatorServiceComponent {
 		ctxt.getBundleContext()
 		    .registerService(ApplicationAuthenticator.class.getName(), totpAuth, props);
 
-		// Register TOTP Configuration Impl
+		// Register TOTP Connector Configuration Impl.
 		try {
 			TOTPAuthenticatorConfigImpl totpConfigImpl = new TOTPAuthenticatorConfigImpl();
 			ctxt.getBundleContext()
