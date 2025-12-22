@@ -22,6 +22,11 @@ import org.apache.commons.lang.StringUtils;
 import org.wso2.carbon.identity.governance.IdentityGovernanceException;
 import org.wso2.carbon.identity.governance.common.IdentityConnectorConfig;
 
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.AUTHENTICATOR_FRIENDLY_NAME;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.AUTHENTICATOR_NAME;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.AUTHENTICATOR_CATEGORY;
+import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.AUTHENTICATOR_SUB_CATEGORY;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -31,61 +36,56 @@ import java.util.Properties;
  * This class provides organization-level configuration for TOTP progressive enrollment.
  */
 public class TOTPAuthenticatorConfigImpl implements IdentityConnectorConfig {
-    
-    private static final String CONNECTOR_NAME = "totp";
-    private static final String CATEGORY = "Multi Factor Authenticators";
-    private static final String FRIENDLY_NAME = "TOTP Authenticator";
-    private static final String SUB_CATEGORY = "DEFAULT";
-    
+        
     // The configuration key for enabling or disabling progressive enrollment.
     public static final String ENROLL_USER_IN_FLOW_CONFIG = "TOTP.EnrolUserInAuthenticationFlow";
 
     /**
-     * Get the connector name.
+     * Get the authenticator name.
      * 
-     * @return The connector name.
+     * @return The authenticator name.
      */
     @Override
     public String getName() {
 
-        return CONNECTOR_NAME;
+        return AUTHENTICATOR_NAME;
     }
 
     /**
-     * Get the friendly name of the connector.
+     * Get the friendly name of the authenticator.
      * 
      * @return The friendly name.
      */
     @Override
     public String getFriendlyName() {
 
-        return FRIENDLY_NAME;
+        return AUTHENTICATOR_FRIENDLY_NAME;
     }
 
     /**
-     * Get the category of the connector.
+     * Get the category of the authenticator.
      * 
      * @return The category.
      */
     @Override
     public String getCategory() {
 
-        return CATEGORY;
+        return AUTHENTICATOR_CATEGORY;
     }
 
     /**
-     * Get the sub-category of the connector.
+     * Get the sub-category of the authenticator.
      * 
      * @return The sub-category.
      */
     @Override
     public String getSubCategory() {
 
-        return SUB_CATEGORY;
+        return AUTHENTICATOR_SUB_CATEGORY;
     }
 
     /**
-     * Get the order of the connector for UI display.
+     * Get the order of the authenticator for UI display.
      * 
      * @return The order value.
      */
@@ -124,7 +124,7 @@ public class TOTPAuthenticatorConfigImpl implements IdentityConnectorConfig {
     }
 
     /**
-     * Get the list of property names managed by this connector.
+     * Get the list of property names managed by this authenticator.
      * 
      * @return Array of property names.
      */

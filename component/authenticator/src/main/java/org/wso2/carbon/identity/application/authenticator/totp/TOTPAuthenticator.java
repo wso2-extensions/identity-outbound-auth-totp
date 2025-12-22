@@ -337,7 +337,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             }
             if (isSecretKeyExistForUser) {
                 if (log.isDebugEnabled()) {
-                    log.debug("Secret key exists for the user: " + username);
+                    log.debug("Secret key exists for the user: " + (LoggerUtils.isLogMaskingEnable ? 
+                            LoggerUtils.getMaskedContent(username) : username));
                 }
             }
             boolean isTOTPEnabledByAdmin = IdentityHelperUtil.checkSecondStepEnableByAdmin(context);
@@ -352,7 +353,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             if (isSecretKeyExistForUser &&
                     request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
                 if (log.isDebugEnabled()) {
-                    log.debug("User " + username + " has TOTP configured. Showing TOTP verification page.");
+                    log.debug("User " + (LoggerUtils.isLogMaskingEnable ? LoggerUtils.getMaskedContent(username) : username) + 
+                            " has TOTP configured. Showing TOTP verification page.");
                 }
                 if (!showAuthFailureReasonOnLoginPage) {
                     errorParam = StringUtils.EMPTY;
@@ -377,7 +379,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 if (request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
                     if (context.getProperty(IS_API_BASED) == null) {
                         if (log.isDebugEnabled()) {
-                            log.debug("User has not enabled TOTP yet: " + username);
+                            log.debug("User has not enabled TOTP yet: " + (LoggerUtils.isLogMaskingEnable ? 
+                                    LoggerUtils.getMaskedContent(username) : username));
                         }
                         
                         // Generate secret key and QR code for the user.
@@ -1420,10 +1423,12 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             String tenantDomain = context.getTenantDomain();
             String applicationId = FrameworkUtils.getApplicationResourceId(context).orElse(null);
             
-            // Try org hierarchy traversal first if available.
-            Boolean hierarchyResult = resolveProgressiveEnrollmentViaHierarchy(context, tenantDomain, applicationId);
-            if (hierarchyResult != null) {
-                return hierarchyResult;
+            // Try org hierarchy traversal only if applicationId is available.
+            if (applicationId != null) {
+                Optional<Boolean> hierarchyResult = resolveProgressiveEnrollmentViaHierarchy(context, tenantDomain, applicationId);
+                if (hierarchyResult.isPresent()) {
+                    return hierarchyResult.get();
+                }
             }
             
             // Fallback: Check org-level config and app-level runtime params.
@@ -1441,22 +1446,22 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
      * @param context The authentication context.
      * @param tenantDomain The tenant domain.
      * @param applicationId The application ID.
-     * @return Boolean result if found, null if not available or not found.
+     * @return Optional containing the boolean result if found, empty if not available or not found.
      */
-    private Boolean resolveProgressiveEnrollmentViaHierarchy(AuthenticationContext context, String tenantDomain, 
-                                                             String applicationId) {
+    private Optional<Boolean> resolveProgressiveEnrollmentViaHierarchy(AuthenticationContext context, String tenantDomain, 
+                                                                        String applicationId) {
         
         OrgAppResourceResolverService orgAppResourceResolverService = 
                 TOTPDataHolder.getInstance().getOrgAppResourceResolverService();
         
-        if (orgAppResourceResolverService == null || applicationId == null) {
-            return null;
+        if (orgAppResourceResolverService == null) {
+            return Optional.empty();
         }
         
         try {
             String organizationId = getOrganizationId(tenantDomain);
             if (organizationId == null) {
-                return null;
+                return Optional.empty();
             }
             
             // Use zigzag pattern traversal with FirstFoundAggregationStrategy.
@@ -1472,7 +1477,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 if (log.isDebugEnabled()) {
                     log.debug("Progressive enrollment resolved via org hierarchy zigzag pattern: " + result);
                 }
-                return result;
+                return Optional.of(result);
             }
         } catch (Exception e) {
             if (log.isDebugEnabled()) {
@@ -1480,7 +1485,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             }
         }
         
-        return null; // Fallback to non-hierarchy resolution.
+        return Optional.empty(); // Fallback to non-hierarchy resolution.
     }
 
     /**
@@ -1511,6 +1516,42 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     }
 
     /**
+     * Retrieve a boolean configuration value from Identity Governance service.
+     * This utility method encapsulates the common pattern of retrieving, validating, and parsing
+     * configuration properties across the authenticator.
+     *
+     * @param configKey The configuration key to retrieve.
+     * @param tenantDomain The tenant domain.
+     * @param configDescription Description of the config for logging purposes.
+     * @return Optional<Boolean> containing the parsed boolean value if found and non-blank, empty otherwise.
+     */
+    private Optional<Boolean> getConfigurationAsBoolean(String configKey, String tenantDomain, 
+                                                        String configDescription) {
+        try {
+            Property[] connectorConfigs = TOTPDataHolder.getInstance()
+                    .getIdentityGovernanceService()
+                    .getConfiguration(new String[]{configKey}, tenantDomain);
+            
+            if (connectorConfigs == null || connectorConfigs.length == 0) {
+                return Optional.empty();
+            }
+            
+            String configValue = connectorConfigs[0].getValue();
+            if (StringUtils.isBlank(configValue)) {
+                return Optional.empty();
+            }
+            
+            return Optional.of(Boolean.parseBoolean(configValue));
+        } catch (IdentityGovernanceException e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Error retrieving " + configDescription + " for key: " + configKey + 
+                        " in tenant: " + tenantDomain, e);
+            }
+            return Optional.empty();
+        }
+    }
+
+    /**
      * Resolve progressive enrollment at the organization level.
      *
      * @param tenantDomain The tenant domain.
@@ -1518,22 +1559,9 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
      */
     private boolean resolveOrgLevelProgressiveEnrollment(String tenantDomain) {
         
-        try {
-            Property[] connectorConfigs = TOTPDataHolder.getInstance()
-                    .getIdentityGovernanceService()
-                    .getConfiguration(new String[]{TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG}, tenantDomain);
-            
-            if (connectorConfigs != null && connectorConfigs.length > 0) {
-                String configValue = connectorConfigs[0].getValue();
-                if (StringUtils.isNotBlank(configValue)) {
-                    return Boolean.parseBoolean(configValue);
-                }
-            }
-        } catch (IdentityGovernanceException e) {
-            log.error("Error while retrieving progressive enrollment config. Defaulting to enabled.", e);
-        }
-        
-        return true; // Default enabled
+        Optional<Boolean> result = getConfigurationAsBoolean(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG, 
+                tenantDomain, "progressive enrollment config");
+        return result.orElse(true); // Default enabled
     }
 
     /**
@@ -1619,31 +1647,14 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
      */
     private Optional<Boolean> resolveOrgLevelEnrollment(String tenantDomainOfOrg, String orgId) {
         
-        try {
-            Property[] connectorConfigs = TOTPDataHolder.getInstance()
-                    .getIdentityGovernanceService()
-                    .getConfiguration(new String[]{TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG}, tenantDomainOfOrg);
-            
-            if (connectorConfigs == null || connectorConfigs.length == 0) {
-                return Optional.empty();
-            }
-            
-            String configValue = connectorConfigs[0].getValue();
-            if (StringUtils.isBlank(configValue)) {
-                return Optional.empty();
-            }
-            
-            Boolean result = Boolean.parseBoolean(configValue);
-            if (log.isDebugEnabled()) {
-                log.debug("Progressive enrollment found at org-level for org: " + orgId + ", value: " + result);
-            }
-            return Optional.of(result);
-        } catch (IdentityGovernanceException e) {
-            if (log.isDebugEnabled()) {
-                log.debug("Error retrieving org-level progressive enrollment config for org: " + orgId, e);
-            }
-            return Optional.empty();
+        Optional<Boolean> result = getConfigurationAsBoolean(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG, 
+                tenantDomainOfOrg, "org-level progressive enrollment config for org: " + orgId);
+        
+        if (result.isPresent() && log.isDebugEnabled()) {
+            log.debug("Progressive enrollment found at org-level for org: " + orgId + ", value: " + result.get());
         }
+        
+        return result;
     }
 
     /**

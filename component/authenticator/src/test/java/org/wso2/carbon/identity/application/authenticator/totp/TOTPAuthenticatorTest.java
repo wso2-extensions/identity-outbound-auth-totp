@@ -1019,8 +1019,8 @@ public class TOTPAuthenticatorTest {
         Assert.assertEquals(configImpl.getName(), "totp", "Connector name should be 'totp'");
         
         // Test getFriendlyName
-        Assert.assertEquals(configImpl.getFriendlyName(), "TOTP Authenticator",
-                "Friendly name should be 'TOTP Authenticator'");
+        Assert.assertEquals(configImpl.getFriendlyName(), "TOTP",
+                "Friendly name should be 'TOTP'");
         
         // Test getCategory
         Assert.assertEquals(configImpl.getCategory(), "Multi Factor Authenticators",

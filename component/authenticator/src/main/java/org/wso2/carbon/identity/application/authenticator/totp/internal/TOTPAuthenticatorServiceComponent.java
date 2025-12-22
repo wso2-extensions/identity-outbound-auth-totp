@@ -71,7 +71,7 @@ public class TOTPAuthenticatorServiceComponent {
 			if (log.isDebugEnabled()) {
 				log.debug("TOTPAuthenticatorConfigImpl is registered as IdentityConnectorConfig service");
 			}
-		} catch (Exception e) {
+		} catch (IllegalStateException | IllegalArgumentException e) {
 			log.error("Failed to register TOTPAuthenticatorConfigImpl: " + e.getMessage(), e);
 		}
 
