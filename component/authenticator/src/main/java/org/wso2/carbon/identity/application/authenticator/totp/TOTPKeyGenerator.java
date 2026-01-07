@@ -73,6 +73,22 @@ public class TOTPKeyGenerator {
         return generateClaims(username, refresh, null, TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL);
     }
 
+    /**
+     * Generate TOTP secret key, encoding method and QR Code url for user during authentication flow.
+     *
+     * @param username Username of the user
+     * @param refresh  Boolean type of refreshing the secret token
+     * @param context  Authentication context
+     * @return claims
+     * @throws TOTPException when user realm is null or while decrypting the key
+     */
+    public static Map<String, String> generateClaimsWithVerifySecretKey(String username, boolean refresh,
+                                                                        AuthenticationContext context)
+            throws TOTPException {
+
+        return generateClaims(username, refresh, context, TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL);
+    }
+
     private static Map<String, String> generateClaims(String username, boolean refresh, AuthenticationContext context,
                                                       String secretKeyClaim) throws TOTPException {
 
@@ -101,6 +117,9 @@ public class TOTPKeyGenerator {
                 } else {
                     secretKey = StringUtils.isBlank(TOTPUtil.decrypt(storedSecretKey)) ? new char[0]
                             : TOTPUtil.decrypt(storedSecretKey).toCharArray();
+                    // The value is encrypted here as, the claim property config is ignored in other places as well.
+                    claims.put(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL,
+                            TOTPUtil.encrypt(String.valueOf(secretKey)));
                 }
 
                 String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
@@ -128,6 +147,22 @@ public class TOTPKeyGenerator {
     }
 
     /**
+     * Generate TOTP verify secret key for federated user, encoding method and QR Code url for user.
+     *
+     * @param username        Username of the user.
+     * @param context         Authentication context.
+     * @return Generated TOTP related claims of federated user.
+     * @throws TOTPException when user realm is null or while decrypting the key
+     */
+    public static Map<String, String> generateClaimsForFedUserVerifySecretKey(String username, String tenantDomain,
+                                                                              AuthenticationContext context)
+            throws TOTPException {
+
+        return generateClaimsForFedUser(username, tenantDomain, context, TOTPAuthenticatorConstants
+                .VERIFY_SECRET_KEY_CLAIM_URL);
+    }
+
+    /**
      * Generate TOTP secret key for federated user, encoding method and QR Code url for user.
      *
      * @param username        Username of the user.
@@ -139,6 +174,14 @@ public class TOTPKeyGenerator {
                                                                AuthenticationContext context)
             throws TOTPException {
 
+        return generateClaimsForFedUser(username, tenantDomain, context, TOTPAuthenticatorConstants
+                .SECRET_KEY_CLAIM_URL);
+    }
+
+    private static Map<String, String> generateClaimsForFedUser(String username, String tenantDomain,
+                                                                AuthenticationContext context, String claimUri)
+            throws TOTPException {
+
         String secretKey;
         String encodedQRCodeURL;
         Map<String, String> claims = new HashMap<>();
@@ -147,9 +190,7 @@ public class TOTPKeyGenerator {
         try {
             TOTPAuthenticatorKey key = generateKey(tenantDomain, context);
             secretKey = key.getKey();
-            claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
-                    TOTPUtil.getProcessedClaimValue(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, secretKey,
-                            tenantDomain));
+            claims.put(claimUri, TOTPUtil.getProcessedClaimValue(claimUri, secretKey, tenantDomain));
             String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
             String displayUsername = TOTPUtil.getTOTPDisplayUsername(tenantAwareUsername);
             if (isFederatedUser(context)) {
