@@ -292,7 +292,7 @@ public class TOTPAuthenticatorServiceComponent {
 
 	@Reference(name = "org.wso2.carbon.identity.organization.application.resource.hierarchy.traverse.service",
 			service = OrgAppResourceResolverService.class,
-			cardinality = ReferenceCardinality.OPTIONAL,
+			cardinality = ReferenceCardinality.MANDATORY,
 			policy = ReferencePolicy.DYNAMIC,
 			unbind = "unsetOrgAppResourceResolverService")
 	protected void setOrgAppResourceResolverService(OrgAppResourceResolverService orgAppResourceResolverService) {
