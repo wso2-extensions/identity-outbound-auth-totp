@@ -177,13 +177,6 @@
         <!--Carbon identity version-->
         <carbon.identity.framework.version>7.7.231</carbon.identity.framework.version>
 
-        <org.wso2.carbon.identity.organization.management.core.version>1.0.1
-        </org.wso2.carbon.identity.organization.management.core.version>
-        <org.wso2.carbon.identity.organization.management.core.version.range>[1.0.0, 2.0.0)
-        </org.wso2.carbon.identity.organization.management.core.version.range>
-        <org.wso2.carbon.identity.organization.management.version>1.0.1
-        </org.wso2.carbon.identity.organization.management.version>
-
         <carbon.identity.version>5.0.8</carbon.identity.version>
         <carbon.identity.package.export.version>${carbon.identity.version}</carbon.identity.package.export.version>
         <carbon.identity.package.export.project.version>${project.version}
