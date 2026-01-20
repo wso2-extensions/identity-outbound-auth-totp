@@ -687,11 +687,7 @@ public class TOTPUtil {
      */
     private static boolean isProgressiveEnrollmentEnabled(AuthenticationContext context) {
         
-        // Default: true = Allow progressive enrollment (users can enroll TOTP during login).
-        // This fail-open approach ensures users can enhance their security with TOTP enrollment
-        // even if configuration retrieval fails, as progressive enrollment is a convenience feature
-        // that adds security rather than removes it.
-        boolean isProgressiveEnrollmentEnabled = true;
+        boolean isProgressiveEnrollmentEnabled = false;
 
         try {
             // Validate context to prevent NPE.
