@@ -35,7 +35,7 @@ import org.wso2.carbon.identity.event.services.IdentityEventService;
 import org.wso2.carbon.identity.governance.IdentityGovernanceService;
 import org.wso2.carbon.identity.governance.common.IdentityConnectorConfig;
 import org.wso2.carbon.identity.handler.event.account.lock.service.AccountLockService;
-import org.wso2.carbon.identity.organization.application.resource.hierarchy.traverse.service.OrgAppResourceResolverService;
+import org.wso2.carbon.identity.organization.resource.hierarchy.traverse.service.OrgResourceResolverService;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.idp.mgt.IdpManager;
 import org.wso2.carbon.user.core.service.RealmService;
@@ -290,18 +290,18 @@ public class TOTPAuthenticatorServiceComponent {
 		TOTPDataHolder.getInstance().setBrandingPreferenceManager(null);
 	}
 
-	@Reference(name = "org.wso2.carbon.identity.organization.application.resource.hierarchy.traverse.service",
-			service = OrgAppResourceResolverService.class,
+	@Reference(name = "org.wso2.carbon.identity.organization.resource.hierarchy.traverse.service",
+			service = OrgResourceResolverService.class,
 			cardinality = ReferenceCardinality.MANDATORY,
 			policy = ReferencePolicy.DYNAMIC,
-			unbind = "unsetOrgAppResourceResolverService")
-	protected void setOrgAppResourceResolverService(OrgAppResourceResolverService orgAppResourceResolverService) {
+			unbind = "unsetOrgResourceResolverService")
+	protected void setOrgResourceResolverService(OrgResourceResolverService orgResourceResolverService) {
 
-		TOTPDataHolder.getInstance().setOrgAppResourceResolverService(orgAppResourceResolverService);
+		TOTPDataHolder.getInstance().setOrgResourceResolverService(orgResourceResolverService);
 	}
 
-	protected void unsetOrgAppResourceResolverService(OrgAppResourceResolverService orgAppResourceResolverService) {
+	protected void unsetOrgResourceResolverService(OrgResourceResolverService orgResourceResolverService) {
 
-		TOTPDataHolder.getInstance().setOrgAppResourceResolverService(null);
+		TOTPDataHolder.getInstance().setOrgResourceResolverService(null);
 	}
 }

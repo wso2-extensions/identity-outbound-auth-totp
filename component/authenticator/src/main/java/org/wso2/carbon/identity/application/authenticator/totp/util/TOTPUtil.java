@@ -69,7 +69,7 @@ import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.governance.IdentityGovernanceException;
 import org.wso2.carbon.identity.handler.event.account.lock.exception.AccountLockServiceException;
-import org.wso2.carbon.identity.organization.application.resource.hierarchy.traverse.service.OrgAppResourceResolverService;
+import org.wso2.carbon.identity.organization.resource.hierarchy.traverse.service.OrgResourceResolverService;
 import org.wso2.carbon.identity.organization.resource.hierarchy.traverse.service.exception.OrgResourceHierarchyTraverseException;
 import org.wso2.carbon.identity.organization.resource.hierarchy.traverse.service.strategy.FirstFoundAggregationStrategy;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
@@ -741,17 +741,17 @@ public class TOTPUtil {
      *
      * @param context The authentication context.
      * @param tenantDomain The tenant domain.
-     * @param applicationId The application ID.
+     * @param applicationId The application ID (not used, kept for backward compatibility).
      * @return Optional containing the boolean result if found, empty if not available or not found.
      */
     private static Optional<Boolean> resolveProgressiveEnrollmentViaHierarchy(AuthenticationContext context, 
                                                                                String tenantDomain, 
                                                                                String applicationId) {
         
-        OrgAppResourceResolverService orgAppResourceResolverService = 
-                TOTPDataHolder.getInstance().getOrgAppResourceResolverService();
+        OrgResourceResolverService orgResourceResolverService = 
+                TOTPDataHolder.getInstance().getOrgResourceResolverService();
         
-        if (orgAppResourceResolverService == null) {
+        if (orgResourceResolverService == null) {
             return Optional.empty();
         }
         
@@ -761,18 +761,16 @@ public class TOTPUtil {
                 return Optional.empty();
             }
             
-            // Use zigzag pattern traversal with FirstFoundAggregationStrategy.
+            // Use organization hierarchy traversal with FirstFoundAggregationStrategy.
             // Pass context to retriever via lambda to preserve script override capability.
-            Boolean result = orgAppResourceResolverService.getResourcesFromOrgHierarchy(
+            Boolean result = orgResourceResolverService.getResourcesFromOrgHierarchy(
                     organizationId,
-                    applicationId,
-                    (orgId, appId) -> {
+                    orgId -> {
                         try {
-                            return progressiveEnrollmentRetriever(context, orgId, appId);
+                            return progressiveEnrollmentRetriever(context, orgId);
                         } catch (OrganizationManagementException e) {
                             if (log.isDebugEnabled()) {
-                                log.debug("Error in progressiveEnrollmentRetriever for org: " + orgId + 
-                                        ", app: " + appId, e);
+                                log.debug("Error in progressiveEnrollmentRetriever for org: " + orgId, e);
                             }
                             return Optional.empty();
                         }
@@ -782,7 +780,7 @@ public class TOTPUtil {
             
             if (result != null) {
                 if (log.isDebugEnabled()) {
-                    log.debug("Progressive enrollment resolved via org hierarchy zigzag pattern: " + result);
+                    log.debug("Progressive enrollment resolved via org hierarchy: " + result);
                 }
                 return Optional.of(result);
             }
@@ -870,20 +868,18 @@ public class TOTPUtil {
     }
 
     /**
-     * Private retriever method used by OrgAppResourceResolverService for zigzag pattern traversal.
-     * This method implements the zigzag logic: check app-level first, then org-level within each hierarchy level.
+     * Private retriever method used by OrgResourceResolverService for organization hierarchy traversal.
+     * This method checks the org-level Identity Governance configuration at each hierarchy level.
      * 
-     * The context is passed to allow checking conditional authentication scripts at each hierarchy level,
+     * The context is passed to allow checking conditional authentication scripts,
      * ensuring that script-based overrides are not missed during hierarchy traversal.
      *
      * @param context The authentication context (may contain conditional auth script settings).
      * @param orgId Organization ID at current hierarchy level.
-     * @param appId Application ID at current hierarchy level.
      * @return Optional<Boolean> containing the enrollment setting if found, empty if not found at this level.
      * @throws OrganizationManagementException If an error occurs while resolving organization details.
      */
-    private static Optional<Boolean> progressiveEnrollmentRetriever(AuthenticationContext context, String orgId, 
-                                                                     String appId) 
+    private static Optional<Boolean> progressiveEnrollmentRetriever(AuthenticationContext context, String orgId) 
             throws OrganizationManagementException {
         
         if (context == null) {
@@ -907,22 +903,9 @@ public class TOTPUtil {
         
         String tenantDomainOfOrg = organizationManager.resolveTenantDomain(orgId);
         
-        // Step 1: Check app-level Conditional Auth Script first (highest priority within this level).
-        Map<String, String> runtimeParams = getRuntimeParamsSafely(context);
-        if (runtimeParams.containsKey(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW)) {
-            String runtimeValue = runtimeParams.get(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW);
-            if (StringUtils.isNotBlank(runtimeValue)) {
-                boolean result = Boolean.parseBoolean(runtimeValue);
-                if (log.isDebugEnabled()) {
-                    log.debug("Progressive enrollment found at app-level (conditional script) for org: " + orgId + 
-                            ", app: " + appId + ", value: " + result);
-                }
-                return Optional.of(result);
-            }
-        }
-        
-        // Step 2: Fall back to org-level Identity Governance config if app-level not found.
-        Optional<Boolean> orgLevelResult = getConfigurationAsBoolean(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG, 
+        // Check org-level Identity Governance config.
+        Optional<Boolean> orgLevelResult = getConfigurationAsBoolean(
+                TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG, 
                 tenantDomainOfOrg);
         
         if (orgLevelResult.isPresent() && log.isDebugEnabled()) {

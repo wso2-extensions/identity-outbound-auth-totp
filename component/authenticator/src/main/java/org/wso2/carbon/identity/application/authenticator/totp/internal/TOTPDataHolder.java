@@ -23,7 +23,7 @@ import org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataManagementServic
 import org.wso2.carbon.identity.event.services.IdentityEventService;
 import org.wso2.carbon.identity.governance.IdentityGovernanceService;
 import org.wso2.carbon.identity.handler.event.account.lock.service.AccountLockService;
-import org.wso2.carbon.identity.organization.application.resource.hierarchy.traverse.service.OrgAppResourceResolverService;
+import org.wso2.carbon.identity.organization.resource.hierarchy.traverse.service.OrgResourceResolverService;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.idp.mgt.IdpManager;
 import org.wso2.carbon.user.core.service.RealmService;
@@ -43,7 +43,7 @@ public class TOTPDataHolder {
 	private IdentityGovernanceService identityGovernanceService;
 	private IdpManager idpManager;
 	private OrganizationManager organizationManager;
-	private OrgAppResourceResolverService orgAppResourceResolverService;
+	private OrgResourceResolverService orgResourceResolverService;
 	private BrandingPreferenceManager brandingPreferenceManager;
 	private ClaimMetadataManagementService claimMetadataManagementService;
 
@@ -251,22 +251,22 @@ public class TOTPDataHolder {
 	}
 
 	/**
-	 * Get the OrgAppResourceResolverService.
+	 * Get the OrgResourceResolverService.
 	 *
-	 * @return OrgAppResourceResolverService instance.
+	 * @return OrgResourceResolverService instance.
 	 */
-	public OrgAppResourceResolverService getOrgAppResourceResolverService() {
+	public OrgResourceResolverService getOrgResourceResolverService() {
 
-		return orgAppResourceResolverService;
+		return orgResourceResolverService;
 	}
 
 	/**
-	 * Set the OrgAppResourceResolverService.
+	 * Set the OrgResourceResolverService.
 	 *
-	 * @param orgAppResourceResolverService The OrgAppResourceResolverService instance.
+	 * @param orgResourceResolverService The OrgResourceResolverService instance.
 	 */
-	public void setOrgAppResourceResolverService(OrgAppResourceResolverService orgAppResourceResolverService) {
+	public void setOrgResourceResolverService(OrgResourceResolverService orgResourceResolverService) {
 
-		this.orgAppResourceResolverService = orgAppResourceResolverService;
+		this.orgResourceResolverService = orgResourceResolverService;
 	}
 }
