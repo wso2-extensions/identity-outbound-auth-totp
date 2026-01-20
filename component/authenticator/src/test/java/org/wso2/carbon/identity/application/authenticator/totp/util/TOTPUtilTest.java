@@ -358,13 +358,18 @@ public class TOTPUtilTest {
         AuthenticationContext authenticationContext = new AuthenticationContext();
         AuthenticatorConfig authenticatorConfig = new AuthenticatorConfig();
         Map<String, String> parameters = new HashMap<>();
-        authenticationContext.setTenantDomain("carbon.super");
+        authenticationContext.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+        authenticationContext.setLoginTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+        authenticationContext.setServiceProviderName("test-app");
+        authenticationContext.setContextIdentifier("test-context-123");
         authenticationContext.setProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG, null);
         authenticationContext
                 .setProperty(TOTPAuthenticatorConstants.AUTHENTICATION, TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
-        authenticationContext.setContextIdentifier("test-context-id");
-        authenticationContext.setServiceProviderName("test-sp");
-        authenticationContext.setLoginTenantDomain("carbon.super");
+        
+        // Use runtime params with enrollment enabled
+        Map<String, String> runtimeParams = new HashMap<>();
+        runtimeParams.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "true");
+        
         parameters.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "true");
         parameters.put(TOTPAuthenticatorConstants.TOTP_AUTHENTICATION_ENDPOINT_URL,
                 "totpauthenticationendpoint/custom/totp.jsp");
@@ -376,11 +381,11 @@ public class TOTPUtilTest {
         staticIdentityHelperUtil.when(() -> IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
         staticConfigurationFacade.when(ConfigurationFacade::getInstance).thenReturn(configurationFacade);
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(TOTPAuthenticatorConstants.LOGIN_PAGE);
+        
+        // Mock sendRedirect to avoid actual HTTP response
         doNothing().when(httpServletResponse).sendRedirect(anyString());
         
-        // Call the 5-parameter version with runtime params to enable enrollment
-        Map<String, String> runtimeParams = new HashMap<>();
-        runtimeParams.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "true");
+        // Call the 5-parameter version with runtime params
         TOTPUtil.redirectToEnableTOTPReqPage(httpServletRequest, httpServletResponse, authenticationContext,
                 TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, runtimeParams);
     }
@@ -401,18 +406,23 @@ public class TOTPUtilTest {
                 TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
     }
 
-    @Test(enabled = false)  // This test is covered by TOTPAuthenticatorTest.testProgressiveEnrollmentEnabledShowsQRCodePage
+    @Test()
     public void testRedirectToEnableTOTPReqPageForSuperTenantEntrol()
             throws AuthenticationFailedException, IOException {
 
         AuthenticationContext authenticationContext = new AuthenticationContext();
-        authenticationContext.setTenantDomain("carbon.super");
-        authenticationContext.setContextIdentifier("test-context-id");
-        authenticationContext.setServiceProviderName("test-sp");
-        authenticationContext.setLoginTenantDomain("carbon.super");
+        authenticationContext.setTenantDomain("wso2.org");
+        authenticationContext.setLoginTenantDomain("wso2.org");
+        authenticationContext.setServiceProviderName("test-app");
+        authenticationContext.setContextIdentifier("test-context-456");
         authenticationContext.setProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG, null);
         authenticationContext.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
                 TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
+        
+        // Use runtime params with enrollment enabled
+        Map<String, String> runtimeParams = new HashMap<>();
+        runtimeParams.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "true");
+        
         Map<String, String> parameters = new HashMap<>();
         parameters.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "true");
         parameters.put(TOTPAuthenticatorConstants.ENABLE_TOTP_REQUEST_PAGE_URL,
@@ -423,11 +433,8 @@ public class TOTPUtilTest {
         staticConfigurationFacade.when(ConfigurationFacade::getInstance).thenReturn(configurationFacade);
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(TOTPAuthenticatorConstants.LOGIN_PAGE);
         doNothing().when(httpServletResponse).sendRedirect(anyString());
-        when(httpServletRequest.getParameter(anyString())).thenReturn(null);
         
-        // Call the 5-parameter version with runtime params to enable enrollment
-        Map<String, String> runtimeParams = new HashMap<>();
-        runtimeParams.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "true");
+        // Call the 5-parameter version with runtime params
         TOTPUtil.redirectToEnableTOTPReqPage(httpServletRequest, httpServletResponse, authenticationContext,
                 TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, runtimeParams);
     }
