@@ -624,61 +624,33 @@ public class TOTPUtil {
         if (log.isDebugEnabled()) {
             log.debug("Read the EnrolUserInAuthenticationFlow value from application authentication xml file");
         }
-        
-        if (context == null) {
-            if (log.isDebugEnabled()) {
-                log.debug("Authentication context is null. Defaulting to enabled.");
-            }
-            return true; // Default to enabled (fail-open)
-        }
-        
         String tenantDomain = context.getTenantDomain();
-        Object getPropertiesFromIdentityConfig = context
-                .getProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG);
-        // If the config file is not in registry and the it is super tenant, getting the
-        // property from local.
+        Object getPropertiesFromIdentityConfig =
+                context.getProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG);
+        //If the config file is not in registry and the it is super tenant, getting the property from local.
         // Else getting it from context.
         if ((getPropertiesFromIdentityConfig != null ||
                 TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN.equals(tenantDomain))) {
-            Object authenticationProperty = context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION);
-            if (authenticationProperty == null) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Authentication property is null. Defaulting to enabled.");
-                }
-                return true; // Default to enabled
-            }
-            Map<String, String> parameters = IdentityHelperUtil.getAuthenticatorParameters(
-                    authenticationProperty.toString());
-            if (parameters != null && parameters.containsKey(ENROL_USER_IN_AUTHENTICATIONFLOW)) {
-                return Boolean.parseBoolean(parameters.get(ENROL_USER_IN_AUTHENTICATIONFLOW));
-            }
-            return true; // Default to enabled if parameter not found
+            return Boolean.parseBoolean(IdentityHelperUtil.getAuthenticatorParameters(
+                            context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION).toString())
+                    .get(ENROL_USER_IN_AUTHENTICATIONFLOW));
         } else {
-            Object enrollProperty = context.getProperty(ENROL_USER_IN_AUTHENTICATIONFLOW);
-            if (enrollProperty == null) {
-                if (log.isDebugEnabled()) {
-                    log.debug("EnrolUserInAuthenticationFlow property is null. Defaulting to enabled.");
-                }
-                return true; // Default to enabled
-            }
-            return Boolean.parseBoolean(enrollProperty.toString());
+            return Boolean.parseBoolean((context.getProperty(ENROL_USER_IN_AUTHENTICATIONFLOW).toString()));
         }
     }
 
     /**
      * Get EnrolUserInAuthenticationFlow.
      *
-     * @param context       The AuthenticationContext
+     * @param context  The AuthenticationContext
      * @param runtimeParams The Runtime Parameters for the authenticator
      *
      * @return true, if EnrolUserInAuthenticationFlow is enabled
      */
     public static boolean isEnrolUserInAuthenticationFlowEnabled(AuthenticationContext context,
-            Map<String, String> runtimeParams) {
+                                                                 Map<String, String> runtimeParams) {
 
-        if (log.isDebugEnabled()) {
-            log.debug("Read the EnrolUserInAuthenticationFlow value from adaptive authentication script.");
-        }
+        log.debug("Read the EnrolUserInAuthenticationFlow value from adaptive authentication script.");
 
         if (runtimeParams != null) {
             if (StringUtils.isNotBlank(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW))) {
