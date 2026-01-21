@@ -643,10 +643,6 @@ public class TOTPUtil {
     /**
      * Check if progressive enrollment (EnrolUserInAuthenticationFlow) is enabled for TOTP authentication.
      * This method implements a comprehensive configuration resolution strategy:
-     * 1. Runtime parameters (from conditional auth script) - HIGHEST PRIORITY
-     * 2. Organization hierarchy traversal (zigzag pattern: app script → org config at each level)
-     * 3. Fallback to tenant-level configuration if hierarchy not available
-     * 4. Fail-open default (true) to allow progressive enrollment on errors
      *
      * @param context  The AuthenticationContext
      * @param runtimeParams The Runtime Parameters for the authenticator (from conditional auth scripts)
@@ -727,10 +723,23 @@ public class TOTPUtil {
                 }
             }
             
-            // Fallback: Check org-level config and app-level runtime params.
+            // Fallback: Check org-level config 
             isProgressiveEnrollmentEnabled = resolveProgressiveEnrollmentViaFallback(context, tenantDomain);
         } catch (RuntimeException e) {
-            log.error("Unexpected error while checking progressive enrollment configuration. Defaulting to enabled.", e);
+            log.error("Unexpected error while checking progressive enrollment configuration.", e);
+
+            if (context != null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Attempting legacy fallback method for EnrolUserInAuthenticationFlow resolution.");
+                }
+                try {
+                    return isEnrolUserInAuthenticationFlowEnabled(context);
+                } catch (Exception legacyException) {
+                    log.error("Legacy fallback method also failed. Defaulting to enabled (fail-open).", legacyException);
+                    // Fail-open: return true to allow progressive enrollment by default
+                    return true;
+                }
+            }
         }
 
         return isProgressiveEnrollmentEnabled;
