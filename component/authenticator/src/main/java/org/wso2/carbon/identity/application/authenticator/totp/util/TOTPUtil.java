@@ -62,7 +62,6 @@ import org.wso2.carbon.identity.branding.preference.management.core.exception.Br
 import org.wso2.carbon.identity.branding.preference.management.core.model.BrandingPreference;
 import org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataHandler;
 import org.wso2.carbon.identity.claim.metadata.mgt.exception.ClaimMetadataException;
-import org.wso2.carbon.identity.claim.metadata.mgt.model.AttributeMapping;
 import org.wso2.carbon.identity.claim.metadata.mgt.model.LocalClaim;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
@@ -625,141 +624,99 @@ public class TOTPUtil {
         if (log.isDebugEnabled()) {
             log.debug("Read the EnrolUserInAuthenticationFlow value from application authentication xml file");
         }
+        
+        if (context == null) {
+            if (log.isDebugEnabled()) {
+                log.debug("Authentication context is null. Defaulting to enabled.");
+            }
+            return true; // Default to enabled (fail-open)
+        }
+        
         String tenantDomain = context.getTenantDomain();
-        Object getPropertiesFromIdentityConfig =
-                context.getProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG);
-        //If the config file is not in registry and the it is super tenant, getting the property from local.
+        Object getPropertiesFromIdentityConfig = context
+                .getProperty(TOTPAuthenticatorConstants.GET_PROPERTY_FROM_IDENTITY_CONFIG);
+        // If the config file is not in registry and the it is super tenant, getting the
+        // property from local.
         // Else getting it from context.
         if ((getPropertiesFromIdentityConfig != null ||
                 TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN.equals(tenantDomain))) {
-            return Boolean.parseBoolean(IdentityHelperUtil.getAuthenticatorParameters(
-                            context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION).toString())
-                    .get(ENROL_USER_IN_AUTHENTICATIONFLOW));
+            Object authenticationProperty = context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION);
+            if (authenticationProperty == null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Authentication property is null. Defaulting to enabled.");
+                }
+                return true; // Default to enabled
+            }
+            Map<String, String> parameters = IdentityHelperUtil.getAuthenticatorParameters(
+                    authenticationProperty.toString());
+            if (parameters != null && parameters.containsKey(ENROL_USER_IN_AUTHENTICATIONFLOW)) {
+                return Boolean.parseBoolean(parameters.get(ENROL_USER_IN_AUTHENTICATIONFLOW));
+            }
+            return true; // Default to enabled if parameter not found
         } else {
-            return Boolean.parseBoolean((context.getProperty(ENROL_USER_IN_AUTHENTICATIONFLOW).toString()));
+            Object enrollProperty = context.getProperty(ENROL_USER_IN_AUTHENTICATIONFLOW);
+            if (enrollProperty == null) {
+                if (log.isDebugEnabled()) {
+                    log.debug("EnrolUserInAuthenticationFlow property is null. Defaulting to enabled.");
+                }
+                return true; // Default to enabled
+            }
+            return Boolean.parseBoolean(enrollProperty.toString());
         }
     }
 
     /**
-     * Check if progressive enrollment (EnrolUserInAuthenticationFlow) is enabled for TOTP authentication.
-     * This method implements a comprehensive configuration resolution strategy:
+     * Get EnrolUserInAuthenticationFlow.
      *
-     * @param context  The AuthenticationContext
-     * @param runtimeParams The Runtime Parameters for the authenticator (from conditional auth scripts)
+     * @param context       The AuthenticationContext
+     * @param runtimeParams The Runtime Parameters for the authenticator
      *
-     * @return true, if EnrolUserInAuthenticationFlow is enabled (default), false if explicitly disabled
+     * @return true, if EnrolUserInAuthenticationFlow is enabled
      */
     public static boolean isEnrolUserInAuthenticationFlowEnabled(AuthenticationContext context,
-                                                                 Map<String, String> runtimeParams) {
+            Map<String, String> runtimeParams) {
 
         if (log.isDebugEnabled()) {
-            log.debug("Resolving EnrolUserInAuthenticationFlow (progressive enrollment) configuration.");
+            log.debug("Read the EnrolUserInAuthenticationFlow value from adaptive authentication script.");
         }
 
-        // Priority 1: Check runtime params from conditional auth script (HIGHEST PRIORITY)
-        if (runtimeParams != null && StringUtils.isNotBlank(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW))) {
-            boolean result = Boolean.parseBoolean(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW));
-            if (log.isDebugEnabled()) {
-                log.debug("Progressive enrollment overridden by conditional auth script: " + result);
+        if (runtimeParams != null) {
+            if (StringUtils.isNotBlank(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW))) {
+                return Boolean.parseBoolean(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW));
             }
-            return result;
         }
 
-        // Priority 2: Use comprehensive resolution (hierarchy + org-level + defaults)
-        return isProgressiveEnrollmentEnabled(context);
+        Optional<Boolean> orgLevelConfig = resolveWithOrgLevelHierarchy(context);
+        if (orgLevelConfig.isPresent()) {
+            return orgLevelConfig.get();
+        }
+
+        return isEnrolUserInAuthenticationFlowEnabled(context);
     }
 
     /**
-     * Internal helper method to determine if progressive enrollment is enabled for TOTP authentication.
-     * Used by {@link #isEnrolUserInAuthenticationFlowEnabled(AuthenticationContext, Map)}.
-     * 
-     * This method implements a comprehensive configuration resolution strategy:
-     * 1. Organization hierarchy traversal (zigzag pattern: app script → org config at each level)
-     * 2. Fallback to tenant-level configuration if hierarchy not available
-     * 3. Fail-open default (true) to allow progressive enrollment on errors
+     * Resolve progressive enrollment configuration using organization hierarchy.
      *
      * @param context The authentication context.
-     * @return true if progressive enrollment is enabled (default), false if explicitly disabled.
+     * @return Optional containing the boolean result if found via org hierarchy, empty otherwise.
      */
-    private static boolean isProgressiveEnrollmentEnabled(AuthenticationContext context) {
+    private static Optional<Boolean> resolveWithOrgLevelHierarchy(AuthenticationContext context) {
         
-        boolean isProgressiveEnrollmentEnabled = false;
-
-        try {
-            // Validate context to prevent NPE.
-            if (context == null) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Authentication context is null. Checking super tenant organization configuration.");
-                }
-                // Fallback to super tenant configuration when context is not available.
-                // Try to use organization hierarchy if possible.
-                String superTenantOrgId = getOrganizationId(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-                if (superTenantOrgId != null) {
-                    try {
-                        Optional<Boolean> result = progressiveEnrollmentRetrieverWithoutContext(superTenantOrgId);
-                        if (result.isPresent()) {
-                            return result.get();
-                        }
-                    } catch (OrganizationManagementException e) {
-                        if (log.isDebugEnabled()) {
-                            log.debug("Error retrieving progressive enrollment config via org hierarchy. " +
-                                    "Falling back to direct tenant config.", e);
-                        }
-                    }
-                }
-                // Final fallback: Check super tenant config directly.
-                return resolveOrgLevelProgressiveEnrollment(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-            }
-
-            String tenantDomain = context.getTenantDomain();
-            String applicationId = FrameworkUtils.getApplicationResourceId(context).orElse(null);
-            
-            // Try org hierarchy traversal only if applicationId is available.
-            if (applicationId != null) {
-                Optional<Boolean> hierarchyResult = resolveProgressiveEnrollmentViaHierarchy(context, tenantDomain, 
-                        applicationId);
-                if (hierarchyResult.isPresent()) {
-                    return hierarchyResult.get();
-                }
-            }
-            
-            // Fallback: Check org-level config 
-            isProgressiveEnrollmentEnabled = resolveProgressiveEnrollmentViaFallback(context, tenantDomain);
-        } catch (RuntimeException e) {
-            log.error("Unexpected error while checking progressive enrollment configuration.", e);
-
-            if (context != null) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Attempting legacy fallback method for EnrolUserInAuthenticationFlow resolution.");
-                }
-                try {
-                    return isEnrolUserInAuthenticationFlowEnabled(context);
-                } catch (Exception legacyException) {
-                    log.error("Legacy fallback method also failed. Defaulting to enabled (fail-open).", legacyException);
-                    // Fail-open: return true to allow progressive enrollment by default
-                    return true;
-                }
-            }
+        if (context == null) {
+            return Optional.empty();
         }
 
-        return isProgressiveEnrollmentEnabled;
-    }
-
-    /**
-     * Resolve progressive enrollment via organization hierarchy traversal.
-     *
-     * @param context The authentication context.
-     * @param tenantDomain The tenant domain.
-     * @param applicationId The application ID (not used, kept for backward compatibility).
-     * @return Optional containing the boolean result if found, empty if not available or not found.
-     */
-    private static Optional<Boolean> resolveProgressiveEnrollmentViaHierarchy(AuthenticationContext context, 
-                                                                               String tenantDomain, 
-                                                                               String applicationId) {
+        String tenantDomain = context.getTenantDomain();
+        if (StringUtils.isBlank(tenantDomain)) {
+            return Optional.empty();
+        }
         
-        OrgResourceResolverService orgResourceResolverService = 
-                TOTPDataHolder.getInstance().getOrgResourceResolverService();
+        TOTPDataHolder dataHolder = TOTPDataHolder.getInstance();
+        if (dataHolder == null) {
+            return Optional.empty();
+        }
         
+        OrgResourceResolverService orgResourceResolverService = dataHolder.getOrgResourceResolverService();
         if (orgResourceResolverService == null) {
             return Optional.empty();
         }
@@ -771,62 +728,51 @@ public class TOTPUtil {
             }
             
             // Use organization hierarchy traversal with FirstFoundAggregationStrategy.
-            // Pass context to retriever via lambda to preserve script override capability.
             Boolean result = orgResourceResolverService.getResourcesFromOrgHierarchy(
                     organizationId,
-                    orgId -> {
-                        try {
-                            return progressiveEnrollmentRetriever(context, orgId);
-                        } catch (OrganizationManagementException e) {
-                            if (log.isDebugEnabled()) {
-                                log.debug("Error in progressiveEnrollmentRetriever for org: " + orgId, e);
-                            }
-                            return Optional.empty();
-                        }
-                    },
+                    orgId -> getConfigurationAsBoolean(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG, 
+                            resolveTenantDomain(orgId)),
                     new FirstFoundAggregationStrategy<>()
             );
             
-            if (result != null) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Progressive enrollment resolved via org hierarchy: " + result);
-                }
-                return Optional.of(result);
-            }
+            return Optional.ofNullable(result);
         } catch (OrgResourceHierarchyTraverseException e) {
             if (log.isDebugEnabled()) {
-                log.debug("Org hierarchy traversal not available or failed. Falling back to tenant-level config.", e);
+                log.debug("Error during organization hierarchy traversal for progressive enrollment config.", e);
             }
         }
         
-        return Optional.empty(); // Fallback to non-hierarchy resolution.
+        return Optional.empty();
     }
 
     /**
-     * Resolve progressive enrollment via fallback configuration (no hierarchy traversal).
+     * Resolve tenant domain from organization ID.
      *
-     * @param context The authentication context.
-     * @param tenantDomain The tenant domain.
-     * @return true if enrollment enabled, false if explicitly disabled.
+     * @param orgId Organization ID.
+     * @return Tenant domain, or null if not available.
      */
-    private static boolean resolveProgressiveEnrollmentViaFallback(AuthenticationContext context, String tenantDomain) {
+    private static String resolveTenantDomain(String orgId) {
         
-        // Check org-level config first.
-        boolean isProgressiveEnrollmentEnabled = resolveOrgLevelProgressiveEnrollment(tenantDomain);
-        
-        // Check Application-level Conditional Auth Script (Runtime param) - HIGHEST PRIORITY.
-        // This allows applications to override organization-level settings.
-        Map<String, String> runtimeParams = getRuntimeParamsSafely(context);
-        if (runtimeParams.containsKey(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW)) {
-            String runtimeValue = runtimeParams.get(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW);
-            isProgressiveEnrollmentEnabled = Boolean.parseBoolean(runtimeValue);
+        try {
+            TOTPDataHolder dataHolder = TOTPDataHolder.getInstance();
+            if (dataHolder == null) {
+                return null;
+            }
+            
+            OrganizationManager organizationManager = dataHolder.getOrganizationManager();
+            if (organizationManager != null) {
+                return organizationManager.resolveTenantDomain(orgId);
+            }
+        } catch (OrganizationManagementException e) {
             if (log.isDebugEnabled()) {
-                log.debug("Progressive enrollment overridden by application conditional auth script: " + 
-                        isProgressiveEnrollmentEnabled);
+                log.debug("Error resolving tenant domain for org: " + orgId, e);
+            }
+        } catch (Exception e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Unexpected error resolving tenant domain for org: " + orgId, e);
             }
         }
-        
-        return isProgressiveEnrollmentEnabled;
+        return null;
     }
 
     /**
@@ -839,9 +785,18 @@ public class TOTPUtil {
      * @return Optional<Boolean> containing the parsed boolean value if found and non-blank, empty otherwise.
      */
     private static Optional<Boolean> getConfigurationAsBoolean(String configKey, String tenantDomain) {
+        
+        if (StringUtils.isBlank(tenantDomain)) {
+            return Optional.empty();
+        }
+        
         try {
-            Property[] connectorConfigs = TOTPDataHolder.getInstance()
-                    .getIdentityGovernanceService()
+            TOTPDataHolder dataHolder = TOTPDataHolder.getInstance();
+            if (dataHolder == null || dataHolder.getIdentityGovernanceService() == null) {
+                return Optional.empty();
+            }
+            
+            Property[] connectorConfigs = dataHolder.getIdentityGovernanceService()
                     .getConfiguration(new String[]{configKey}, tenantDomain);
             
             if (connectorConfigs == null || connectorConfigs.length == 0) {
@@ -860,150 +815,12 @@ public class TOTPUtil {
                         " in tenant: " + tenantDomain, e);
             }
             return Optional.empty();
-        }
-    }
-
-    /**
-     * Resolve progressive enrollment at the organization level.
-     *
-     * @param tenantDomain The tenant domain.
-     * @return true if enabled, false if explicitly disabled, true (default) if not configured.
-     */
-    private static boolean resolveOrgLevelProgressiveEnrollment(String tenantDomain) {
-        
-        Optional<Boolean> result = getConfigurationAsBoolean(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG, 
-                tenantDomain);
-        return result.orElse(true); // Default enabled
-    }
-
-    /**
-     * Private retriever method used by OrgResourceResolverService for organization hierarchy traversal.
-     * This method checks the org-level Identity Governance configuration at each hierarchy level.
-     * 
-     * The context is passed to allow checking conditional authentication scripts,
-     * ensuring that script-based overrides are not missed during hierarchy traversal.
-     *
-     * @param context The authentication context (may contain conditional auth script settings).
-     * @param orgId Organization ID at current hierarchy level.
-     * @return Optional<Boolean> containing the enrollment setting if found, empty if not found at this level.
-     * @throws OrganizationManagementException If an error occurs while resolving organization details.
-     */
-    private static Optional<Boolean> progressiveEnrollmentRetriever(AuthenticationContext context, String orgId) 
-            throws OrganizationManagementException {
-        
-        if (context == null) {
+        } catch (Exception e) {
             if (log.isDebugEnabled()) {
-                log.debug("Authentication context is null in retriever. Proceeding without script overrides.");
+                log.debug("Unexpected error retrieving configuration for key: " + configKey + 
+                        " in tenant: " + tenantDomain, e);
             }
-            try {
-                return progressiveEnrollmentRetrieverWithoutContext(orgId);
-            } catch (OrganizationManagementException e) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Error in progressiveEnrollmentRetrieverWithoutContext for org: " + orgId, e);
-                }
-                return Optional.empty();
-            }
-        }
-
-        OrganizationManager organizationManager = TOTPDataHolder.getInstance().getOrganizationManager();
-        if (organizationManager == null) {
             return Optional.empty();
-        }
-        
-        String tenantDomainOfOrg = organizationManager.resolveTenantDomain(orgId);
-        
-        // Check org-level Identity Governance config.
-        Optional<Boolean> orgLevelResult = getConfigurationAsBoolean(
-                TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG, 
-                tenantDomainOfOrg);
-        
-        if (orgLevelResult.isPresent() && log.isDebugEnabled()) {
-            log.debug("Progressive enrollment found at org-level for org: " + orgId + ", value: " + orgLevelResult.get());
-        }
-        
-        return orgLevelResult;
-    }
-
-    /**
-     * Fallback retriever when context is not available during hierarchy traversal.
-     * Only checks org-level governance configs without script overrides.
-     *
-     * @param orgId Organization ID at current hierarchy level.
-     * @return Optional<Boolean> containing the enrollment setting if found at org-level.
-     * @throws OrganizationManagementException If an error occurs while resolving organization details.
-     */
-    private static Optional<Boolean> progressiveEnrollmentRetrieverWithoutContext(String orgId) 
-            throws OrganizationManagementException {
-        
-        OrganizationManager organizationManager = TOTPDataHolder.getInstance().getOrganizationManager();
-        if (organizationManager == null) {
-            return Optional.empty();
-        }
-        
-        String tenantDomainOfOrg = organizationManager.resolveTenantDomain(orgId);
-        Optional<Boolean> result = getConfigurationAsBoolean(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG, 
-                tenantDomainOfOrg);
-        
-        if (result.isPresent() && log.isDebugEnabled()) {
-            log.debug("Progressive enrollment found at org-level for org: " + orgId + ", value: " + result.get());
-        }
-        
-        return result;
-    }
-
-    /**
-     * Safely retrieve runtime parameters from context without throwing NPE.
-     * Gracefully handles null context and missing runtime params.
-     *
-     * Runtime parameters are typically set by conditional authentication scripts
-     * and are retrieved from the authenticator's step config.
-     *
-     * @param context The authentication context (may be null).
-     * @return Map of runtime parameters, or empty map if not available.
-     */
-    private static Map<String, String> getRuntimeParamsSafely(AuthenticationContext context) {
-        
-        try {
-            if (context == null) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Context is null in getRuntimeParamsSafely. Returning empty map.");
-                }
-                return new HashMap<>();
-            }
-            
-            // Get runtime params from current step's authenticator config
-            SequenceConfig sequenceConfig = context.getSequenceConfig();
-            if (sequenceConfig != null) {
-                Map<Integer, StepConfig> stepMap = sequenceConfig.getStepMap();
-                if (stepMap != null && context.getCurrentStep() > 0) {
-                    StepConfig stepConfig = stepMap.get(context.getCurrentStep());
-                    if (stepConfig != null) {
-                        AuthenticatorConfig authenticatorConfig = stepConfig.getAuthenticatedAutenticator();
-                        if (authenticatorConfig == null) {
-                            // During initial authentication, use the first local authenticator
-                            List<AuthenticatorConfig> authenticatorList = stepConfig.getAuthenticatorList();
-                            if (authenticatorList != null && !authenticatorList.isEmpty()) {
-                                for (AuthenticatorConfig config : authenticatorList) {
-                                    if (TOTPAuthenticatorConstants.AUTHENTICATOR_NAME.equals(config.getName())) {
-                                        authenticatorConfig = config;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        if (authenticatorConfig != null && authenticatorConfig.getParameterMap() != null) {
-                            return authenticatorConfig.getParameterMap();
-                        }
-                    }
-                }
-            }
-            
-            return new HashMap<>();
-        } catch (RuntimeException e) {
-            if (log.isDebugEnabled()) {
-                log.debug("Error retrieving runtime parameters. Returning empty map.", e);
-            }
-            return new HashMap<>();
         }
     }
 
@@ -1016,14 +833,22 @@ public class TOTPUtil {
     private static String getOrganizationId(String tenantDomain) {
         
         try {
-            OrganizationManager organizationManager = TOTPDataHolder.getInstance().getOrganizationManager();
+            TOTPDataHolder dataHolder = TOTPDataHolder.getInstance();
+            if (dataHolder == null) {
+                return null;
+            }
+            
+            OrganizationManager organizationManager = dataHolder.getOrganizationManager();
             if (organizationManager != null) {
-                String organizationId = organizationManager.resolveOrganizationId(tenantDomain);
-                return organizationId;
+                return organizationManager.resolveOrganizationId(tenantDomain);
             }
         } catch (OrganizationManagementException e) {
             if (log.isDebugEnabled()) {
                 log.debug("Error resolving organization ID for tenant: " + tenantDomain, e);
+            }
+        } catch (Exception e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Unexpected error resolving organization ID for tenant: " + tenantDomain, e);
             }
         }
         return null;

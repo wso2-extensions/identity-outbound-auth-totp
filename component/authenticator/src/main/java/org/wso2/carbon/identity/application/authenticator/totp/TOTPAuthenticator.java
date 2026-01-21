@@ -344,7 +344,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             }
             // This multi option URI is used to navigate back to multi option page to select a different.
             // authentication option from TOTP pages.
-                        String multiOptionURI = getMultiOptionURIQueryParam(request);
+            String multiOptionURI = getMultiOptionURIQueryParam(request);
 
             if (isSecretKeyExistForUser &&
                     request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
@@ -1382,18 +1382,6 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         return Optional.empty();
     }
 
-    /**
-     * Check if progressive enrollment is enabled using the zigzag pattern.
-     * Progressive enrollment allows users to enroll TOTP devices during their login flow.
-     * 
-     * This zigzag traversal ensures that:
-     * - When using a shared app in a sub-organization, the sub-org's settings take precedence.
-     * - Within the same org/app context, conditional scripts override org-level configs.
-     * - Hierarchical inheritance follows the org hierarchy up to the root.
-     *
-     * @param context The authentication context.
-     * @return true if progressive enrollment is enabled (show QR code for enrollment), false if disabled (skip enrollment).
-     */
     /**
      * Set i18n key.
      *
