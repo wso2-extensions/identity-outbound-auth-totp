@@ -374,9 +374,9 @@ public class TOTPUtil {
     /**
      * Get stored encoding method.
      *
-     * @param tenantDomain Tenant domain name
-     * @return encoding method
-     * @throws AuthenticationFailedException On Error while getting value for encodingMethods from registry
+     * @param tenantDomain Tenant domain name.
+     * @return encoding method.
+     * @throws AuthenticationFailedException On Error while getting value for encodingMethods from registry.
      */
     public static String getEncodingMethod(String tenantDomain) throws AuthenticationFailedException {
 
@@ -414,7 +414,7 @@ public class TOTPUtil {
     /**
      * Get xml file data from registry and get the value for encoding method.
      *
-     * @throws TOTPException On error during passing XML content or creating document builder
+     * @throws TOTPException On error during passing XML content or creating document builder.
      */
     private static String getEncodingMethodFromRegistry(String tenantDomain, AuthenticationContext context)
             throws TOTPException {
@@ -617,7 +617,7 @@ public class TOTPUtil {
     /**
      * Get EnrolUserInAuthenticationFlow.
      *
-     * @return true, if EnrolUserInAuthenticationFlow is enabled
+     * @return true, if EnrolUserInAuthenticationFlow is enabled.
      */
     public static boolean isEnrolUserInAuthenticationFlowEnabled(AuthenticationContext context) {
 
@@ -642,15 +642,15 @@ public class TOTPUtil {
     /**
      * Get EnrolUserInAuthenticationFlow.
      *
-     * @param context  The AuthenticationContext
-     * @param runtimeParams The Runtime Parameters for the authenticator
+     * @param context  The AuthenticationContext.
+     * @param runtimeParams The Runtime Parameters for the authenticator.
      *
-     * @return true, if EnrolUserInAuthenticationFlow is enabled
+     * @return true, if EnrolUserInAuthenticationFlow is enabled.
      */
     public static boolean isEnrolUserInAuthenticationFlowEnabled(AuthenticationContext context,
                                                                  Map<String, String> runtimeParams) {
 
-        // Check runtime parameters from adaptive authentication script
+        // Check runtime parameters from adaptive authentication script.
         if (runtimeParams != null) {
             if (StringUtils.isNotBlank(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW))) {
                 boolean runtimeValue = Boolean.parseBoolean(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW));
@@ -662,7 +662,7 @@ public class TOTPUtil {
             }
         }
 
-        // Check organization-level configuration via hierarchy traversal
+        // Check organization-level configuration via hierarchy traversal.
         Optional<Boolean> orgLevelConfig = resolveWithOrgLevelHierarchy(context);
         if (orgLevelConfig.isPresent()) {
             boolean orgValue = orgLevelConfig.get();
@@ -675,7 +675,7 @@ public class TOTPUtil {
                     "Falling back to application authentication XML configuration.");
         }
 
-        //Fallback to application authentication XML file configuration
+        //Fallback to application authentication XML file configuration.
         boolean fallbackValue = isEnrolUserInAuthenticationFlowEnabled(context);
         if (log.isDebugEnabled()) {
             log.debug("Progressive enrollment configuration resolved from application authentication XML file " +
@@ -720,7 +720,7 @@ public class TOTPUtil {
             // Use organization hierarchy traversal with FirstFoundAggregationStrategy.
             // Note: The lambda retrieves configuration for each org in the hierarchy.
             // If getConfigurationAsBoolean returns Optional.empty() (config not explicitly set),
-            // FirstFoundAggregationStrategy treats it as "not found" and continues traversing
+            // FirstFoundAggregationStrategy treats it as "not found" and continues traversing.
             // up the hierarchy until a set value is found or the root is reached.
             Boolean result = orgResourceResolverService.getResourcesFromOrgHierarchy(
                     organizationId,
@@ -793,26 +793,15 @@ public class TOTPUtil {
                 return Optional.empty();
             }
             
-            // Find the configuration that matches the requested configKey.
-            // Verify the property name matches before accessing its value.
-            for (Property connectorConfig : connectorConfigs) {
-                if (connectorConfig != null && configKey.equals(connectorConfig.getName())) {
-                    String configValue = connectorConfig.getValue();
-                    if (StringUtils.isBlank(configValue)) {
-                        return Optional.empty();
-                    }
-                    return Optional.of(Boolean.parseBoolean(configValue));
-                }
+            String configValue = connectorConfigs[0].getValue();
+            if (StringUtils.isBlank(configValue)) {
+                return Optional.empty();
             }
             
-            // No matching configuration found for the requested key.
-            if (log.isDebugEnabled()) {
-                log.debug("No configuration found matching key: " + configKey + " in tenant: " + tenantDomain);
-            }
-            return Optional.empty();
+            return Optional.of(Boolean.parseBoolean(configValue));
         } catch (IdentityGovernanceException e) {
             if (log.isDebugEnabled()) {
-                log.debug("Error retrieving configuration for key: " + configKey + 
+                log.debug("Error retrieving configuration for key: " + configKey +  
                         " in tenant: " + tenantDomain, e);
             }
             return Optional.empty();
