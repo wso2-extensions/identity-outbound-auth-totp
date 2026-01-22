@@ -739,10 +739,6 @@ public class TOTPUtil {
             if (log.isDebugEnabled()) {
                 log.debug("Error resolving tenant domain for org: " + orgId, e);
             }
-        } catch (Exception e) {
-            if (log.isDebugEnabled()) {
-                log.debug("Unexpected error resolving tenant domain for org: " + orgId, e);
-            }
         }
         return null;
     }
@@ -787,12 +783,6 @@ public class TOTPUtil {
                         " in tenant: " + tenantDomain, e);
             }
             return Optional.empty();
-        } catch (Exception e) {
-            if (log.isDebugEnabled()) {
-                log.debug("Unexpected error retrieving configuration for key: " + configKey + 
-                        " in tenant: " + tenantDomain, e);
-            }
-            return Optional.empty();
         }
     }
 
@@ -817,10 +807,6 @@ public class TOTPUtil {
         } catch (OrganizationManagementException e) {
             if (log.isDebugEnabled()) {
                 log.debug("Error resolving organization ID for tenant: " + tenantDomain, e);
-            }
-        } catch (Exception e) {
-            if (log.isDebugEnabled()) {
-                log.debug("Unexpected error resolving organization ID for tenant: " + tenantDomain, e);
             }
         }
         return null;
