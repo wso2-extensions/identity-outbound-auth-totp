@@ -119,6 +119,7 @@ public class TOTPUtil {
 
     private static final Log log = LogFactory.getLog(TOTPUtil.class);
     private static final String TOTP_KEY = "CryptoService.TotpSecret";
+    private static final TOTPDataHolder DATA_HOLDER = TOTPDataHolder.getInstance();
 
     /**
      * Encrypt the given plain text.
@@ -173,9 +174,11 @@ public class TOTPUtil {
             try {
                 // For organizations, issuer display name should be the organization name.
                 if (OrganizationManagementUtil.isOrganization(tenantDomain)) {
-                    OrganizationManager organizationManager = TOTPDataHolder.getInstance().getOrganizationManager();
-                    String organizationId = organizationManager.resolveOrganizationId(tenantDomain);
-                    issuer = organizationManager.getOrganizationNameById(organizationId);
+                    OrganizationManager organizationManager = DATA_HOLDER.getOrganizationManager();
+                    if (organizationManager != null) {
+                        String organizationId = organizationManager.resolveOrganizationId(tenantDomain);
+                        issuer = organizationManager.getOrganizationNameById(organizationId);
+                    }
                 } else {
                     issuer = tenantDomain;
                 }
@@ -207,7 +210,7 @@ public class TOTPUtil {
 
     private static String getIssuerFromBranding(String tenantDomain) {
 
-        BrandingPreferenceManager brandingPreferenceManager = TOTPDataHolder.getInstance()
+        BrandingPreferenceManager brandingPreferenceManager = DATA_HOLDER
                 .getBrandingPreferenceManager();
         if (brandingPreferenceManager == null) {
             return null;
@@ -675,7 +678,7 @@ public class TOTPUtil {
                     "Falling back to application authentication XML configuration.");
         }
 
-        //Fallback to application authentication XML file configuration.
+        // Fallback to application authentication XML file configuration.
         boolean fallbackValue = isEnrolUserInAuthenticationFlowEnabled(context);
         if (log.isDebugEnabled()) {
             log.debug("Progressive enrollment configuration resolved from application authentication XML file " +
@@ -701,7 +704,7 @@ public class TOTPUtil {
             return Optional.empty();
         }
         
-        TOTPDataHolder dataHolder = TOTPDataHolder.getInstance();
+        TOTPDataHolder dataHolder = DATA_HOLDER;
         if (dataHolder == null) {
             return Optional.empty();
         }
@@ -713,14 +716,14 @@ public class TOTPUtil {
         
         try {
             String organizationId = getOrganizationId(tenantDomain);
-            if (organizationId == null) {
+            if (StringUtils.isBlank(organizationId)) {
                 return Optional.empty();
             }
             
             // Use organization hierarchy traversal with FirstFoundAggregationStrategy.
             // Note: The lambda retrieves configuration for each org in the hierarchy.
             // If getConfigurationAsBoolean returns Optional.empty() (config not explicitly set),
-            // FirstFoundAggregationStrategy treats it as "not found" and continues traversing.
+            // FirstFoundAggregationStrategy treats it as "not found" and continues traversing
             // up the hierarchy until a set value is found or the root is reached.
             Boolean result = orgResourceResolverService.getResourcesFromOrgHierarchy(
                     organizationId,
@@ -748,7 +751,7 @@ public class TOTPUtil {
     private static String resolveTenantDomain(String orgId) {
         
         try {
-            TOTPDataHolder dataHolder = TOTPDataHolder.getInstance();
+            TOTPDataHolder dataHolder = DATA_HOLDER;
             if (dataHolder == null) {
                 return null;
             }
@@ -781,7 +784,7 @@ public class TOTPUtil {
         }
         
         try {
-            TOTPDataHolder dataHolder = TOTPDataHolder.getInstance();
+            TOTPDataHolder dataHolder = DATA_HOLDER;
             if (dataHolder == null || dataHolder.getIdentityGovernanceService() == null) {
                 return Optional.empty();
             }
@@ -817,7 +820,7 @@ public class TOTPUtil {
     private static String getOrganizationId(String tenantDomain) {
         
         try {
-            TOTPDataHolder dataHolder = TOTPDataHolder.getInstance();
+            TOTPDataHolder dataHolder = DATA_HOLDER;
             if (dataHolder == null) {
                 return null;
             }
@@ -942,7 +945,7 @@ public class TOTPUtil {
             if (username != null) {
                 String tenantDomain = MultitenantUtils.getTenantDomain(username);
                 int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
-                RealmService realmService = TOTPDataHolder.getInstance().getRealmService();
+                RealmService realmService = DATA_HOLDER.getRealmService();
                 userRealm = realmService.getTenantUserRealm(tenantId);
             }
         } catch (UserStoreException e) {
@@ -1135,7 +1138,7 @@ public class TOTPUtil {
 
         Property[] connectorConfigs;
         try {
-            connectorConfigs = TOTPDataHolder.getInstance()
+            connectorConfigs = DATA_HOLDER
                     .getIdentityGovernanceService()
                     .getConfiguration(
                             new String[]{
@@ -1176,7 +1179,7 @@ public class TOTPUtil {
             throws AuthenticationFailedException {
 
         try {
-            return TOTPDataHolder.getInstance().getAccountLockService()
+            return DATA_HOLDER.getAccountLockService()
                     .isAccountLocked(userName, tenantDomain, userStoreDomain);
         } catch (AccountLockServiceException e) {
             throw new AuthenticationFailedException(
@@ -1452,7 +1455,7 @@ public class TOTPUtil {
     public static boolean doesUsedTimeWindowsClaimExist(String tenantDomain) throws ClaimMetadataException {
 
         // Retrieve all claims and confirm if usedTOTPTimeWindows claim is present for the tenant.
-        List<LocalClaim> localClaimsList = TOTPDataHolder.getInstance()
+        List<LocalClaim> localClaimsList = DATA_HOLDER
                 .getClaimMetadataManagementService().getLocalClaims(tenantDomain);
 
         return localClaimsList.stream().anyMatch(localClaim ->

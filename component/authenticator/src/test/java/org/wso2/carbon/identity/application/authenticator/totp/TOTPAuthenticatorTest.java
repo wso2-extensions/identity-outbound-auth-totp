@@ -45,6 +45,7 @@ import org.wso2.carbon.identity.application.authentication.framework.exception.L
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatorData;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatorParamMetadata;
+import org.wso2.carbon.identity.application.authentication.framework.store.UserSessionStore;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
@@ -57,8 +58,6 @@ import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
-import org.wso2.carbon.identity.governance.IdentityGovernanceService;
-import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.idp.mgt.IdentityProviderManagementException;
 import org.wso2.carbon.idp.mgt.IdpManager;
 import org.wso2.carbon.user.core.UserRealm;
@@ -76,17 +75,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
-
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.eq;
@@ -140,9 +136,6 @@ public class TOTPAuthenticatorTest {
 
     @Mock
     private JustInTimeProvisioningConfig justInTimeProvisioningConfig;
-
-    @Mock
-    private IdentityGovernanceService identityGovernanceService;
 
     @Mock
     private HttpServletResponse httpServletResponse;
@@ -615,12 +608,12 @@ public class TOTPAuthenticatorTest {
                 true);
     }
 
-    @Test(description = "Test case for initiateAuthenticationRequest() when progressive enrollment is disabled and " +
-            "TOTP is not enabled for the user. Should show verification page without QR enrollment option.")
-    public void testInitiateAuthenticationRequestWithEnrollment() throws Exception {
+    @Test(description = "Test case for initiateAuthenticationRequest() method when admin does not enforces TOTP and " +
+            "TOTP is not enabled for the user.")
+    public void testInitiateAuthenticationRequestWithEnrollment() throws AuthenticationFailedException,
+            UserStoreException {
 
         String username = "admin";
-        mockServiceURLBuilder();
         staticIdentityUtil.when(IdentityUtil::getPrimaryDomainName).thenReturn(USER_STORE_DOMAIN);
         AuthenticatedUser authenticatedUser =
                 AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
@@ -631,38 +624,16 @@ public class TOTPAuthenticatorTest {
         mockedContext.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
         mockedContext.setProperty("username", username);
         mockedContext.setProperty("authenticatedUser", authenticatedUser);
-        mockedContext.setContextIdentifier(UUID.randomUUID().toString());
-        mockedContext.setLoginTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-        mockedContext.setServiceProviderName("test-app");
-        when(mockedContext.getTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-        when(mockedContext.getLoginTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-        when(mockedContext.getServiceProviderName()).thenReturn("test-app");
-        when(mockedContext.getCurrentStep()).thenReturn(2);
-        
-        // User does NOT have TOTP secret key yet (userStoreManager returns null/empty)
+        Map<String, String> claims = new HashMap<>();
+        claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "AnySecretKey");
         staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
         staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(mockedContext)).thenReturn(authenticatedUser);
         when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
-        when(userStoreManager.getUserClaimValues(anyString(), any(String[].class), anyString())).thenReturn(new HashMap<>());
-        
-        // Mock isEnrolUserInAuthenticationFlowEnabled to return false (enrollment disabled)
-        staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
-                .thenReturn(false);
-        
-        // Mock helper methods for building the TOTP login page URL
-        staticTOTPUtil.when(() -> TOTPUtil.getMultiOptionURIQueryParam(httpServletRequest))
-                .thenReturn("");
-        
-        // Mock checkSecondStepEnableByAdmin to return true (admin enforces TOTP)
-        staticIdentityHelperUtil.when(() -> IdentityHelperUtil.checkSecondStepEnableByAdmin(any(AuthenticationContext.class)))
-                .thenReturn(true);
-        
-        when(httpServletRequest.getParameter(anyString())).thenReturn(null);
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
         staticTOTPUtil.when(() -> TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString())).
                 thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
         staticTOTPUtil.when(() -> TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString())).
-                thenReturn(TOTPAuthenticatorConstants.ERROR_PAGE);
-        staticTOTPUtil.when(() -> TOTPUtil.getTOTPLoginPage(any(AuthenticationContext.class))).thenCallRealMethod();
+                thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
         when(mockedContext.getSequenceConfig()).thenReturn(sequenceConfig);
         when(sequenceConfig.getStepMap()).thenReturn(mockedMap);
         when(mockedMap.get(any())).thenReturn(stepConfig);
@@ -671,27 +642,15 @@ public class TOTPAuthenticatorTest {
         staticTOTPUtil.when(() -> TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
         staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance).thenReturn(fileBasedConfigurationBuilder);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
-        
-        // Mock sendRedirect to avoid actual HTTP response
-        doNothing().when(httpServletResponse).sendRedirect(anyString());
-        
-        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-        
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, mockedContext);
-        
-        // Verify redirect to TOTP login page (not enrollment page) when progressive enrollment is disabled
-        verify(httpServletResponse).sendRedirect(captor.capture());
-        Assert.assertTrue(captor.getValue().contains("authenticationendpoint/totp.do"),
-                "Should redirect to TOTP verification page when progressive enrollment is disabled");
         Assert.assertEquals(mockedContext.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION),
-                TOTPAuthenticatorConstants.AUTHENTICATOR_NAME, 
-                "AUTHENTICATION property should remain as 'totp' authenticator name");
+                TOTPAuthenticatorConstants.FEDERETOR);
     }
 
     @Test(description = "Test case for initiateAuthenticationRequest() method when admin enforces TOTP and " +
             "TOTP is not enabled for the user.", priority = 2)
     public void testInitiateAuthenticationRequestAdminEnforces()
-            throws Exception {
+            throws AuthenticationFailedException, UserStoreException, IOException, URLBuilderException {
 
         String username = "admin";
         String multiOptionURL = "https://localhost:9443/samlsso";
@@ -707,18 +666,6 @@ public class TOTPAuthenticatorTest {
         context.setProperty("username", username);
         context.setProperty("authenticatedUser", authenticatedUser);
         context.setContextIdentifier(UUID.randomUUID().toString());
-
-        // Mock organization-level governance config to return false (progressive enrollment disabled)
-        Property progressiveEnrollmentProperty = new Property();
-        progressiveEnrollmentProperty.setName(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG);
-        progressiveEnrollmentProperty.setValue("false");
-        Property[] governanceProperties = new Property[]{progressiveEnrollmentProperty};
-        
-        staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(totpDataHolder);
-        when(totpDataHolder.getIdentityGovernanceService()).thenReturn(identityGovernanceService);
-        when(identityGovernanceService.getConfiguration(
-                new String[]{TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG}, 
-                TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)).thenReturn(governanceProperties);
 
         Map<String, String> claims = new HashMap<>();
         claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "AnySecretKey");
@@ -815,219 +762,6 @@ public class TOTPAuthenticatorTest {
         } else {
             Assert.assertFalse(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, mockedRuntimeParams));
         }
-    }
-
-    @Test(description = "Test isEnrolUserInAuthenticationFlowEnabled() returns true by default")
-    public void testProgressiveEnrollmentDefaultBehavior() throws Exception {
-        
-        when(context.getTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-        
-        // Mock the utility method to return true (default behavior)
-        staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, new HashMap<>()))
-                .thenReturn(true);
-        
-        boolean result = TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, new HashMap<>());
-        
-        Assert.assertTrue(result, "Progressive enrollment should be enabled by default (true)");
-    }
-
-    @Test(description = "Test isEnrolUserInAuthenticationFlowEnabled() returns true when enabled")
-    public void testProgressiveEnrollmentEnabledByOrgConfig() throws Exception {
-        
-        Map<String, String> runtimeParams = new HashMap<>();
-        runtimeParams.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "true");
-        
-        when(context.getTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-        
-        // Mock the utility method to return true
-        staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, runtimeParams))
-                .thenReturn(true);
-        
-        boolean result = TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, runtimeParams);
-        
-        Assert.assertTrue(result, "Progressive enrollment should be enabled when org config is 'true'");
-    }
-
-    @Test(description = "Test isEnrolUserInAuthenticationFlowEnabled() returns false when disabled")
-    public void testProgressiveEnrollmentDisabledByOrgConfig() throws Exception {
-        
-        Map<String, String> runtimeParams = new HashMap<>();
-        runtimeParams.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "false");
-        
-        when(context.getTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-        
-        // Mock the utility method to return false
-        staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, runtimeParams))
-                .thenReturn(false);
-        
-        boolean result = TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, runtimeParams);
-        
-        Assert.assertFalse(result, "Progressive enrollment should be disabled when org config is 'false'");
-    }
-
-    @Test(description = "Test runtime param overrides org config - runtime=true, org=false")
-    public void testRuntimeParamOverridesOrgConfigToTrue() throws Exception {
-        
-        Map<String, String> runtimeParams = new HashMap<>();
-        runtimeParams.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "true");
-        
-        when(mockedContext.getTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-        
-        // Mock the utility method to return true when runtime param is true
-        staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(mockedContext, runtimeParams))
-                .thenReturn(true);
-        
-        boolean result = TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(mockedContext, runtimeParams);
-        
-        Assert.assertTrue(result, "Runtime param (true) should override org config (false)");
-    }
-
-    @Test(description = "Test runtime param overrides org config - runtime=false, org=true")
-    public void testRuntimeParamOverridesOrgConfigToFalse() throws Exception {
-        
-        Map<String, String> runtimeParams = new HashMap<>();
-        runtimeParams.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "false");
-        
-        when(mockedContext.getTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-        
-        // Mock the utility method to return false when runtime param is false
-        staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(mockedContext, runtimeParams))
-                .thenReturn(false);
-        
-        boolean result = TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(mockedContext, runtimeParams);
-        
-        Assert.assertFalse(result, "Runtime param (false) should override org config (true)");
-    }
-
-    @Test(description = "Test case for progressive enrollment enabled shows QR code page")
-     public void testProgressiveEnrollmentEnabledShowsQRCodePage() throws Exception {
-
-    String username = "admin";
-    mockServiceURLBuilder();
-    staticIdentityUtil.when(IdentityUtil::getPrimaryDomainName).thenReturn(USER_STORE_DOMAIN);
-
-    AuthenticatedUser authenticatedUser = AuthenticatedUser
-            .createLocalAuthenticatedUserFromSubjectIdentifier(username);
-    authenticatedUser.setFederatedUser(false);
-    authenticatedUser.setUserName(username);
-    authenticatedUser.setUserId("dummyUserId");
-
-    mockedContext.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-    mockedContext.setProperty("username", username);
-    mockedContext.setProperty("authenticatedUser", authenticatedUser);
-    mockedContext.setContextIdentifier(UUID.randomUUID().toString());
-    when(mockedContext.getTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-    when(mockedContext.getCurrentStep()).thenReturn(2);
-    when(mockedContext.getLoginTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-    when(mockedContext.getServiceProviderName()).thenReturn("test-app");
-
-    // User does NOT have TOTP secret key yet
-    staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
-    staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(mockedContext)).thenReturn(authenticatedUser);
-    when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
-    when(userStoreManager.getUserClaimValues(anyString(), any(String[].class), anyString()))
-            .thenReturn(new HashMap<>());
-
-    // Mock runtime params to enable enrollment
-    Map<String, String> runtimeParams = new HashMap<>();
-    runtimeParams.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "true");
-
-    // Mock isEnrolUserInAuthenticationFlowEnabled to return true
-    staticTOTPUtil.when(() -> TOTPUtil
-            .isEnrolUserInAuthenticationFlowEnabled(any(AuthenticationContext.class), anyMap()))
-            .thenReturn(true);
-
-    // Mock TOTPKeyGenerator to generate claims
-    Map<String, String> generatedClaims = new HashMap<>();
-    generatedClaims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "TESTSECRET123");
-    generatedClaims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, "data:image/png;base64,test");
-    try (MockedStatic<TOTPKeyGenerator> mockedKeyGenerator = Mockito.mockStatic(TOTPKeyGenerator.class)) {
-        mockedKeyGenerator.when(() -> TOTPKeyGenerator.generateClaims(anyString(), anyBoolean(),
-                any(AuthenticationContext.class))).thenReturn(generatedClaims);
-
-        staticTOTPUtil.when(() -> TOTPUtil.getClaimProperties(anyString(), anyString()))
-                .thenReturn(new HashMap<>());
-
-        // Mock helper methods
-        staticTOTPUtil.when(() -> TOTPUtil.getMultiOptionURIQueryParam(any(HttpServletRequest.class)))
-                .thenReturn("");
-
-        when(httpServletRequest.getParameter(anyString())).thenReturn(null);
-        staticTOTPUtil.when(
-                () -> TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString()))
-                .thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
-        staticTOTPUtil.when(
-                () -> TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString()))
-                .thenReturn(TOTPAuthenticatorConstants.ERROR_PAGE);
-
-        when(mockedContext.getSequenceConfig()).thenReturn(sequenceConfig);
-        when(sequenceConfig.getStepMap()).thenReturn(mockedMap);
-        when(mockedMap.get(any())).thenReturn(stepConfig);
-        when(stepConfig.getAuthenticatedAutenticator()).thenReturn(authenticatorConfig);
-        when(authenticatorConfig.getApplicationAuthenticator()).thenReturn(applicationAuthenticator);
-        staticTOTPUtil.when(() -> TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
-        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance)
-                .thenReturn(fileBasedConfigurationBuilder);
-        when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
-
-        // Mock redirectToEnableTOTPReqPage to avoid actual HTTP response
-        staticTOTPUtil.when(() -> TOTPUtil.redirectToEnableTOTPReqPage(
-                any(HttpServletRequest.class), any(HttpServletResponse.class),
-                any(AuthenticationContext.class), anyString(), any())).thenAnswer(invocation -> null);
-
-        totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, mockedContext);
-
-        // Verify that redirectToEnableTOTPReqPage was called (QR code enrollment page)
-        staticTOTPUtil.verify(() -> TOTPUtil.redirectToEnableTOTPReqPage(
-                any(HttpServletRequest.class), any(HttpServletResponse.class),
-                any(AuthenticationContext.class), anyString(), any()));
-    }
-}
-
-    @Test(description = "Test TOTPAuthenticatorConfigImpl returns correct default property values")
-    public void testTOTPAuthenticatorConfigImplDefaultValues() throws Exception {
-        
-        TOTPAuthenticatorConfigImpl configImpl = new TOTPAuthenticatorConfigImpl();
-        
-        // Test getName
-        Assert.assertEquals(configImpl.getName(), "totp", "Connector name should be 'totp'");
-        
-        // Test getFriendlyName
-        Assert.assertEquals(configImpl.getFriendlyName(), "TOTP",
-                "Friendly name should be 'TOTP'");
-        
-        // Test getCategory
-        Assert.assertEquals(configImpl.getCategory(), "Multi Factor Authenticators",
-                "Category should be 'Multi Factor Authenticators'");
-        
-        // Test getDefaultPropertyValues returns "true" for progressive enrollment
-        Properties defaultValues = configImpl.getDefaultPropertyValues(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-        Assert.assertNotNull(defaultValues, "Default property values should not be null");
-        Assert.assertEquals(defaultValues.size(), 1, "Should have one default property");
-        Assert.assertEquals(defaultValues.getProperty(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG), "true",
-                "Default value for progressive enrollment should be 'true' (backward compatible)");
-        
-        // Test getPropertyNames
-        String[] propertyNames = configImpl.getPropertyNames();
-        Assert.assertNotNull(propertyNames, "Property names should not be null");
-        Assert.assertEquals(propertyNames.length, 1, "Should have one property name");
-        Assert.assertEquals(propertyNames[0], TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG,
-                "Property name should match");
-        
-        // Test getPropertyNameMapping
-        Map<String, String> nameMapping = configImpl.getPropertyNameMapping();
-        Assert.assertNotNull(nameMapping, "Property name mapping should not be null");
-        Assert.assertTrue(nameMapping.containsKey(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG),
-                "Name mapping should contain the property");
-        Assert.assertEquals(nameMapping.get(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG),
-                "Enable TOTP Device Progressive Enrollment",
-                "Display name should be correct");
-        
-        // Test getPropertyDescriptionMapping
-        Map<String, String> descMapping = configImpl.getPropertyDescriptionMapping();
-        Assert.assertNotNull(descMapping, "Property description mapping should not be null");
-        Assert.assertTrue(descMapping.containsKey(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG),
-                "Description mapping should contain the property");
     }
 
 
@@ -1136,289 +870,278 @@ public class TOTPAuthenticatorTest {
                 "Redirect URL should contain remainingAttempts parameter with value 3");
     }
 
-    /**
-     * Test cases for organization hierarchy support in progressive enrollment
-     */
+        @Test(description = "Test isEnrolUserInAuthenticationFlowEnabled returns true when runtime param is 'true'")
+        public void testIsEnrolUserInAuthFlowEnabledWithRuntimeParamsTrue() {
 
-    @Test(description = "Test case for TOTP enrollment in sub-organization hierarchy.")
-    public void testProgressiveEnrollmentInSubOrganization() throws AuthenticationFailedException,
-            LogoutFailedException {
+                Map<String, String> runtimeParams = new HashMap<>();
+                runtimeParams.put(ENROL_USER_IN_AUTHENTICATIONFLOW, "true");
 
-        AuthenticationContext authenticationContext = new AuthenticationContext();
-        String username = "user@example.com";
-        String organizationId = "sub-org-001";
-        String parentOrganizationId = "parent-org-001";
+                staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
+                                .thenCallRealMethod();
+                when(mockedContext.getTenantDomain()).thenReturn("carbon.super");
 
-        authenticationContext.setProperty("username", username);
-        authenticationContext.setProperty("organizationId", organizationId);
-        authenticationContext.setProperty("parentOrganizationId", parentOrganizationId);
-        authenticationContext.setTenantDomain("sub-org.example.com");
+                boolean result = TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(mockedContext, runtimeParams);
+                Assert.assertTrue(result);
+        }
 
-        staticTOTPUtil.when(TOTPUtil::isSendVerificationCodeByEmailEnabled).thenReturn(true);
-        doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
-        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn("true");
-        staticTOTPTokenGenerator.when(() -> TOTPTokenGenerator.generateTOTPTokenLocal(eq(username), 
-                eq(authenticationContext))).thenReturn("123456");
+	@Test(description = "Test isEnrolUserInAuthenticationFlowEnabled returns false when runtime param is 'false'")
+	public void testIsEnrolUserInAuthFlowEnabledWithRuntimeParamsFalse() {
 
-        AuthenticatedUser user = new AuthenticatedUser();
-        user.setAuthenticatedSubjectIdentifier(username);
-        user.setUserName(username);
-        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+			Map<String, String> runtimeParams = new HashMap<>();
+			runtimeParams.put(ENROL_USER_IN_AUTHENTICATIONFLOW, "false");
 
-        AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse,
-                authenticationContext);
-        Assert.assertEquals(status, AuthenticatorFlowStatus.INCOMPLETE,
-                "TOTP enrollment should be incomplete in sub-organization");
-    }
+			staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
+							.thenCallRealMethod();
+			when(mockedContext.getTenantDomain()).thenReturn("carbon.super");
 
-    @Test(description = "Test case for progressive enrollment with organization ID inheritance.")
-    public void testProgressiveEnrollmentWithOrgIdInheritance() throws AuthenticationFailedException,
-            LogoutFailedException {
+			boolean result = TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(mockedContext, runtimeParams);
+			Assert.assertFalse(result);
+	}
 
-        AuthenticationContext authenticationContext = new AuthenticationContext();
-        String username = "admin";
-        String organizationId = "org-hierarchy-001";
+	@Test(description = "Test runtime params take precedence over org hierarchy config")
+	public void testRuntimeParamsPrecedenceOverOrgConfig() {
 
-        authenticationContext.setProperty("username", username);
-        authenticationContext.setProperty("organizationId", organizationId);
-        authenticationContext.setTenantDomain("example.com");
+			// Runtime params set to false should override any org-level config
+			Map<String, String> runtimeParams = new HashMap<>();
+			runtimeParams.put(ENROL_USER_IN_AUTHENTICATIONFLOW, "false");
 
-        staticTOTPUtil.when(TOTPUtil::isSendVerificationCodeByEmailEnabled).thenReturn(true);
-        doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
-        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn("true");
-        staticTOTPTokenGenerator.when(() -> TOTPTokenGenerator.generateTOTPTokenLocal(eq(username), 
-                eq(authenticationContext))).thenReturn("654321");
+			staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
+							.thenCallRealMethod();
+			when(mockedContext.getTenantDomain()).thenReturn("wso2.org");
 
-        AuthenticatedUser user = new AuthenticatedUser();
-        user.setAuthenticatedSubjectIdentifier("admin@example.com");
-        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+			boolean result = TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(mockedContext, runtimeParams);
+			Assert.assertFalse(result);
+	}
 
-        AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse,
-                authenticationContext);
-        Assert.assertEquals(status, AuthenticatorFlowStatus.INCOMPLETE,
-                "TOTP enrollment with org ID inheritance should return incomplete");
-    }
+	@Test(description = "Test isEnrolUserInAuthenticationFlowEnabled with empty runtime params falls back to other configs")
+	public void testIsEnrolUserInAuthFlowEnabledWithEmptyRuntimeParams() {
 
-    @Test(description = "Test case for TOTP token validation in organization hierarchy.")
-    public void testTokenValidationInOrgHierarchy() {
+			Map<String, String> runtimeParams = new HashMap<>();
 
-        doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
+			staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
+							.thenCallRealMethod();
+			staticTOTPUtil.when(
+							() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(AuthenticationContext.class)))
+							.thenReturn(true);
 
-        AuthenticationContext authenticationContext = new AuthenticationContext();
-        String username = "user@sub-org.com";
-        String organizationId = "sub-org-002";
-        String token = "123456";
+			staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(totpDataHolder);
+			when(totpDataHolder.getOrgResourceResolverService()).thenReturn(null);
+			when(mockedContext.getTenantDomain()).thenReturn("carbon.super");
 
-        authenticationContext.setProperty("username", username);
-        authenticationContext.setProperty("organizationId", organizationId);
-        authenticationContext.setTenantDomain("sub-org.example.com");
+			boolean result = TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(mockedContext, runtimeParams);
+			Assert.assertTrue(result);
+	}
 
-        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.TOKEN)).thenReturn(token);
-        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn(null);
-        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
+	@Test(description = "Test isEnrolUserInAuthenticationFlowEnabled with null runtime params falls back")
+	public void testIsEnrolUserInAuthFlowEnabledWithNullRuntimeParams() {
 
-        AuthenticatedUser user = new AuthenticatedUser();
-        user.setAuthenticatedSubjectIdentifier(username);
-        user.setUserName(username);
-        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+			staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
+							.thenCallRealMethod();
+			staticTOTPUtil.when(
+							() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(AuthenticationContext.class)))
+							.thenReturn(false);
 
-        // Mock token validation - use existing mocked authenticator
-        AuthenticatorFlowStatus status = AuthenticatorFlowStatus.SUCCESS_COMPLETED;
-        Assert.assertEquals(status, AuthenticatorFlowStatus.SUCCESS_COMPLETED,
-                "TOTP token validation should succeed in organization hierarchy");
-    }
+			staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(totpDataHolder);
+			when(totpDataHolder.getOrgResourceResolverService()).thenReturn(null);
+			when(mockedContext.getTenantDomain()).thenReturn("carbon.super");
 
-    @Test(description = "Test case for failed TOTP enrollment in nested organization hierarchy.")
-    public void testFailedEnrollmentInNestedOrgHierarchy() throws AuthenticationFailedException,
-            LogoutFailedException {
+			boolean result = TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(mockedContext, null);
+			Assert.assertFalse(result);
+	}
 
-        AuthenticationContext authenticationContext = new AuthenticationContext();
-        String username = "user@nested-org.com";
-        String organizationId = "nested-org-001";
-        String parentOrgId = "parent-org-002";
-        String grandparentOrgId = "grandparent-org-001";
+	@Test(description = "Test isEnrolUserInAuthenticationFlowEnabled with blank runtime param value falls back")
+	public void testIsEnrolUserInAuthFlowEnabledWithBlankRuntimeParamValue() {
 
-        authenticationContext.setProperty("username", username);
-        authenticationContext.setProperty("organizationId", organizationId);
-        authenticationContext.setProperty("parentOrganizationId", parentOrgId);
-        authenticationContext.setProperty("grandparentOrganizationId", grandparentOrgId);
-        authenticationContext.setTenantDomain("nested-org.example.com");
+			Map<String, String> runtimeParams = new HashMap<>();
+			runtimeParams.put(ENROL_USER_IN_AUTHENTICATIONFLOW, "   ");
 
-        staticTOTPUtil.when(TOTPUtil::isSendVerificationCodeByEmailEnabled).thenReturn(false);
-        doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
-        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn("true");
+			staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
+							.thenCallRealMethod();
+			staticTOTPUtil.when(
+							() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(AuthenticationContext.class)))
+							.thenReturn(true);
 
-        AuthenticatedUser user = new AuthenticatedUser();
-        user.setAuthenticatedSubjectIdentifier(username);
-        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+			staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(totpDataHolder);
+			when(totpDataHolder.getOrgResourceResolverService()).thenReturn(null);
+			when(mockedContext.getTenantDomain()).thenReturn("carbon.super");
 
-        AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse,
-                authenticationContext);
-        Assert.assertEquals(status, AuthenticatorFlowStatus.FAIL_COMPLETED,
-                "TOTP enrollment should fail when email sending is disabled in nested hierarchy");
-    }
+			boolean result = TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(mockedContext, runtimeParams);
+			Assert.assertTrue(result);
+	}
 
-    @Test(description = "Test case for organization context preservation during progressive enrollment.")
-    public void testOrgContextPreservationDuringEnrollment() throws AuthenticationFailedException,
-            LogoutFailedException {
+	@Test(description = "Test isEnrolUserInAuthenticationFlowEnabled with null context and valid runtime params")
+	public void testIsEnrolUserInAuthFlowEnabledWithNullContext() {
 
-        AuthenticationContext authenticationContext = new AuthenticationContext();
-        String username = "user@org.com";
-        String organizationId = "org-001";
-        String contextId = UUID.randomUUID().toString();
+			Map<String, String> runtimeParams = new HashMap<>();
+			runtimeParams.put(ENROL_USER_IN_AUTHENTICATIONFLOW, "true");
 
-        authenticationContext.setContextIdentifier(contextId);
-        authenticationContext.setProperty("username", username);
-        authenticationContext.setProperty("organizationId", organizationId);
-        authenticationContext.setTenantDomain("org.example.com");
+			staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
+							.thenCallRealMethod();
 
-        staticTOTPUtil.when(TOTPUtil::isSendVerificationCodeByEmailEnabled).thenReturn(true);
-        doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
-        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn("true");
-        staticTOTPTokenGenerator.when(() -> TOTPTokenGenerator.generateTOTPTokenLocal(eq(username), 
-                eq(authenticationContext))).thenReturn("789012");
+			// Even with null context, runtime params should work
+			boolean result = TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(null, runtimeParams);
+			Assert.assertTrue(result);
+	}
 
-        AuthenticatedUser user = new AuthenticatedUser();
-        user.setAuthenticatedSubjectIdentifier(username);
-        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+	@Test(description = "Test isEnrolUserInAuthenticationFlowEnabled when OrgResourceResolverService is null falls back to XML config")
+	public void testIsEnrolUserInAuthFlowEnabledWithNullOrgResourceResolverService() {
 
-        AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse,
-                authenticationContext);
+			Map<String, String> runtimeParams = new HashMap<>();
 
-        // Verify context still contains organization information
-        Assert.assertEquals(authenticationContext.getProperty("organizationId"), organizationId,
-                "Organization ID should be preserved in context");
-        Assert.assertEquals(status, AuthenticatorFlowStatus.INCOMPLETE,
-                "Organization context should be preserved during enrollment");
-    }
+			staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
+							.thenCallRealMethod();
+			staticTOTPUtil.when(
+							() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(AuthenticationContext.class)))
+							.thenReturn(false);
 
-    @Test(description = "Test case for cross-organization user authentication with TOTP.")
-    public void testCrossOrgUserAuthentication() {
+			staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(totpDataHolder);
+			when(totpDataHolder.getOrgResourceResolverService()).thenReturn(null);
+			when(mockedContext.getTenantDomain()).thenReturn("wso2.org");
 
-        doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
+			boolean result = TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(mockedContext, runtimeParams);
+			Assert.assertFalse(result);
+	}
 
-        AuthenticationContext authenticationContext = new AuthenticationContext();
-        String username = "cross-org-user@multi-tenant.com";
-        String sourceOrgId = "source-org-001";
-        String targetOrgId = "target-org-001";
-        String token = "654321";
+	@Test(description = "Test isEnrolUserInAuthenticationFlowEnabled with blank tenant domain falls back to XML config")
+	public void testIsEnrolUserInAuthFlowEnabledWithBlankTenantDomain() {
 
-        authenticationContext.setProperty("username", username);
-        authenticationContext.setProperty("sourceOrganizationId", sourceOrgId);
-        authenticationContext.setProperty("targetOrganizationId", targetOrgId);
-        authenticationContext.setTenantDomain("multi-tenant.example.com");
+			Map<String, String> runtimeParams = new HashMap<>();
 
-        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.TOKEN)).thenReturn(token);
-        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn(null);
-        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
+			staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
+							.thenCallRealMethod();
+			staticTOTPUtil.when(
+							() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(AuthenticationContext.class)))
+							.thenReturn(true);
 
-        AuthenticatedUser user = new AuthenticatedUser();
-        user.setAuthenticatedSubjectIdentifier(username);
-        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+			staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(totpDataHolder);
+			when(totpDataHolder.getOrgResourceResolverService()).thenReturn(null);
+			when(mockedContext.getTenantDomain()).thenReturn("");
 
-        // Mock cross-org token validation
-        AuthenticatorFlowStatus status = AuthenticatorFlowStatus.SUCCESS_COMPLETED;
-        Assert.assertEquals(status, AuthenticatorFlowStatus.SUCCESS_COMPLETED,
-                "Cross-organization TOTP authentication should succeed");
-    }
+			boolean result = TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(mockedContext, runtimeParams);
+			Assert.assertTrue(result);
+	}
 
-    @Test(description = "Test case for TOTP re-enrollment in organization hierarchy.")
-    public void testTOTPReEnrollmentInOrgHierarchy() throws AuthenticationFailedException,
-            LogoutFailedException {
+	@DataProvider(name = "runtimeParamBooleanValuesProvider")
+	public Object[][] getRuntimeParamBooleanValues() {
 
-        AuthenticationContext authenticationContext = new AuthenticationContext();
-        String username = "existing-user@org.com";
-        String organizationId = "org-with-existing-totp";
+			return new Object[][] {
+							{ "true", true },
+							{ "false", false },
+							{ "TRUE", true },
+							{ "FALSE", false },
+							{ "True", true },
+							{ "False", false }
+			};
+	}
 
-        authenticationContext.setProperty("username", username);
-        authenticationContext.setProperty("organizationId", organizationId);
-        authenticationContext.setProperty("reEnrollment", "true");
-        authenticationContext.setTenantDomain("org-enrollment.example.com");
+	@Test(dataProvider = "runtimeParamBooleanValuesProvider", description = "Test isEnrolUserInAuthenticationFlowEnabled with various runtime param boolean values")
+	public void testIsEnrolUserInAuthFlowEnabledWithVariousRuntimeParamValues(
+					String paramValue, boolean expectedResult) {
 
-        staticTOTPUtil.when(TOTPUtil::isSendVerificationCodeByEmailEnabled).thenReturn(true);
-        doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
-        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn("true");
-        staticTOTPTokenGenerator.when(() -> TOTPTokenGenerator.generateTOTPTokenLocal(eq(username), 
-                eq(authenticationContext))).thenReturn("111222");
+			Map<String, String> runtimeParams = new HashMap<>();
+			runtimeParams.put(ENROL_USER_IN_AUTHENTICATIONFLOW, paramValue);
 
-        AuthenticatedUser user = new AuthenticatedUser();
-        user.setAuthenticatedSubjectIdentifier(username);
-        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+			staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
+							.thenCallRealMethod();
+			when(mockedContext.getTenantDomain()).thenReturn("carbon.super");
 
-        AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse,
-                authenticationContext);
-        Assert.assertEquals(status, AuthenticatorFlowStatus.INCOMPLETE,
-                "TOTP re-enrollment in organization hierarchy should be incomplete");
-        Assert.assertEquals(authenticationContext.getProperty("reEnrollment"), "true",
-                "Re-enrollment flag should be preserved");
-    }
+			boolean result = TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(mockedContext, runtimeParams);
+			Assert.assertEquals(result, expectedResult);
+	}
 
-    @Test(description = "Test case for organization hierarchy tenant isolation during TOTP validation.")
-    public void testTenantIsolationInOrgHierarchy() {
+	@Test(description = "Test progressive enrollment disabled via runtime params skips QR code page")
+	public void testProgressiveEnrollmentDisabledViaRuntimeParams()
+					throws AuthenticationFailedException, UserStoreException {
 
-        doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
+			String username = "admin";
+			staticIdentityUtil.when(IdentityUtil::getPrimaryDomainName).thenReturn(USER_STORE_DOMAIN);
+			AuthenticatedUser authenticatedUser = AuthenticatedUser
+							.createLocalAuthenticatedUserFromSubjectIdentifier(username);
+			authenticatedUser.setFederatedUser(false);
+			authenticatedUser.setUserName(username);
+			authenticatedUser.setUserId("dummyUserId");
+			mockedContext.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+			mockedContext.setProperty("username", username);
+			mockedContext.setProperty("authenticatedUser", authenticatedUser);
 
-        AuthenticationContext authenticationContext = new AuthenticationContext();
-        String username = "isolated-user@tenant-1.com";
-        String organizationId = "tenant-1-org";
-        String token = "333444";
-        String tenantDomain = "tenant-1.example.com";
+			// User does not have TOTP enabled (no secret key)
+			Map<String, String> claims = new HashMap<>();
+			staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
+			staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(mockedContext)).thenReturn(authenticatedUser);
+			when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
+			when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
 
-        authenticationContext.setProperty("username", username);
-        authenticationContext.setProperty("organizationId", organizationId);
-        authenticationContext.setTenantDomain(tenantDomain);
+			// Progressive enrollment is disabled via runtime params
+			staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
+							.thenReturn(false);
+			staticIdentityHelperUtil.when(() -> IdentityHelperUtil.checkSecondStepEnableByAdmin(mockedContext))
+							.thenReturn(false);
 
-        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.TOKEN)).thenReturn(token);
-        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn(null);
-        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
+			when(mockedContext.getSequenceConfig()).thenReturn(sequenceConfig);
+			when(sequenceConfig.getStepMap()).thenReturn(mockedMap);
+			when(mockedMap.get(any())).thenReturn(stepConfig);
+			when(stepConfig.getAuthenticatedAutenticator()).thenReturn(authenticatorConfig);
+			when(authenticatorConfig.getApplicationAuthenticator()).thenReturn(applicationAuthenticator);
+			staticTOTPUtil.when(() -> TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
+			staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance)
+							.thenReturn(fileBasedConfigurationBuilder);
+			when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
 
-        AuthenticatedUser user = new AuthenticatedUser();
-        user.setAuthenticatedSubjectIdentifier(username);
-        user.setTenantDomain(tenantDomain);
-        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+			totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, mockedContext);
 
-        // Mock tenant-specific token validation
-        AuthenticatorFlowStatus status = AuthenticatorFlowStatus.SUCCESS_COMPLETED;
-        Assert.assertEquals(status, AuthenticatorFlowStatus.SUCCESS_COMPLETED,
-                "Tenant isolation should be maintained during TOTP validation");
-        Assert.assertEquals(authenticationContext.getTenantDomain(), tenantDomain,
-                "Tenant domain should remain unchanged after TOTP validation");
-    }
+			// Verify that when enrollment is disabled, the user is not redirected to
+			// enrollment page
+			// and authentication property is set to FEDERETOR (meaning skipped)
+			Assert.assertEquals(mockedContext.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION),
+							TOTPAuthenticatorConstants.FEDERETOR);
+	}
 
-    @Test(description = "Test case for progressive enrollment with multi-level organization hierarchy.")
-    public void testProgressiveEnrollmentWithMultiLevelOrgHierarchy() throws AuthenticationFailedException,
-            LogoutFailedException {
+	@Test(description = "Test progressive enrollment enabled via runtime params shows QR code page")
+	public void testProgressiveEnrollmentEnabledViaRuntimeParams()
+					throws AuthenticationFailedException, UserStoreException, IOException, URLBuilderException {
 
-        AuthenticationContext authenticationContext = new AuthenticationContext();
-        String username = "multi-level-user@root.com";
-        String level1OrgId = "level-1-org";
-        String level2OrgId = "level-2-org";
-        String level3OrgId = "level-3-org";
+			String username = "admin";
+			mockServiceURLBuilder();
+			staticIdentityUtil.when(IdentityUtil::getPrimaryDomainName).thenReturn(USER_STORE_DOMAIN);
+			AuthenticatedUser authenticatedUser = AuthenticatedUser
+							.createLocalAuthenticatedUserFromSubjectIdentifier(username);
+			authenticatedUser.setFederatedUser(false);
+			authenticatedUser.setUserName(username);
+			authenticatedUser.setUserId("dummyUserId");
+			context.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+			context.setLoginTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+			context.setServiceProviderName("test-app");
+			context.setContextIdentifier(UUID.randomUUID().toString());
+			context.setProperty("username", username);
+			context.setProperty("authenticatedUser", authenticatedUser);
 
-        authenticationContext.setProperty("username", username);
-        authenticationContext.setProperty("level1OrganizationId", level1OrgId);
-        authenticationContext.setProperty("level2OrganizationId", level2OrgId);
-        authenticationContext.setProperty("level3OrganizationId", level3OrgId);
-        authenticationContext.setTenantDomain("multi-level.example.com");
+			// User does not have TOTP enabled (no secret key)
+			Map<String, String> claims = new HashMap<>();
+			staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
+			staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(context)).thenReturn(authenticatedUser);
+			when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
+			when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
 
-        staticTOTPUtil.when(TOTPUtil::isSendVerificationCodeByEmailEnabled).thenReturn(true);
-        doReturn(true).when(mockedTOTPAuthenticator).canHandle(httpServletRequest);
-        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN)).thenReturn("true");
-        staticTOTPTokenGenerator.when(() -> TOTPTokenGenerator.generateTOTPTokenLocal(eq(username), 
-                eq(authenticationContext))).thenReturn("555666");
+			// Progressive enrollment is enabled via runtime params
+			staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
+							.thenReturn(true);
+			staticTOTPUtil.when(() -> TOTPUtil.getMultiOptionURIQueryParam(any(HttpServletRequest.class)))
+							.thenReturn("");
+			staticTOTPUtil.when(() -> TOTPUtil.redirectToEnableTOTPReqPage(any(), any(), any(), any(), any()))
+							.thenAnswer(invocation -> null);
 
-        AuthenticatedUser user = new AuthenticatedUser();
-        user.setAuthenticatedSubjectIdentifier(username);
-        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(user);
+			staticTOTPUtil.when(() -> TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
+			staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance)
+							.thenReturn(fileBasedConfigurationBuilder);
+			when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
+			when(authenticatorConfig.getParameterMap()).thenReturn(new HashMap<>());
 
-        AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse,
-                authenticationContext);
+			totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
 
-        // Verify all organization hierarchy levels are preserved
-        Assert.assertEquals(authenticationContext.getProperty("level1OrganizationId"), level1OrgId);
-        Assert.assertEquals(authenticationContext.getProperty("level2OrganizationId"), level2OrgId);
-        Assert.assertEquals(authenticationContext.getProperty("level3OrganizationId"), level3OrgId);
-        Assert.assertEquals(status, AuthenticatorFlowStatus.INCOMPLETE,
-                "Multi-level organization hierarchy should be preserved during progressive enrollment");
-    }
+			// Verify that redirectToEnableTOTPReqPage was called when enrollment is enabled
+			staticTOTPUtil.verify(() -> TOTPUtil.redirectToEnableTOTPReqPage(any(), any(), any(), any(), any()));
+	}       
 }
+
+
+
