@@ -61,7 +61,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -152,9 +151,6 @@ public class TOTPUtilTest {
     private static void setStaticField(Class<?> clazz, String fieldName, Object value) throws Exception {
         Field field = clazz.getDeclaredField(fieldName);
         field.setAccessible(true);
-        Field modifiersField = Field.class.getDeclaredField("modifiers");
-        modifiersField.setAccessible(true);
-        modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
         field.set(null, value);
     }
 

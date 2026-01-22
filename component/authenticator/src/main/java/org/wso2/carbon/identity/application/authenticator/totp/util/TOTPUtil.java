@@ -119,7 +119,7 @@ public class TOTPUtil {
 
     private static final Log log = LogFactory.getLog(TOTPUtil.class);
     private static final String TOTP_KEY = "CryptoService.TotpSecret";
-    private static final TOTPDataHolder DATA_HOLDER = TOTPDataHolder.getInstance();
+    private static TOTPDataHolder DATA_HOLDER = TOTPDataHolder.getInstance();
 
     /**
      * Encrypt the given plain text.
