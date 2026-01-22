@@ -41,7 +41,6 @@ import org.wso2.carbon.identity.application.authentication.framework.model.Authe
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatorParamMetadata;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkConstants;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
-import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.ErrorMessages;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
 import org.wso2.carbon.identity.application.authenticator.totp.util.TOTPAuthenticatorConfig;
@@ -334,15 +333,14 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             }
             if (isSecretKeyExistForUser) {
                 if (log.isDebugEnabled()) {
-                    log.debug("Secret key exists for the user: " + (LoggerUtils.isLogMaskingEnable ? 
-                            LoggerUtils.getMaskedContent(username) : username));
+                    log.debug("Secret key exists for the user: " + username);
                 }
             }
             boolean isTOTPEnabledByAdmin = IdentityHelperUtil.checkSecondStepEnableByAdmin(context);
             if (log.isDebugEnabled()) {
                 log.debug("TOTP  is enabled by admin: " + isTOTPEnabledByAdmin);
             }
-            // This multi option URI is used to navigate back to multi option page to select a different.
+            // This multi option URI is used to navigate back to multi option page to select a different
             // authentication option from TOTP pages.
             String multiOptionURI = getMultiOptionURIQueryParam(request);
 

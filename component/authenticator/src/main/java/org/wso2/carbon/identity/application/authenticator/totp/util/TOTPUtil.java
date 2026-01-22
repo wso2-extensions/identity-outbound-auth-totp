@@ -650,20 +650,38 @@ public class TOTPUtil {
     public static boolean isEnrolUserInAuthenticationFlowEnabled(AuthenticationContext context,
                                                                  Map<String, String> runtimeParams) {
 
-        log.debug("Read the EnrolUserInAuthenticationFlow value from adaptive authentication script.");
-
+        // Check runtime parameters from adaptive authentication script
         if (runtimeParams != null) {
             if (StringUtils.isNotBlank(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW))) {
-                return Boolean.parseBoolean(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW));
+                boolean runtimeValue = Boolean.parseBoolean(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW));
+                if (log.isDebugEnabled()) {
+                    log.debug("Progressive enrollment configuration resolved from adaptive authentication script " +
+                            "(runtime parameters): " + runtimeValue);
+                }
+                return runtimeValue;
             }
         }
 
+        // Check organization-level configuration via hierarchy traversal
         Optional<Boolean> orgLevelConfig = resolveWithOrgLevelHierarchy(context);
         if (orgLevelConfig.isPresent()) {
-            return orgLevelConfig.get();
+            boolean orgValue = orgLevelConfig.get();
+            if (log.isDebugEnabled()) {
+                log.debug("Progressive enrollment configuration resolved from organization hierarchy: " + orgValue);
+            }
+            return orgValue;
+        } else {
+            log.debug("No progressive enrollment configuration found in organization hierarchy. " +
+                    "Falling back to application authentication XML configuration.");
         }
 
-        return isEnrolUserInAuthenticationFlowEnabled(context);
+        //Fallback to application authentication XML file configuration
+        boolean fallbackValue = isEnrolUserInAuthenticationFlowEnabled(context);
+        if (log.isDebugEnabled()) {
+            log.debug("Progressive enrollment configuration resolved from application authentication XML file " +
+                    "(fallback): " + fallbackValue);
+        }
+        return fallbackValue;
     }
 
     /**
@@ -700,6 +718,10 @@ public class TOTPUtil {
             }
             
             // Use organization hierarchy traversal with FirstFoundAggregationStrategy.
+            // Note: The lambda retrieves configuration for each org in the hierarchy.
+            // If getConfigurationAsBoolean returns Optional.empty() (config not explicitly set),
+            // FirstFoundAggregationStrategy treats it as "not found" and continues traversing
+            // up the hierarchy until a set value is found or the root is reached.
             Boolean result = orgResourceResolverService.getResourcesFromOrgHierarchy(
                     organizationId,
                     orgId -> getConfigurationAsBoolean(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG, 
@@ -771,12 +793,23 @@ public class TOTPUtil {
                 return Optional.empty();
             }
             
-            String configValue = connectorConfigs[0].getValue();
-            if (StringUtils.isBlank(configValue)) {
-                return Optional.empty();
+            // Find the configuration that matches the requested configKey.
+            // Verify the property name matches before accessing its value.
+            for (Property connectorConfig : connectorConfigs) {
+                if (connectorConfig != null && configKey.equals(connectorConfig.getName())) {
+                    String configValue = connectorConfig.getValue();
+                    if (StringUtils.isBlank(configValue)) {
+                        return Optional.empty();
+                    }
+                    return Optional.of(Boolean.parseBoolean(configValue));
+                }
             }
             
-            return Optional.of(Boolean.parseBoolean(configValue));
+            // No matching configuration found for the requested key.
+            if (log.isDebugEnabled()) {
+                log.debug("No configuration found matching key: " + configKey + " in tenant: " + tenantDomain);
+            }
+            return Optional.empty();
         } catch (IdentityGovernanceException e) {
             if (log.isDebugEnabled()) {
                 log.debug("Error retrieving configuration for key: " + configKey + 

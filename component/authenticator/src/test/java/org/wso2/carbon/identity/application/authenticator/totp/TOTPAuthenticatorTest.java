@@ -83,6 +83,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 
 import static org.mockito.Mockito.doNothing;
@@ -897,63 +899,67 @@ public class TOTPAuthenticatorTest {
         Assert.assertFalse(result, "Runtime param (false) should override org config (true)");
     }
 
-    @Test(enabled = false)  // TODO: Fix matcher issues in this test
-    public void testProgressiveEnrollmentEnabledShowsQRCodePage() throws Exception {
-        
-        String username = "admin";
-        mockServiceURLBuilder();
-        staticIdentityUtil.when(IdentityUtil::getPrimaryDomainName).thenReturn(USER_STORE_DOMAIN);
-        
-        AuthenticatedUser authenticatedUser =
-                AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
-        authenticatedUser.setFederatedUser(false);
-        authenticatedUser.setUserName(username);
-        authenticatedUser.setUserId("dummyUserId");
-        
-        mockedContext.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-        mockedContext.setProperty("username", username);
-        mockedContext.setProperty("authenticatedUser", authenticatedUser);
-        mockedContext.setContextIdentifier(UUID.randomUUID().toString());
-        when(mockedContext.getTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-        when(mockedContext.getCurrentStep()).thenReturn(2);
-        when(mockedContext.getLoginTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-        when(mockedContext.getServiceProviderName()).thenReturn("test-app");
-        
-        // User does NOT have TOTP secret key yet
-        staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
-        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(mockedContext)).thenReturn(authenticatedUser);
-        when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
-        when(userStoreManager.getUserClaimValues(anyString(), any(String[].class), anyString()))
-                .thenReturn(new HashMap<>());
-        
-        // Mock runtime params to enable enrollment
-        Map<String, String> runtimeParams = new HashMap<>();
-        runtimeParams.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "true");
-        
-        // Mock isEnrolUserInAuthenticationFlowEnabled to return true
-        staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
-                .thenReturn(true);
-        
-        // Mock TOTPKeyGenerator to generate claims
-        Map<String, String> generatedClaims = new HashMap<>();
-        generatedClaims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "TESTSECRET123");
-        generatedClaims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, "data:image/png;base64,test");
-        staticTOTPTokenGenerator.when(() -> TOTPKeyGenerator.generateClaims(anyString(), eq(false), any(AuthenticationContext.class)))
-                .thenReturn(generatedClaims);
-        
+    @Test(description = "Test case for progressive enrollment enabled shows QR code page")
+     public void testProgressiveEnrollmentEnabledShowsQRCodePage() throws Exception {
+
+    String username = "admin";
+    mockServiceURLBuilder();
+    staticIdentityUtil.when(IdentityUtil::getPrimaryDomainName).thenReturn(USER_STORE_DOMAIN);
+
+    AuthenticatedUser authenticatedUser = AuthenticatedUser
+            .createLocalAuthenticatedUserFromSubjectIdentifier(username);
+    authenticatedUser.setFederatedUser(false);
+    authenticatedUser.setUserName(username);
+    authenticatedUser.setUserId("dummyUserId");
+
+    mockedContext.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+    mockedContext.setProperty("username", username);
+    mockedContext.setProperty("authenticatedUser", authenticatedUser);
+    mockedContext.setContextIdentifier(UUID.randomUUID().toString());
+    when(mockedContext.getTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+    when(mockedContext.getCurrentStep()).thenReturn(2);
+    when(mockedContext.getLoginTenantDomain()).thenReturn(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+    when(mockedContext.getServiceProviderName()).thenReturn("test-app");
+
+    // User does NOT have TOTP secret key yet
+    staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
+    staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(mockedContext)).thenReturn(authenticatedUser);
+    when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
+    when(userStoreManager.getUserClaimValues(anyString(), any(String[].class), anyString()))
+            .thenReturn(new HashMap<>());
+
+    // Mock runtime params to enable enrollment
+    Map<String, String> runtimeParams = new HashMap<>();
+    runtimeParams.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "true");
+
+    // Mock isEnrolUserInAuthenticationFlowEnabled to return true
+    staticTOTPUtil.when(() -> TOTPUtil
+            .isEnrolUserInAuthenticationFlowEnabled(any(AuthenticationContext.class), anyMap()))
+            .thenReturn(true);
+
+    // Mock TOTPKeyGenerator to generate claims
+    Map<String, String> generatedClaims = new HashMap<>();
+    generatedClaims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "TESTSECRET123");
+    generatedClaims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, "data:image/png;base64,test");
+    try (MockedStatic<TOTPKeyGenerator> mockedKeyGenerator = Mockito.mockStatic(TOTPKeyGenerator.class)) {
+        mockedKeyGenerator.when(() -> TOTPKeyGenerator.generateClaims(anyString(), anyBoolean(),
+                any(AuthenticationContext.class))).thenReturn(generatedClaims);
+
         staticTOTPUtil.when(() -> TOTPUtil.getClaimProperties(anyString(), anyString()))
                 .thenReturn(new HashMap<>());
-        
+
         // Mock helper methods
         staticTOTPUtil.when(() -> TOTPUtil.getMultiOptionURIQueryParam(any(HttpServletRequest.class)))
                 .thenReturn("");
-        
+
         when(httpServletRequest.getParameter(anyString())).thenReturn(null);
-        staticTOTPUtil.when(() -> TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString()))
+        staticTOTPUtil.when(
+                () -> TOTPUtil.getLoginPageFromXMLFile(any(AuthenticationContext.class), anyString()))
                 .thenReturn(TOTPAuthenticatorConstants.TOTP_LOGIN_PAGE);
-        staticTOTPUtil.when(() -> TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString()))
+        staticTOTPUtil.when(
+                () -> TOTPUtil.getErrorPageFromXMLFile(any(AuthenticationContext.class), anyString()))
                 .thenReturn(TOTPAuthenticatorConstants.ERROR_PAGE);
-        
+
         when(mockedContext.getSequenceConfig()).thenReturn(sequenceConfig);
         when(sequenceConfig.getStepMap()).thenReturn(mockedMap);
         when(mockedMap.get(any())).thenReturn(stepConfig);
@@ -963,25 +969,20 @@ public class TOTPAuthenticatorTest {
         staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance)
                 .thenReturn(fileBasedConfigurationBuilder);
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
-        
+
         // Mock redirectToEnableTOTPReqPage to avoid actual HTTP response
         staticTOTPUtil.when(() -> TOTPUtil.redirectToEnableTOTPReqPage(
-                any(HttpServletRequest.class),
-                any(HttpServletResponse.class),
-                any(AuthenticationContext.class),
-                anyString(),
-                any(Map.class))).thenAnswer(invocation -> null);
-        
+                any(HttpServletRequest.class), any(HttpServletResponse.class),
+                any(AuthenticationContext.class), anyString(), any())).thenAnswer(invocation -> null);
+
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, mockedContext);
-        
+
         // Verify that redirectToEnableTOTPReqPage was called (QR code enrollment page)
         staticTOTPUtil.verify(() -> TOTPUtil.redirectToEnableTOTPReqPage(
-                any(HttpServletRequest.class),
-                any(HttpServletResponse.class),
-                any(AuthenticationContext.class),
-                anyString(),
-                any(Map.class)));
+                any(HttpServletRequest.class), any(HttpServletResponse.class),
+                any(AuthenticationContext.class), anyString(), any()));
     }
+}
 
     @Test(description = "Test TOTPAuthenticatorConfigImpl returns correct default property values")
     public void testTOTPAuthenticatorConfigImplDefaultValues() throws Exception {
