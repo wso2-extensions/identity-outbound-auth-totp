@@ -901,7 +901,7 @@ public class TOTPAuthenticatorTest {
 	@Test(description = "Test runtime params take precedence over org hierarchy config")
 	public void testRuntimeParamsPrecedenceOverOrgConfig() {
 
-			// Runtime params set to false should override any org-level config
+			// Runtime params set to false should override any org-level config.
 			Map<String, String> runtimeParams = new HashMap<>();
 			runtimeParams.put(ENROL_USER_IN_AUTHENTICATIONFLOW, "false");
 
@@ -978,7 +978,7 @@ public class TOTPAuthenticatorTest {
 			staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
 							.thenCallRealMethod();
 
-			// Even with null context, runtime params should work
+			// Even with null context, runtime params should work.
 			boolean result = TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(null, runtimeParams);
 			Assert.assertTrue(result);
 	}
@@ -1064,14 +1064,14 @@ public class TOTPAuthenticatorTest {
 			mockedContext.setProperty("username", username);
 			mockedContext.setProperty("authenticatedUser", authenticatedUser);
 
-			// User does not have TOTP enabled (no secret key)
+			// User does not have TOTP enabled (no secret key).
 			Map<String, String> claims = new HashMap<>();
 			staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
 			staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(mockedContext)).thenReturn(authenticatedUser);
 			when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
 			when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
 
-			// Progressive enrollment is disabled via runtime params
+			// Progressive enrollment is disabled via runtime params.
 			staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
 							.thenReturn(false);
 			staticIdentityHelperUtil.when(() -> IdentityHelperUtil.checkSecondStepEnableByAdmin(mockedContext))
@@ -1089,9 +1089,9 @@ public class TOTPAuthenticatorTest {
 
 			totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, mockedContext);
 
-			// Verify that when enrollment is disabled, the user is not redirected to
-			// enrollment page
-			// and authentication property is set to FEDERETOR (meaning skipped)
+			// Verify that when enrollment is disabled, the user is not redirected to.
+			// enrollment page.
+			// and authentication property is set to FEDERETOR (meaning skipped).
 			Assert.assertEquals(mockedContext.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION),
 							TOTPAuthenticatorConstants.FEDERETOR);
 	}
@@ -1115,14 +1115,14 @@ public class TOTPAuthenticatorTest {
 			context.setProperty("username", username);
 			context.setProperty("authenticatedUser", authenticatedUser);
 
-			// User does not have TOTP enabled (no secret key)
+			// User does not have TOTP enabled (no secret key).
 			Map<String, String> claims = new HashMap<>();
 			staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
 			staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(context)).thenReturn(authenticatedUser);
 			when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
 			when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
 
-			// Progressive enrollment is enabled via runtime params
+			// Progressive enrollment is enabled via runtime params.
 			staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
 							.thenReturn(true);
 			staticTOTPUtil.when(() -> TOTPUtil.getMultiOptionURIQueryParam(any(HttpServletRequest.class)))
@@ -1138,7 +1138,7 @@ public class TOTPAuthenticatorTest {
 
 			totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
 
-			// Verify that redirectToEnableTOTPReqPage was called when enrollment is enabled
+			// Verify that redirectToEnableTOTPReqPage was called when enrollment is enabled.
 			staticTOTPUtil.verify(() -> TOTPUtil.redirectToEnableTOTPReqPage(any(), any(), any(), any(), any()));
 	}       
 }
