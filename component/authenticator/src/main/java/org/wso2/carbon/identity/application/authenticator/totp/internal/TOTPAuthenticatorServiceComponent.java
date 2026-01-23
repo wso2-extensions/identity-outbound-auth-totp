@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2017-2026, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -262,7 +262,7 @@ public class TOTPAuthenticatorServiceComponent {
 
 	@Reference(name = "identity.organization.management.component",
 			service = OrganizationManager.class,
-			cardinality = ReferenceCardinality.OPTIONAL,
+			cardinality = ReferenceCardinality.MANDATORY,
 			policy = ReferencePolicy.DYNAMIC,
 			unbind = "unsetOrganizationManager")
 	protected void setOrganizationManager(OrganizationManager organizationManager) {

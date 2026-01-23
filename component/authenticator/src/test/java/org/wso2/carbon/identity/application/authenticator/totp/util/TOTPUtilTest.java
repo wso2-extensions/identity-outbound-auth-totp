@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2017, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *  Copyright (c) 2017-2026, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  *  WSO2 Inc. licenses this file to you under the Apache License,
  *  Version 2.0 (the "License"); you may not use this file except
@@ -111,6 +111,7 @@ public class TOTPUtilTest {
     private MockedStatic<DocumentBuilderFactory> staticDocumentBuilderFactory;
     private MockedStatic<OrganizationManagementUtil> staticOrganizationManagementUtil;
     private MockedStatic<ServiceURLBuilder> staticServiceURLBuilder;
+    private MockedStatic<TOTPDataHolder> staticTOTPDataHolder;
 
     @BeforeMethod
     public void setUp() {
@@ -126,6 +127,8 @@ public class TOTPUtilTest {
         staticDocumentBuilderFactory = Mockito.mockStatic(DocumentBuilderFactory.class);
         staticOrganizationManagementUtil = Mockito.mockStatic(OrganizationManagementUtil.class);
         staticServiceURLBuilder = Mockito.mockStatic(ServiceURLBuilder.class);
+        staticTOTPDataHolder = Mockito.mockStatic(TOTPDataHolder.class);
+        staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(dataHolder);
     }
 
     @AfterMethod
@@ -138,6 +141,7 @@ public class TOTPUtilTest {
         if (staticConfigurationFacade != null) staticConfigurationFacade.close();
         if (staticIdentityHelperUtil != null) staticIdentityHelperUtil.close();
         if (staticFileBasedConfigurationBuilder != null) staticFileBasedConfigurationBuilder.close();
+        if (staticTOTPDataHolder != null) staticTOTPDataHolder.close();
     }
 
     // Utility to invoke private methods via reflection (replaces PowerMock Whitebox)
@@ -358,7 +362,7 @@ public class TOTPUtilTest {
     }
 
     @Test
-    public void testRedirectToEnableTOTPReqPage() throws AuthenticationFailedException {
+    public void testRedirectToEnableTOTPReqPage() throws Exception {
 
         AuthenticationContext authenticationContext = new AuthenticationContext();
         AuthenticatorConfig authenticatorConfig = new AuthenticatorConfig();
@@ -378,12 +382,19 @@ public class TOTPUtilTest {
         staticIdentityHelperUtil.when(() -> IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
         staticConfigurationFacade.when(ConfigurationFacade::getInstance).thenReturn(configurationFacade);
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(TOTPAuthenticatorConstants.LOGIN_PAGE);
+
+        // Mock OrganizationManager to prevent NPE in getOrganizationId()
+        OrganizationManager mockedOrganizationManager = Mockito.mock(OrganizationManager.class);
+        Mockito.when(dataHolder.getOrganizationManager()).thenReturn(mockedOrganizationManager);
+        Mockito.when(mockedOrganizationManager.resolveOrganizationId(anyString())).thenReturn(null);
+        setStaticField(TOTPUtil.class, "DATA_HOLDER", dataHolder);
+
         TOTPUtil.redirectToEnableTOTPReqPage(httpServletResponse, authenticationContext,
                 TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
     }
 
     @Test(expectedExceptions = {AuthenticationFailedException.class})
-    public void testRedirectToEnableTOTPReqPageForTenant() throws AuthenticationFailedException {
+    public void testRedirectToEnableTOTPReqPageForTenant() throws Exception {
 
         AuthenticationContext authenticationContext = new AuthenticationContext();
         authenticationContext.setTenantDomain("wso2.org");
@@ -394,13 +405,20 @@ public class TOTPUtilTest {
         Map<String, String> parameters = new HashMap<>();
         parameters.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "true");
         staticIdentityHelperUtil.when(() -> IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
+
+        // Mock OrganizationManager to prevent NPE in getOrganizationId()
+        OrganizationManager mockedOrganizationManager = Mockito.mock(OrganizationManager.class);
+        Mockito.when(dataHolder.getOrganizationManager()).thenReturn(mockedOrganizationManager);
+        Mockito.when(mockedOrganizationManager.resolveOrganizationId(anyString())).thenReturn(null);
+        setStaticField(TOTPUtil.class, "DATA_HOLDER", dataHolder);
+
         TOTPUtil.redirectToEnableTOTPReqPage(httpServletResponse, authenticationContext,
                 TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
     }
 
     @Test()
     public void testRedirectToEnableTOTPReqPageForSuperTenantEntrol()
-            throws AuthenticationFailedException, IOException {
+            throws Exception {
 
         AuthenticationContext authenticationContext = new AuthenticationContext();
         authenticationContext.setTenantDomain("wso2.org");
@@ -418,6 +436,13 @@ public class TOTPUtilTest {
         staticConfigurationFacade.when(ConfigurationFacade::getInstance).thenReturn(configurationFacade);
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(TOTPAuthenticatorConstants.LOGIN_PAGE);
         doNothing().when(httpServletResponse).sendRedirect(anyString());
+
+        // Mock OrganizationManager to prevent NPE in getOrganizationId()
+        OrganizationManager mockedOrganizationManager = Mockito.mock(OrganizationManager.class);
+        Mockito.when(dataHolder.getOrganizationManager()).thenReturn(mockedOrganizationManager);
+        Mockito.when(mockedOrganizationManager.resolveOrganizationId(anyString())).thenReturn(null);
+        setStaticField(TOTPUtil.class, "DATA_HOLDER", dataHolder);
+
         TOTPUtil.redirectToEnableTOTPReqPage(httpServletResponse, authenticationContext,
                 TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
     }
@@ -731,12 +756,16 @@ public class TOTPUtilTest {
 
         setStaticField(TOTPUtil.class, "DATA_HOLDER", dataHolder);
 
-        staticOrganizationManagementUtil.when(() -> OrganizationManagementUtil.isOrganization("example.com")).thenReturn(false);
+        // Mock OrganizationManager to return null initially, so the fallback to tenantDomain is used
+        OrganizationManager mockedOrganizationManager = Mockito.mock(OrganizationManager.class);
+        Mockito.when(dataHolder.getOrganizationManager()).thenReturn(null);
+
         String result = TOTPUtil.getTOTPIssuerDisplayName("example.com", null);
+        // When branding is disabled, issuer is null, context is null, registry returns empty.
+        // If OrganizationManager is null, it falls back to tenantDomain.
         assertEquals(result, "example.com");
 
-        staticOrganizationManagementUtil.when(() -> OrganizationManagementUtil.isOrganization("example.com")).thenReturn(true);
-        OrganizationManager mockedOrganizationManager = Mockito.mock(OrganizationManager.class);
+        // Now test when organizationManager is present and resolves an org ID and name
         Mockito.when(dataHolder.getOrganizationManager()).thenReturn(mockedOrganizationManager);
         Mockito.when(mockedOrganizationManager.resolveOrganizationId(anyString())).thenReturn("123");
         Mockito.when(mockedOrganizationManager.getOrganizationNameById(anyString())).thenReturn("org1");

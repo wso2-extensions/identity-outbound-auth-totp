@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ * Copyright (c) 2017-2026, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  * WSO2 Inc. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -172,15 +172,11 @@ public class TOTPUtil {
         }
         if (StringUtils.isBlank(issuer)) {
             try {
-                // For organizations, issuer display name should be the organization name.
-                if (OrganizationManagementUtil.isOrganization(tenantDomain)) {
-                    OrganizationManager organizationManager = DATA_HOLDER.getOrganizationManager();
-                    if (organizationManager != null) {
-                        String organizationId = organizationManager.resolveOrganizationId(tenantDomain);
-                        issuer = organizationManager.getOrganizationNameById(organizationId);
-                    }
-                } else {
-                    issuer = tenantDomain;
+                issuer = tenantDomain;
+                OrganizationManager organizationManager = TOTPDataHolder.getInstance().getOrganizationManager();
+                if (organizationManager != null) {
+                    String organizationId = organizationManager.resolveOrganizationId(tenantDomain);
+                    issuer = organizationManager.getOrganizationNameById(organizationId);
                 }
             } catch (OrganizationManagementException e) {
                 throw new TOTPException("Error while resolving organization for tenant domain: " + tenantDomain, e);
@@ -705,14 +701,8 @@ public class TOTPUtil {
         }
         
         TOTPDataHolder dataHolder = DATA_HOLDER;
-        if (dataHolder == null) {
-            return Optional.empty();
-        }
         
         OrgResourceResolverService orgResourceResolverService = dataHolder.getOrgResourceResolverService();
-        if (orgResourceResolverService == null) {
-            return Optional.empty();
-        }
         
         try {
             String organizationId = getOrganizationId(tenantDomain);
@@ -752,14 +742,9 @@ public class TOTPUtil {
         
         try {
             TOTPDataHolder dataHolder = DATA_HOLDER;
-            if (dataHolder == null) {
-                return null;
-            }
             
             OrganizationManager organizationManager = dataHolder.getOrganizationManager();
-            if (organizationManager != null) {
-                return organizationManager.resolveTenantDomain(orgId);
-            }
+            return organizationManager.resolveTenantDomain(orgId);
         } catch (OrganizationManagementException e) {
             if (log.isDebugEnabled()) {
                 log.debug("Error resolving tenant domain for org: " + orgId, e);
@@ -785,9 +770,6 @@ public class TOTPUtil {
         
         try {
             TOTPDataHolder dataHolder = DATA_HOLDER;
-            if (dataHolder == null || dataHolder.getIdentityGovernanceService() == null) {
-                return Optional.empty();
-            }
             
             Property[] connectorConfigs = dataHolder.getIdentityGovernanceService()
                     .getConfiguration(new String[]{configKey}, tenantDomain);
@@ -821,14 +803,9 @@ public class TOTPUtil {
         
         try {
             TOTPDataHolder dataHolder = DATA_HOLDER;
-            if (dataHolder == null) {
-                return null;
-            }
             
             OrganizationManager organizationManager = dataHolder.getOrganizationManager();
-            if (organizationManager != null) {
-                return organizationManager.resolveOrganizationId(tenantDomain);
-            }
+            return organizationManager.resolveOrganizationId(tenantDomain);
         } catch (OrganizationManagementException e) {
             if (log.isDebugEnabled()) {
                 log.debug("Error resolving organization ID for tenant: " + tenantDomain, e);

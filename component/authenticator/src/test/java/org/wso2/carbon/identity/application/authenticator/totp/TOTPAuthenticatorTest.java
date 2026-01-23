@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2017, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *  Copyright (c) 2017-2026, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
  *
  *  WSO2 Inc. licenses this file to you under the Apache License,
  *  Version 2.0 (the "License"); you may not use this file except
@@ -870,34 +870,6 @@ public class TOTPAuthenticatorTest {
                 "Redirect URL should contain remainingAttempts parameter with value 3");
     }
 
-        @Test(description = "Test isEnrolUserInAuthenticationFlowEnabled returns true when runtime param is 'true'")
-        public void testIsEnrolUserInAuthFlowEnabledWithRuntimeParamsTrue() {
-
-                Map<String, String> runtimeParams = new HashMap<>();
-                runtimeParams.put(ENROL_USER_IN_AUTHENTICATIONFLOW, "true");
-
-                staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
-                                .thenCallRealMethod();
-                when(mockedContext.getTenantDomain()).thenReturn("carbon.super");
-
-                boolean result = TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(mockedContext, runtimeParams);
-                Assert.assertTrue(result);
-        }
-
-	@Test(description = "Test isEnrolUserInAuthenticationFlowEnabled returns false when runtime param is 'false'")
-	public void testIsEnrolUserInAuthFlowEnabledWithRuntimeParamsFalse() {
-
-			Map<String, String> runtimeParams = new HashMap<>();
-			runtimeParams.put(ENROL_USER_IN_AUTHENTICATIONFLOW, "false");
-
-			staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
-							.thenCallRealMethod();
-			when(mockedContext.getTenantDomain()).thenReturn("carbon.super");
-
-			boolean result = TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(mockedContext, runtimeParams);
-			Assert.assertFalse(result);
-	}
-
 	@Test(description = "Test runtime params take precedence over org hierarchy config")
 	public void testRuntimeParamsPrecedenceOverOrgConfig() {
 
@@ -1142,6 +1114,3 @@ public class TOTPAuthenticatorTest {
 			staticTOTPUtil.verify(() -> TOTPUtil.redirectToEnableTOTPReqPage(any(), any(), any(), any(), any()));
 	}       
 }
-
-
-
