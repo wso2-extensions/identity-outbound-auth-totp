@@ -700,9 +700,7 @@ public class TOTPUtil {
             return Optional.empty();
         }
         
-        TOTPDataHolder dataHolder = DATA_HOLDER;
-        
-        OrgResourceResolverService orgResourceResolverService = dataHolder.getOrgResourceResolverService();
+        OrgResourceResolverService orgResourceResolverService = DATA_HOLDER.getOrgResourceResolverService();
         
         try {
             String organizationId = getOrganizationId(tenantDomain);
@@ -741,9 +739,7 @@ public class TOTPUtil {
     private static String resolveTenantDomain(String orgId) {
         
         try {
-            TOTPDataHolder dataHolder = DATA_HOLDER;
-            
-            OrganizationManager organizationManager = dataHolder.getOrganizationManager();
+            OrganizationManager organizationManager = DATA_HOLDER.getOrganizationManager();
             return organizationManager.resolveTenantDomain(orgId);
         } catch (OrganizationManagementException e) {
             if (log.isDebugEnabled()) {
@@ -802,9 +798,7 @@ public class TOTPUtil {
     private static String getOrganizationId(String tenantDomain) {
         
         try {
-            TOTPDataHolder dataHolder = DATA_HOLDER;
-            
-            OrganizationManager organizationManager = dataHolder.getOrganizationManager();
+            OrganizationManager organizationManager = DATA_HOLDER.getOrganizationManager();
             return organizationManager.resolveOrganizationId(tenantDomain);
         } catch (OrganizationManagementException e) {
             if (log.isDebugEnabled()) {
