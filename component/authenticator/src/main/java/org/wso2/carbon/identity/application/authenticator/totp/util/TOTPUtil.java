@@ -765,9 +765,7 @@ public class TOTPUtil {
         }
         
         try {
-            TOTPDataHolder dataHolder = DATA_HOLDER;
-            
-            Property[] connectorConfigs = dataHolder.getIdentityGovernanceService()
+            Property[] connectorConfigs = DATA_HOLDER.getIdentityGovernanceService()
                     .getConfiguration(new String[]{configKey}, tenantDomain);
             
             if (connectorConfigs == null || connectorConfigs.length == 0) {
