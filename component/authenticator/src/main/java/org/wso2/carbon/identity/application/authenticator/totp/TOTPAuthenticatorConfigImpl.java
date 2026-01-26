@@ -118,8 +118,7 @@ public class TOTPAuthenticatorConfigImpl implements IdentityConnectorConfig {
 
         Map<String, String> descriptionMapping = new HashMap<>();
         descriptionMapping.put(ENROLL_USER_IN_FLOW_CONFIG, 
-            "Allow users to enroll TOTP devices during the authentication flow. " +
-            "When enabled, users without TOTP configured will be prompted to set it up during login.");
+            "Enable users to enroll TOTP devices during the authentication flow and prompt them to configure TOTP during login if not already set up.");
         return descriptionMapping;
     }
 
