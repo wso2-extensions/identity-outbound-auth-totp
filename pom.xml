@@ -165,9 +165,9 @@
         <carbon.kernel.package.import.version.range>[4.4.0, 5.0.0)</carbon.kernel.package.import.version.range>
         <carbon.kernel.registry.imp.pkg.version>[1.0.1, 2.0.0)</carbon.kernel.registry.imp.pkg.version>
         <!-- Organization management Version -->
-        <identity.organization.management.core.version>1.1.55</identity.organization.management.core.version>
+        <identity.organization.management.core.version>1.1.60</identity.organization.management.core.version>
         <identity.organization.management.core.version.range>[1.0.0, 2.0.0)</identity.organization.management.core.version.range>
-        <identity.organization.management.version>2.0.0</identity.organization.management.version>
+        <identity.organization.management.version>2.0.48</identity.organization.management.version>
         <identity.organization.management.version.range>[1.0.0, 3.0.0)</identity.organization.management.version.range>
         <osgi.service.component.imp.pkg.version.range>[1.2.0, 2.0.0)</osgi.service.component.imp.pkg.version.range>
         <osgi.service.http.imp.pkg.version.range>[1.2.1, 2.0.0)</osgi.service.http.imp.pkg.version.range>
