@@ -1,21 +1,21 @@
-/*
- *  Copyright (c) 2017-2026, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+/**
+ * Copyright (c) 2017-2026, WSO2 LLC. (https://www.wso2.com).
  *
- *  WSO2 Inc. licenses this file to you under the Apache License,
- *  Version 2.0 (the "License"); you may not use this file except
- *  in compliance with the License.
- *  You may obtain a copy of the License at
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing,
- *  software distributed under the License is distributed on an
- *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- *  KIND, either express or implied.  See the License for the
- *  specific language governing permissions and limitations
- *  under the License.
- *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
+
 package org.wso2.carbon.identity.application.authenticator.totp;
 
 import org.mockito.ArgumentCaptor;
@@ -85,7 +85,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -1061,56 +1060,49 @@ public class TOTPAuthenticatorTest {
 
 			totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, mockedContext);
 
-			// Verify that when enrollment is disabled, the user is not redirected to.
-			// enrollment page.
-			// and authentication property is set to FEDERETOR (meaning skipped).
+			// Verify that when enrollment is disabled, the user is not redirected to enrollment page and
+			// authentication property is set to FEDERETOR (meaning skipped).
 			Assert.assertEquals(mockedContext.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION),
 							TOTPAuthenticatorConstants.FEDERETOR);
-	}
+    }
 
-	@Test(description = "Test progressive enrollment enabled via runtime params shows QR code page")
-	public void testProgressiveEnrollmentEnabledViaRuntimeParams()
-					throws AuthenticationFailedException, UserStoreException, IOException, URLBuilderException {
-
-			String username = "admin";
-			mockServiceURLBuilder();
-			staticIdentityUtil.when(IdentityUtil::getPrimaryDomainName).thenReturn(USER_STORE_DOMAIN);
-			AuthenticatedUser authenticatedUser = AuthenticatedUser
-							.createLocalAuthenticatedUserFromSubjectIdentifier(username);
-			authenticatedUser.setFederatedUser(false);
-			authenticatedUser.setUserName(username);
-			authenticatedUser.setUserId("dummyUserId");
-			context.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-			context.setLoginTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
-			context.setServiceProviderName("test-app");
-			context.setContextIdentifier(UUID.randomUUID().toString());
-			context.setProperty("username", username);
-			context.setProperty("authenticatedUser", authenticatedUser);
-
-			// User does not have TOTP enabled (no secret key).
-			Map<String, String> claims = new HashMap<>();
-			staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
-			staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(context)).thenReturn(authenticatedUser);
-			when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
-			when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
-
-			// Progressive enrollment is enabled via runtime params.
-			staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
-							.thenReturn(true);
-			staticTOTPUtil.when(() -> TOTPUtil.getMultiOptionURIQueryParam(any(HttpServletRequest.class)))
-							.thenReturn("");
-			staticTOTPUtil.when(() -> TOTPUtil.redirectToEnableTOTPReqPage(any(), any(), any(), any(), any()))
-							.thenAnswer(invocation -> null);
-
-			staticTOTPUtil.when(() -> TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
-			staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance)
-							.thenReturn(fileBasedConfigurationBuilder);
-			when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
-			when(authenticatorConfig.getParameterMap()).thenReturn(new HashMap<>());
-
-			totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
-
-			// Verify that redirectToEnableTOTPReqPage was called when enrollment is enabled.
-			staticTOTPUtil.verify(() -> TOTPUtil.redirectToEnableTOTPReqPage(any(), any(), any(), any(), any()));
-	}       
+    @Test(description = "Test progressive enrollment enabled via runtime params shows QR code page")
+    public void testProgressiveEnrollmentEnabledViaRuntimeParams()
+            throws AuthenticationFailedException, UserStoreException, IOException, URLBuilderException {
+        String username = "admin";
+        mockServiceURLBuilder();
+        staticIdentityUtil.when(IdentityUtil::getPrimaryDomainName).thenReturn(USER_STORE_DOMAIN);
+        AuthenticatedUser authenticatedUser = AuthenticatedUser
+                .createLocalAuthenticatedUserFromSubjectIdentifier(username);
+        authenticatedUser.setFederatedUser(false);
+        authenticatedUser.setUserName(username);
+        authenticatedUser.setUserId("dummyUserId");
+        context.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+        context.setLoginTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+        context.setServiceProviderName("test-app");
+        context.setContextIdentifier(UUID.randomUUID().toString());
+        context.setProperty("username", username);
+        context.setProperty("authenticatedUser", authenticatedUser);
+        // User does not have TOTP enabled (no secret key).
+        Map<String, String> claims = new HashMap<>();
+        staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(context)).thenReturn(authenticatedUser);
+        when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
+        // Progressive enrollment is enabled via runtime params.
+        staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any()))
+                .thenReturn(true);
+        staticTOTPUtil.when(() -> TOTPUtil.getMultiOptionURIQueryParam(any(HttpServletRequest.class)))
+                .thenReturn("");
+        staticTOTPUtil.when(() -> TOTPUtil.redirectToEnableTOTPReqPage(any(), any(), any(), any(), any()))
+                .thenAnswer(invocation -> null);
+        staticTOTPUtil.when(() -> TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
+        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance)
+                .thenReturn(fileBasedConfigurationBuilder);
+        when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
+        when(authenticatorConfig.getParameterMap()).thenReturn(new HashMap<>());
+        totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, context);
+        // Verify that redirectToEnableTOTPReqPage was called when enrollment is enabled.
+        staticTOTPUtil.verify(() -> TOTPUtil.redirectToEnableTOTPReqPage(any(), any(), any(), any(), any()));
+    }
 }
