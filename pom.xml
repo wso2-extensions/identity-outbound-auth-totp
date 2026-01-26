@@ -105,11 +105,6 @@
             </dependency>
             <dependency>
                 <groupId>org.wso2.carbon.identity.organization.management</groupId>
-                <artifactId>org.wso2.carbon.identity.organization.application.resource.hierarchy.traverse.service</artifactId>
-                <version>${identity.organization.management.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.wso2.carbon.identity.organization.management</groupId>
                 <artifactId>org.wso2.carbon.identity.organization.resource.hierarchy.traverse.service</artifactId>
                 <version>${identity.organization.management.version}</version>
             </dependency>
