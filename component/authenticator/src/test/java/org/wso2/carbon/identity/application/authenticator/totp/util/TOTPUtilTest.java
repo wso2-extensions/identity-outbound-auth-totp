@@ -928,7 +928,7 @@ public class TOTPUtilTest {
 						new String[] { TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG }, tenantDomain))
 						.thenReturn(new Property[] { blankProp });
 
-					Assert.assertTrue(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, null));
+		Assert.assertTrue(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, null));
 	}
 
 	@Test(description = "Test isEnrolUserInAuthenticationFlowEnabled when traversal throws exception")
