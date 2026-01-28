@@ -1,12 +1,12 @@
-/*
- * Copyright (c) 2017, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+/**
+ * Copyright (c) 2017-2026, WSO2 LLC. (https://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -50,6 +50,7 @@ import org.wso2.carbon.identity.application.authentication.framework.context.Aut
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.model.AuthenticatedUser;
 import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
+import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConfigImpl;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
@@ -61,13 +62,15 @@ import org.wso2.carbon.identity.branding.preference.management.core.exception.Br
 import org.wso2.carbon.identity.branding.preference.management.core.model.BrandingPreference;
 import org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataHandler;
 import org.wso2.carbon.identity.claim.metadata.mgt.exception.ClaimMetadataException;
-import org.wso2.carbon.identity.claim.metadata.mgt.model.AttributeMapping;
 import org.wso2.carbon.identity.claim.metadata.mgt.model.LocalClaim;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.governance.IdentityGovernanceException;
 import org.wso2.carbon.identity.handler.event.account.lock.exception.AccountLockServiceException;
+import org.wso2.carbon.identity.organization.resource.hierarchy.traverse.service.OrgResourceResolverService;
+import org.wso2.carbon.identity.organization.resource.hierarchy.traverse.service.exception.OrgResourceHierarchyTraverseException;
+import org.wso2.carbon.identity.organization.resource.hierarchy.traverse.service.strategy.FirstFoundAggregationStrategy;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
 import org.wso2.carbon.identity.organization.management.service.util.OrganizationManagementUtil;
@@ -91,6 +94,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -115,6 +119,7 @@ public class TOTPUtil {
 
     private static final Log log = LogFactory.getLog(TOTPUtil.class);
     private static final String TOTP_KEY = "CryptoService.TotpSecret";
+    private static TOTPDataHolder DATA_HOLDER = TOTPDataHolder.getInstance();
 
     /**
      * Encrypt the given plain text.
@@ -201,7 +206,7 @@ public class TOTPUtil {
 
     private static String getIssuerFromBranding(String tenantDomain) {
 
-        BrandingPreferenceManager brandingPreferenceManager = TOTPDataHolder.getInstance()
+        BrandingPreferenceManager brandingPreferenceManager = DATA_HOLDER
                 .getBrandingPreferenceManager();
         if (brandingPreferenceManager == null) {
             return null;
@@ -368,9 +373,9 @@ public class TOTPUtil {
     /**
      * Get stored encoding method.
      *
-     * @param tenantDomain Tenant domain name
-     * @return encoding method
-     * @throws AuthenticationFailedException On Error while getting value for encodingMethods from registry
+     * @param tenantDomain Tenant domain name.
+     * @return encoding method.
+     * @throws AuthenticationFailedException On Error while getting value for encodingMethods from registry.
      */
     public static String getEncodingMethod(String tenantDomain) throws AuthenticationFailedException {
 
@@ -408,7 +413,7 @@ public class TOTPUtil {
     /**
      * Get xml file data from registry and get the value for encoding method.
      *
-     * @throws TOTPException On error during passing XML content or creating document builder
+     * @throws TOTPException On error during passing XML content or creating document builder.
      */
     private static String getEncodingMethodFromRegistry(String tenantDomain, AuthenticationContext context)
             throws TOTPException {
@@ -611,7 +616,7 @@ public class TOTPUtil {
     /**
      * Get EnrolUserInAuthenticationFlow.
      *
-     * @return true, if EnrolUserInAuthenticationFlow is enabled
+     * @return true, if EnrolUserInAuthenticationFlow is enabled.
      */
     public static boolean isEnrolUserInAuthenticationFlowEnabled(AuthenticationContext context) {
 
@@ -636,22 +641,169 @@ public class TOTPUtil {
     /**
      * Get EnrolUserInAuthenticationFlow.
      *
-     * @param context  The AuthenticationContext
-     * @param runtimeParams The Runtime Parameters for the authenticator
+     * @param context  The AuthenticationContext.
+     * @param runtimeParams The Runtime Parameters for the authenticator.
      *
-     * @return true, if EnrolUserInAuthenticationFlow is enabled
+     * @return true, if EnrolUserInAuthenticationFlow is enabled.
      */
     public static boolean isEnrolUserInAuthenticationFlowEnabled(AuthenticationContext context,
                                                                  Map<String, String> runtimeParams) {
 
-        log.debug("Read the EnrolUserInAuthenticationFlow value from adaptive authentication script.");
-
+        // Check runtime parameters from adaptive authentication script.
         if (runtimeParams != null) {
             if (StringUtils.isNotBlank(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW))) {
-                return Boolean.parseBoolean(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW));
+                boolean runtimeValue = Boolean.parseBoolean(runtimeParams.get(ENROL_USER_IN_AUTHENTICATIONFLOW));
+                if (log.isDebugEnabled()) {
+                    log.debug("Progressive enrollment configuration resolved from adaptive authentication script " +
+                            "(runtime parameters): " + runtimeValue);
+                }
+                return runtimeValue;
             }
         }
-        return isEnrolUserInAuthenticationFlowEnabled(context);
+
+        // Check organization-level configuration via hierarchy traversal.
+        Optional<Boolean> orgLevelConfig = resolveWithOrgLevelHierarchy(context);
+        if (orgLevelConfig.isPresent()) {
+            boolean orgValue = orgLevelConfig.get();
+            if (log.isDebugEnabled()) {
+                log.debug("Progressive enrollment configuration resolved from organization hierarchy: " + orgValue);
+            }
+            return orgValue;
+        } else {
+            log.debug("No progressive enrollment configuration found in organization hierarchy. " +
+                    "Falling back to application authentication XML configuration.");
+        }
+
+        // Fallback to application authentication XML file configuration.
+        boolean fallbackValue = isEnrolUserInAuthenticationFlowEnabled(context);
+        if (log.isDebugEnabled()) {
+            log.debug("Progressive enrollment configuration resolved from application authentication XML file " +
+                    "(fallback): " + fallbackValue);
+        }
+        return fallbackValue;
+    }
+
+    /**
+     * Resolve progressive enrollment configuration using organization hierarchy.
+     *
+     * @param context The authentication context.
+     * @return Optional containing the boolean result if found via org hierarchy, empty otherwise.
+     */
+    private static Optional<Boolean> resolveWithOrgLevelHierarchy(AuthenticationContext context) {
+        
+        if (context == null) {
+            return Optional.empty();
+        }
+
+        String tenantDomain = context.getTenantDomain();
+        if (StringUtils.isBlank(tenantDomain)) {
+            return Optional.empty();
+        }
+        
+        OrgResourceResolverService orgResourceResolverService = DATA_HOLDER.getOrgResourceResolverService();
+        
+        try {
+            String organizationId = getOrganizationId(tenantDomain);
+            if (StringUtils.isBlank(organizationId)) {
+                return Optional.empty();
+            }
+            
+            // Use organization hierarchy traversal with FirstFoundAggregationStrategy.
+            // Note: The lambda retrieves configuration for each org in the hierarchy.
+            // If getConfigurationAsBoolean returns Optional.empty() (config not explicitly set),
+            // FirstFoundAggregationStrategy treats it as "not found" and continues traversing
+            // up the hierarchy until a set value is found or the root is reached.
+            Boolean result = orgResourceResolverService.getResourcesFromOrgHierarchy(
+                    organizationId,
+                    orgId -> getConfigurationAsBoolean(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG, 
+                            resolveTenantDomain(orgId)),
+                    new FirstFoundAggregationStrategy<>()
+            );
+            
+            return Optional.ofNullable(result);
+        } catch (OrgResourceHierarchyTraverseException e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Error during organization hierarchy traversal for progressive enrollment config.", e);
+            }
+        }
+        
+        return Optional.empty();
+    }
+
+    /**
+     * Resolve tenant domain from organization ID.
+     *
+     * @param orgId Organization ID.
+     * @return Tenant domain, or null if not available.
+     */
+    private static String resolveTenantDomain(String orgId) {
+        
+        try {
+            OrganizationManager organizationManager = DATA_HOLDER.getOrganizationManager();
+            return organizationManager.resolveTenantDomain(orgId);
+        } catch (OrganizationManagementException e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Error resolving tenant domain for org: " + orgId, e);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Retrieve a boolean configuration value from Identity Governance service.
+     * This utility method encapsulates the common pattern of retrieving, validating, and parsing
+     * configuration properties across the authenticator.
+     *
+     * @param configKey The configuration key to retrieve.
+     * @param tenantDomain The tenant domain.
+     * @return Optional<Boolean> containing the parsed boolean value if found and non-blank, empty otherwise.
+     */
+    private static Optional<Boolean> getConfigurationAsBoolean(String configKey, String tenantDomain) {
+        
+        if (StringUtils.isBlank(tenantDomain)) {
+            return Optional.empty();
+        }
+        
+        try {
+            Property[] connectorConfigs = DATA_HOLDER.getIdentityGovernanceService()
+                    .getConfiguration(new String[]{configKey}, tenantDomain);
+            
+            if (connectorConfigs == null || connectorConfigs.length == 0) {
+                return Optional.empty();
+            }
+            
+            String configValue = connectorConfigs[0].getValue();
+            if (StringUtils.isBlank(configValue)) {
+                return Optional.empty();
+            }
+            
+            return Optional.of(Boolean.parseBoolean(configValue));
+        } catch (IdentityGovernanceException e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Error retrieving configuration for key: " + configKey +  
+                        " in tenant: " + tenantDomain, e);
+            }
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Get organization ID from tenant domain.
+     *
+     * @param tenantDomain The tenant domain.
+     * @return Organization ID, or null if not available.
+     */
+    private static String getOrganizationId(String tenantDomain) {
+        
+        try {
+            OrganizationManager organizationManager = DATA_HOLDER.getOrganizationManager();
+            return organizationManager.resolveOrganizationId(tenantDomain);
+        } catch (OrganizationManagementException e) {
+            if (log.isDebugEnabled()) {
+                log.debug("Error resolving organization ID for tenant: " + tenantDomain, e);
+            }
+        }
+        return null;
     }
 
     /**
@@ -762,7 +914,7 @@ public class TOTPUtil {
             if (username != null) {
                 String tenantDomain = MultitenantUtils.getTenantDomain(username);
                 int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
-                RealmService realmService = TOTPDataHolder.getInstance().getRealmService();
+                RealmService realmService = DATA_HOLDER.getRealmService();
                 userRealm = realmService.getTenantUserRealm(tenantId);
             }
         } catch (UserStoreException e) {
@@ -955,7 +1107,7 @@ public class TOTPUtil {
 
         Property[] connectorConfigs;
         try {
-            connectorConfigs = TOTPDataHolder.getInstance()
+            connectorConfigs = DATA_HOLDER
                     .getIdentityGovernanceService()
                     .getConfiguration(
                             new String[]{
@@ -996,7 +1148,7 @@ public class TOTPUtil {
             throws AuthenticationFailedException {
 
         try {
-            return TOTPDataHolder.getInstance().getAccountLockService()
+            return DATA_HOLDER.getAccountLockService()
                     .isAccountLocked(userName, tenantDomain, userStoreDomain);
         } catch (AccountLockServiceException e) {
             throw new AuthenticationFailedException(
@@ -1272,7 +1424,7 @@ public class TOTPUtil {
     public static boolean doesUsedTimeWindowsClaimExist(String tenantDomain) throws ClaimMetadataException {
 
         // Retrieve all claims and confirm if usedTOTPTimeWindows claim is present for the tenant.
-        List<LocalClaim> localClaimsList = TOTPDataHolder.getInstance()
+        List<LocalClaim> localClaimsList = DATA_HOLDER
                 .getClaimMetadataManagementService().getLocalClaims(tenantDomain);
 
         return localClaimsList.stream().anyMatch(localClaim ->

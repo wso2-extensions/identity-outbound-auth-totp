@@ -1,21 +1,21 @@
-/*
- *  Copyright (c) 2017, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+/**
+ * Copyright (c) 2017-2026, WSO2 LLC. (https://www.wso2.com).
  *
- *  WSO2 Inc. licenses this file to you under the Apache License,
- *  Version 2.0 (the "License"); you may not use this file except
- *  in compliance with the License.
- *  You may obtain a copy of the License at
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing,
- *  software distributed under the License is distributed on an
- *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- *  KIND, either express or implied.  See the License for the
- *  specific language governing permissions and limitations
- *  under the License.
- *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
+
 package org.wso2.carbon.identity.application.authenticator.totp.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,9 +40,11 @@ import org.wso2.carbon.identity.application.authentication.framework.config.buil
 import org.wso2.carbon.identity.application.authentication.framework.config.model.AuthenticatorConfig;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
+import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConfigImpl;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants;
 import org.wso2.carbon.identity.application.authenticator.totp.exception.TOTPException;
 import org.wso2.carbon.identity.application.authenticator.totp.internal.TOTPDataHolder;
+import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.identity.branding.preference.management.core.BrandingPreferenceManager;
 import org.wso2.carbon.identity.branding.preference.management.core.exception.BrandingPreferenceMgtException;
 import org.wso2.carbon.identity.branding.preference.management.core.model.BrandingPreference;
@@ -51,18 +53,26 @@ import org.wso2.carbon.identity.core.ServiceURL;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
+import org.wso2.carbon.identity.governance.IdentityGovernanceService;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.identity.organization.management.service.util.OrganizationManagementUtil;
+import org.wso2.carbon.identity.organization.resource.hierarchy.traverse.service.OrgResourceResolverService;
+import org.wso2.carbon.identity.organization.resource.hierarchy.traverse.service.strategy.FirstFoundAggregationStrategy;
 import org.wso2.carbon.registry.core.Registry;
 import org.wso2.carbon.registry.core.Resource;
 import org.wso2.carbon.utils.multitenancy.MultitenantConstants;
+import org.wso2.carbon.identity.organization.management.service.exception.OrganizationManagementException;
+import org.wso2.carbon.identity.organization.resource.hierarchy.traverse.service.exception.OrgResourceHierarchyTraverseException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -101,16 +111,22 @@ public class TOTPUtilTest {
     @Mock
     private TOTPDataHolder dataHolder;
 
+	@Mock
+    private OrgResourceResolverService orgResourceResolverService;
+
+    @Mock
+    private IdentityGovernanceService identityGovernanceService;
+
     // Static mocks
     private MockedStatic<FileBasedConfigurationBuilder> staticFileBasedConfigurationBuilder;
     private MockedStatic<IdentityHelperUtil> staticIdentityHelperUtil;
     private MockedStatic<ConfigurationFacade> staticConfigurationFacade;
     private MockedStatic<IdentityTenantUtil> staticIdentityTenantUtil;
-    private MockedStatic<TOTPDataHolder> staticTOTPDataHolder;
     private MockedStatic<PrivilegedCarbonContext> staticPrivilegedCarbonContext;
     private MockedStatic<DocumentBuilderFactory> staticDocumentBuilderFactory;
     private MockedStatic<OrganizationManagementUtil> staticOrganizationManagementUtil;
     private MockedStatic<ServiceURLBuilder> staticServiceURLBuilder;
+    private MockedStatic<TOTPDataHolder> staticTOTPDataHolder;
 
     @BeforeMethod
     public void setUp() {
@@ -122,11 +138,14 @@ public class TOTPUtilTest {
         staticIdentityHelperUtil = Mockito.mockStatic(IdentityHelperUtil.class);
         staticConfigurationFacade = Mockito.mockStatic(ConfigurationFacade.class);
         staticIdentityTenantUtil = Mockito.mockStatic(IdentityTenantUtil.class);
-        staticTOTPDataHolder = Mockito.mockStatic(TOTPDataHolder.class);
         staticPrivilegedCarbonContext = Mockito.mockStatic(PrivilegedCarbonContext.class);
         staticDocumentBuilderFactory = Mockito.mockStatic(DocumentBuilderFactory.class);
         staticOrganizationManagementUtil = Mockito.mockStatic(OrganizationManagementUtil.class);
         staticServiceURLBuilder = Mockito.mockStatic(ServiceURLBuilder.class);
+        staticTOTPDataHolder = Mockito.mockStatic(TOTPDataHolder.class);
+        staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(dataHolder);
+		when(dataHolder.getOrgResourceResolverService()).thenReturn(orgResourceResolverService);
+        when(dataHolder.getIdentityGovernanceService()).thenReturn(identityGovernanceService);
     }
 
     @AfterMethod
@@ -135,11 +154,11 @@ public class TOTPUtilTest {
         if (staticOrganizationManagementUtil != null) staticOrganizationManagementUtil.close();
         if (staticDocumentBuilderFactory != null) staticDocumentBuilderFactory.close();
         if (staticPrivilegedCarbonContext != null) staticPrivilegedCarbonContext.close();
-        if (staticTOTPDataHolder != null) staticTOTPDataHolder.close();
         if (staticIdentityTenantUtil != null) staticIdentityTenantUtil.close();
         if (staticConfigurationFacade != null) staticConfigurationFacade.close();
         if (staticIdentityHelperUtil != null) staticIdentityHelperUtil.close();
         if (staticFileBasedConfigurationBuilder != null) staticFileBasedConfigurationBuilder.close();
+        if (staticTOTPDataHolder != null) staticTOTPDataHolder.close();
     }
 
     // Utility to invoke private methods via reflection (replaces PowerMock Whitebox)
@@ -147,6 +166,13 @@ public class TOTPUtilTest {
         Method m = target.getClass().getDeclaredMethod(methodName, paramTypes);
         m.setAccessible(true);
         return m.invoke(target, args);
+    }
+
+    // Utility to set private static fields via reflection
+    private static void setStaticField(Class<?> clazz, String fieldName, Object value) throws Exception {
+        Field field = clazz.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(null, value);
     }
 
     @Test
@@ -353,7 +379,7 @@ public class TOTPUtilTest {
     }
 
     @Test
-    public void testRedirectToEnableTOTPReqPage() throws AuthenticationFailedException {
+    public void testRedirectToEnableTOTPReqPage() throws Exception {
 
         AuthenticationContext authenticationContext = new AuthenticationContext();
         AuthenticatorConfig authenticatorConfig = new AuthenticatorConfig();
@@ -373,12 +399,19 @@ public class TOTPUtilTest {
         staticIdentityHelperUtil.when(() -> IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
         staticConfigurationFacade.when(ConfigurationFacade::getInstance).thenReturn(configurationFacade);
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(TOTPAuthenticatorConstants.LOGIN_PAGE);
+
+        // Mock OrganizationManager to prevent NPE in getOrganizationId()
+        OrganizationManager mockedOrganizationManager = Mockito.mock(OrganizationManager.class);
+        Mockito.when(dataHolder.getOrganizationManager()).thenReturn(mockedOrganizationManager);
+        Mockito.when(mockedOrganizationManager.resolveOrganizationId(anyString())).thenReturn(null);
+        setStaticField(TOTPUtil.class, "DATA_HOLDER", dataHolder);
+
         TOTPUtil.redirectToEnableTOTPReqPage(httpServletResponse, authenticationContext,
                 TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
     }
 
     @Test(expectedExceptions = {AuthenticationFailedException.class})
-    public void testRedirectToEnableTOTPReqPageForTenant() throws AuthenticationFailedException {
+    public void testRedirectToEnableTOTPReqPageForTenant() throws Exception {
 
         AuthenticationContext authenticationContext = new AuthenticationContext();
         authenticationContext.setTenantDomain("wso2.org");
@@ -389,13 +422,20 @@ public class TOTPUtilTest {
         Map<String, String> parameters = new HashMap<>();
         parameters.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "true");
         staticIdentityHelperUtil.when(() -> IdentityHelperUtil.getAuthenticatorParameters(anyString())).thenReturn(parameters);
+
+        // Mock OrganizationManager to prevent NPE in getOrganizationId()
+        OrganizationManager mockedOrganizationManager = Mockito.mock(OrganizationManager.class);
+        Mockito.when(dataHolder.getOrganizationManager()).thenReturn(mockedOrganizationManager);
+        Mockito.when(mockedOrganizationManager.resolveOrganizationId(anyString())).thenReturn(null);
+        setStaticField(TOTPUtil.class, "DATA_HOLDER", dataHolder);
+
         TOTPUtil.redirectToEnableTOTPReqPage(httpServletResponse, authenticationContext,
                 TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
     }
 
     @Test()
     public void testRedirectToEnableTOTPReqPageForSuperTenantEntrol()
-            throws AuthenticationFailedException, IOException {
+            throws Exception {
 
         AuthenticationContext authenticationContext = new AuthenticationContext();
         authenticationContext.setTenantDomain("wso2.org");
@@ -413,6 +453,13 @@ public class TOTPUtilTest {
         staticConfigurationFacade.when(ConfigurationFacade::getInstance).thenReturn(configurationFacade);
         when(configurationFacade.getAuthenticationEndpointURL()).thenReturn(TOTPAuthenticatorConstants.LOGIN_PAGE);
         doNothing().when(httpServletResponse).sendRedirect(anyString());
+
+        // Mock OrganizationManager to prevent NPE in getOrganizationId()
+        OrganizationManager mockedOrganizationManager = Mockito.mock(OrganizationManager.class);
+        Mockito.when(dataHolder.getOrganizationManager()).thenReturn(mockedOrganizationManager);
+        Mockito.when(mockedOrganizationManager.resolveOrganizationId(anyString())).thenReturn(null);
+        setStaticField(TOTPUtil.class, "DATA_HOLDER", dataHolder);
+
         TOTPUtil.redirectToEnableTOTPReqPage(httpServletResponse, authenticationContext,
                 TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
     }
@@ -657,7 +704,7 @@ public class TOTPUtilTest {
     }
 
     @Test
-    public void testGetIssuerFromBranding_BrandingEnabled() throws TOTPException, BrandingPreferenceMgtException {
+    public void testGetIssuerFromBranding_BrandingEnabled() throws Exception {
 
         AuthenticatorConfig mockAuthConfig = Mockito.mock(AuthenticatorConfig.class);
         staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance).thenReturn(fileBasedConfigurationBuilder);
@@ -673,10 +720,11 @@ public class TOTPUtilTest {
         preferenceNode.putObject("organizationDetails").put("displayName", "BrandedIssuer");
         brandingPreference.setPreference(preferenceNode);
 
-        staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(dataHolder);
         Mockito.when(dataHolder.getBrandingPreferenceManager()).thenReturn(mockBrandingManager);
         when(mockBrandingManager.resolveBrandingPreference(anyString(), anyString(), anyString(), anyBoolean()))
                 .thenReturn(brandingPreference);
+
+        setStaticField(TOTPUtil.class, "DATA_HOLDER", dataHolder);
 
         String result = TOTPUtil.getTOTPIssuerDisplayName("example.com", null);
         assertEquals(result, "BrandedIssuer");
@@ -698,7 +746,6 @@ public class TOTPUtilTest {
         preferenceNode.putObject("configs").put("isBrandingEnabled", false);
         brandingPreference.setPreference(preferenceNode);
 
-        staticTOTPDataHolder.when(TOTPDataHolder::getInstance).thenReturn(dataHolder);
         Mockito.when(dataHolder.getBrandingPreferenceManager()).thenReturn(mockBrandingManager);
         PrivilegedCarbonContext privilegedCarbonContext = Mockito.mock(PrivilegedCarbonContext.class);
         Registry mockRegistry = Mockito.mock(Registry.class);
@@ -724,16 +771,223 @@ public class TOTPUtilTest {
         Mockito.when(emptyNodeList.getLength()).thenReturn(0);
         when(mockedDocument.getElementsByTagName("AuthenticatorConfig")).thenReturn(emptyNodeList);
 
-        staticOrganizationManagementUtil.when(() -> OrganizationManagementUtil.isOrganization("example.com")).thenReturn(false);
+        setStaticField(TOTPUtil.class, "DATA_HOLDER", dataHolder);
+
+        // Mock OrganizationManager to return null initially, so the fallback to tenantDomain is used
+        OrganizationManager mockedOrganizationManager = Mockito.mock(OrganizationManager.class);
+        Mockito.when(dataHolder.getOrganizationManager()).thenReturn(null);
+
         String result = TOTPUtil.getTOTPIssuerDisplayName("example.com", null);
+        // When branding is disabled, issuer is null, context is null, registry returns empty.
+        // If OrganizationManager is null, it falls back to tenantDomain.
         assertEquals(result, "example.com");
 
-        staticOrganizationManagementUtil.when(() -> OrganizationManagementUtil.isOrganization("example.com")).thenReturn(true);
-        OrganizationManager mockedOrganizationManager = Mockito.mock(OrganizationManager.class);
+        // Now test when organizationManager is present and resolves an org ID and name
         Mockito.when(dataHolder.getOrganizationManager()).thenReturn(mockedOrganizationManager);
         Mockito.when(mockedOrganizationManager.resolveOrganizationId(anyString())).thenReturn("123");
         Mockito.when(mockedOrganizationManager.getOrganizationNameById(anyString())).thenReturn("org1");
         result = TOTPUtil.getTOTPIssuerDisplayName("example.com", null);
         assertEquals(result, "org1");
     }
+
+	@Test(description = "Test isEnrolUserInAuthenticationFlowEnabled when runtime params are present")
+	public void testIsEnrolUserInAuthenticationFlowEnabled_RuntimeParams() {
+
+		Map<String, String> runtimeParams = new HashMap<>();
+		runtimeParams.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "false");
+
+		// Runtime params should take precedence over everything else
+		Assert.assertFalse(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, runtimeParams));
+
+		runtimeParams.put(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW, "true");
+		Assert.assertTrue(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, runtimeParams));
+	}
+
+	@Test(description = "Test isEnrolUserInAuthenticationFlowEnabled using org level config hierarchy")
+	public void testIsEnrolUserInAuthenticationFlowEnabled_OrgLevel() throws Exception {
+
+		setStaticField(TOTPUtil.class, "DATA_HOLDER", dataHolder);
+
+		String tenantDomain = "wso2.com";
+		String orgId = "org-id-1";
+
+		when(context.getTenantDomain()).thenReturn(tenantDomain);
+
+		OrganizationManager organizationManager = mock(OrganizationManager.class);
+		when(dataHolder.getOrganizationManager()).thenReturn(organizationManager);
+		when(organizationManager.resolveOrganizationId(tenantDomain)).thenReturn(orgId);
+
+		// Case 1: Org hierarchy returns TRUE
+		when(orgResourceResolverService.<Boolean>getResourcesFromOrgHierarchy(
+						anyString(), any(), any())).thenReturn(true);
+
+		Assert.assertTrue(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, null));
+
+		// Case 2: Org hierarchy returns FALSE
+		when(orgResourceResolverService.<Boolean>getResourcesFromOrgHierarchy(
+						anyString(), any(), any())).thenReturn(false);
+
+		Assert.assertFalse(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, null));
+	}
+
+	@Test(description = "Test isEnrolUserInAuthenticationFlowEnabled fallback when org config is missing")
+	public void testIsEnrolUserInAuthenticationFlowEnabled_Fallback() throws Exception {
+
+		setStaticField(TOTPUtil.class, "DATA_HOLDER", dataHolder);
+
+		String tenantDomain = "wso2.com";
+		String orgId = "org-id-1";
+
+		when(context.getTenantDomain()).thenReturn(tenantDomain);
+
+		OrganizationManager organizationManager = mock(OrganizationManager.class);
+		when(dataHolder.getOrganizationManager()).thenReturn(organizationManager);
+		when(organizationManager.resolveOrganizationId(tenantDomain)).thenReturn(orgId);
+
+		// Org hierarchy returns NULL (not configured)
+		when(orgResourceResolverService.<Boolean>getResourcesFromOrgHierarchy(
+						anyString(), any(), any())).thenReturn(null);
+
+		// Fallback to local config - Case 1: Enabled
+		when(context.getProperty(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW))
+						.thenReturn("true");
+		Assert.assertTrue(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, null));
+
+		// Fallback to local config - Case 2: Disabled
+		when(context.getProperty(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW))
+						.thenReturn("false");
+		Assert.assertFalse(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, null));
+	}
+
+	@Test(description = "Test org level resolution traversing hierarchy")
+	public void testOrgLevelResolutionTraversal() throws Exception {
+
+		setStaticField(TOTPUtil.class, "DATA_HOLDER", dataHolder);
+
+		String tenantDomain = "sub.wso2.com";
+		String orgId = "sub-org-id";
+		String parentOrgId = "parent-org-id";
+		String parentTenantDomain = "wso2.com";
+
+		when(context.getTenantDomain()).thenReturn(tenantDomain);
+
+		OrganizationManager organizationManager = mock(OrganizationManager.class);
+		when(dataHolder.getOrganizationManager()).thenReturn(organizationManager);
+		when(organizationManager.resolveOrganizationId(tenantDomain)).thenReturn(orgId);
+
+		// Mock OrganizationManager to resolve tenant domain for orgs
+		when(organizationManager.resolveTenantDomain(orgId)).thenReturn(tenantDomain);
+		when(organizationManager.resolveTenantDomain(parentOrgId)).thenReturn(parentTenantDomain);
+
+		// Mock OrgResourceResolverService to execute the callback (simulating hierarchy
+		// traversal)
+		// We will simulate that the first org (sub-org) has no config, but second
+		// (parent) has config 'true'
+		when(orgResourceResolverService.<Boolean>getResourcesFromOrgHierarchy(
+			anyString(), any(), any()))
+			.thenAnswer(invocation -> {
+					Function<String, Optional<Boolean>> retrievalFunction = invocation
+									.getArgument(1);
+
+					// Simulate traversal: 1. Try sub-org
+					Optional<Boolean> result1 = retrievalFunction.apply(orgId);
+					if (result1 != null && result1.isPresent())
+							return result1.get();
+
+					// 2. Try parent-org
+					Optional<Boolean> result2 = retrievalFunction.apply(parentOrgId);
+					if (result2 != null && result2.isPresent())
+							return result2.get();
+
+					return null;
+			});
+
+		// Mock IdentityGovernanceService
+		// 1. sub-org returns empty properties or null
+		when(identityGovernanceService.getConfiguration(
+						new String[] { TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG }, tenantDomain))
+						.thenReturn(new Property[0]);
+
+		// 2. parent-org returns 'true'
+		Property prop = new Property();
+		prop.setName(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG);
+		prop.setValue("true");
+		when(identityGovernanceService.getConfiguration(
+						new String[] { TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG },
+						parentTenantDomain))
+						.thenReturn(new Property[] { prop });
+
+		Assert.assertTrue(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, null));
+
+		// Test ignoring blank values
+		Property blankProp = new Property();
+		blankProp.setName(TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG);
+		blankProp.setValue("");
+
+		when(identityGovernanceService.getConfiguration(
+						new String[] { TOTPAuthenticatorConfigImpl.ENROLL_USER_IN_FLOW_CONFIG }, tenantDomain))
+						.thenReturn(new Property[] { blankProp });
+
+		Assert.assertTrue(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, null));
+	}
+
+	@Test(description = "Test isEnrolUserInAuthenticationFlowEnabled when traversal throws exception")
+	public void testIsEnrolUserInAuthenticationFlowEnabled_Exception() throws Exception {
+
+		setStaticField(TOTPUtil.class, "DATA_HOLDER", dataHolder);
+
+		String tenantDomain = "wso2.com";
+		String orgId = "org-id-1";
+
+		when(context.getTenantDomain()).thenReturn(tenantDomain);
+
+		OrganizationManager organizationManager = mock(OrganizationManager.class);
+		when(dataHolder.getOrganizationManager()).thenReturn(organizationManager);
+		when(organizationManager.resolveOrganizationId(tenantDomain)).thenReturn(orgId);
+
+		when(orgResourceResolverService.<Boolean>getResourcesFromOrgHierarchy(
+				anyString(), any(), any()))
+				.thenThrow(new OrgResourceHierarchyTraverseException("Test Internal Error"));
+
+		// Fallback to local config - Should be called because exception was caught
+		when(context.getProperty(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW))
+				.thenReturn("true");
+
+		Assert.assertTrue(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, null));
+	}
+
+	@Test(description = "Test isEnrolUserInAuthenticationFlowEnabled when tenant resolution fails")
+	public void testIsEnrolUserInAuthenticationFlowEnabled_TenantResolutionError() throws Exception {
+
+		setStaticField(TOTPUtil.class, "DATA_HOLDER", dataHolder);
+
+		String tenantDomain = "wso2.com";
+		String orgId = "org-id-1";
+
+		when(context.getTenantDomain()).thenReturn(tenantDomain);
+
+		OrganizationManager organizationManager = mock(OrganizationManager.class);
+		when(dataHolder.getOrganizationManager()).thenReturn(organizationManager);
+		when(organizationManager.resolveOrganizationId(tenantDomain)).thenReturn(orgId);
+
+		// Mock tenant resolution failure
+		when(organizationManager.resolveTenantDomain(orgId)).thenThrow(new OrganizationManagementException("Error"));
+
+		// We need to execute the lambda to verify the behavioral handling of the exception
+		// The lambda is passed as the 2nd argument to getResourcesFromOrgHierarchy
+		when(orgResourceResolverService.<Boolean>getResourcesFromOrgHierarchy(
+				anyString(), any(), any()))
+				.thenAnswer(invocation -> {
+					Function<String, Optional<Boolean>> retrievalFunction = invocation.getArgument(1);
+					// This should not throw exception, but return empty
+					Optional<Boolean> result = retrievalFunction.apply(orgId);
+					return result.isPresent() ? result.get() : null;
+				});
+
+		// Fallback to local config
+		when(context.getProperty(TOTPAuthenticatorConstants.ENROL_USER_IN_AUTHENTICATIONFLOW))
+				.thenReturn("true");
+
+		Assert.assertTrue(TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, null));
+	}
 }

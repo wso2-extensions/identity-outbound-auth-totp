@@ -1,12 +1,12 @@
-/*
- * Copyright (c) 2017, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+/**
+ * Copyright (c) 2017-2026, WSO2 LLC. (https://www.wso2.com).
  *
- * WSO2 Inc. licenses this file to you under the Apache License,
+ * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -36,6 +36,8 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String USER_PROMPT = "USER_PROMPT";
 	public static final String AUTHENTICATOR_FRIENDLY_NAME = "TOTP";
 	public static final String AUTHENTICATOR_NAME = "totp";
+	public static final String AUTHENTICATOR_CATEGORY = "Multi Factor Authenticators";
+	public static final String AUTHENTICATOR_SUB_CATEGORY = "DEFAULT";
 	public static final String AUTHENTICATOR_TOTP = "authenticator.totp";
 	public static final String QR_CODE_CLAIM_URL = "http://wso2.org/claims/identity/qrcodeurl";
 	public static final String SECRET_KEY_CLAIM_URL = "http://wso2.org/claims/identity/secretkey";

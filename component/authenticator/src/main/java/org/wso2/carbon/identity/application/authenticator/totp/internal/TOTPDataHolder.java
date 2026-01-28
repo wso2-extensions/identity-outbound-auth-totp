@@ -1,21 +1,21 @@
-/*
- *  Copyright (c) 2017, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+/**
+ * Copyright (c) 2017-2026, WSO2 LLC. (https://www.wso2.com).
  *
- *  WSO2 Inc. licenses this file to you under the Apache License,
- *  Version 2.0 (the "License"); you may not use this file except
- *  in compliance with the License.
- *  You may obtain a copy of the License at
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing,
- *  software distributed under the License is distributed on an
- *  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- *  KIND, either express or implied.  See the License for the
- *  specific language governing permissions and limitations
- *  under the License.
- *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
+
 package org.wso2.carbon.identity.application.authenticator.totp.internal;
 
 import org.wso2.carbon.identity.branding.preference.management.core.BrandingPreferenceManager;
@@ -23,6 +23,7 @@ import org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataManagementServic
 import org.wso2.carbon.identity.event.services.IdentityEventService;
 import org.wso2.carbon.identity.governance.IdentityGovernanceService;
 import org.wso2.carbon.identity.handler.event.account.lock.service.AccountLockService;
+import org.wso2.carbon.identity.organization.resource.hierarchy.traverse.service.OrgResourceResolverService;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
 import org.wso2.carbon.idp.mgt.IdpManager;
 import org.wso2.carbon.user.core.service.RealmService;
@@ -42,6 +43,7 @@ public class TOTPDataHolder {
 	private IdentityGovernanceService identityGovernanceService;
 	private IdpManager idpManager;
 	private OrganizationManager organizationManager;
+	private OrgResourceResolverService orgResourceResolverService;
 	private BrandingPreferenceManager brandingPreferenceManager;
 	private ClaimMetadataManagementService claimMetadataManagementService;
 
@@ -246,5 +248,25 @@ public class TOTPDataHolder {
 	public void setBrandingPreferenceManager(BrandingPreferenceManager brandingPreferenceManager) {
 
 		this.brandingPreferenceManager = brandingPreferenceManager;
+	}
+
+	/**
+	 * Get the OrgResourceResolverService.
+	 *
+	 * @return OrgResourceResolverService instance.
+	 */
+	public OrgResourceResolverService getOrgResourceResolverService() {
+
+		return orgResourceResolverService;
+	}
+
+	/**
+	 * Set the OrgResourceResolverService.
+	 *
+	 * @param orgResourceResolverService The OrgResourceResolverService instance.
+	 */
+	public void setOrgResourceResolverService(OrgResourceResolverService orgResourceResolverService) {
+
+		this.orgResourceResolverService = orgResourceResolverService;
 	}
 }
