@@ -18,6 +18,7 @@
  */
 package org.wso2.carbon.identity.application.authenticator.totp;
 
+import org.apache.commons.codec.binary.Base64;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -104,5 +105,38 @@ public class TOTPKeyGeneratorTest {
         staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
         when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
         Assert.assertTrue(TOTPKeyGenerator.resetLocal("admin"));
+    }
+
+    @Test
+    public void testGenerateClaimsWithSpecialCharactersInUsername() throws UserStoreException, TOTPException,
+            AuthenticationFailedException {
+        Map<String, String> claims = new HashMap<>();
+        String username = "user#1";
+        staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
+        staticTOTPUtil.when(() -> TOTPUtil.getTOTPIssuerDisplayName(anyString(), any())).thenReturn("carbon.super");
+        staticTOTPUtil.when(() -> TOTPUtil.getTOTPDisplayUsername(anyString())).thenCallRealMethod();
+        staticTOTPUtil.when(() -> TOTPUtil.getTimeStepSize(any(AuthenticationContext.class))).thenReturn(30L);
+        staticTOTPUtil.when(() -> TOTPUtil.getProcessedClaimValue(anyString(), anyString(), anyString()))
+                .thenAnswer(invocation -> invocation.getArgument(1));
+        claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "");
+        when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
+        when(userStoreManager.getUserClaimValues(MultitenantUtils.getTenantAwareUsername(username), new String[] {
+                TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL }, null)).thenReturn(claims);
+
+        Map<String, String> result = TOTPKeyGenerator.generateClaims(username, false, authenticationContext);
+        Assert.assertNotNull(result);
+
+        // Verify QR code URL is generated
+        String qrCodeUrl = result.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL);
+        Assert.assertNotNull(qrCodeUrl);
+
+        // Decode the Base64 QR code URL
+        String decodedQRCodeURL = new String(Base64.decodeBase64(qrCodeUrl));
+
+        // Verify that the username is URL-encoded (# becomes %23)
+        Assert.assertTrue(decodedQRCodeURL.contains("user%231"),
+                "Username with special characters should be URL-encoded in QR code");
+        Assert.assertFalse(decodedQRCodeURL.contains("user#1"),
+                "Username with special characters should not appear unencoded in QR code");
     }
 }
