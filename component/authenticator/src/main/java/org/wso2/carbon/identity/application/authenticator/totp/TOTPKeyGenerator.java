@@ -34,6 +34,8 @@ import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -127,11 +129,16 @@ public class TOTPKeyGenerator {
                 if (isFederatedUser(context)) {
                     displayUsername = getTOTPIssuerDisplayNameForFederatedUser(context, displayUsername);
                 }
-                String qrCodeURL =
-                        "otpauth://totp/" + issuer + ":" + displayUsername + "?secret=" + String.valueOf(secretKey) +
-                                "&issuer=" + issuer + "&period=" + timeStep;
-                encodedQRCodeURL = Base64.encodeBase64String(qrCodeURL.getBytes());
-                claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, encodedQRCodeURL);
+                try {
+                    String encodedDisplayUsername = URLEncoder.encode(displayUsername, "UTF-8");
+                    String qrCodeURL =
+                            "otpauth://totp/" + issuer + ":" + encodedDisplayUsername + "?secret=" + String.valueOf(secretKey) +
+                                    "&issuer=" + issuer + "&period=" + timeStep;
+                    encodedQRCodeURL = Base64.encodeBase64String(qrCodeURL.getBytes());
+                    claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, encodedQRCodeURL);
+                } catch (UnsupportedEncodingException e) {
+                    throw new TOTPException("Error while encoding username for QR code generation", e);
+                }
             }
         } catch (UserStoreException e) {
             throw new TOTPException(
@@ -196,11 +203,16 @@ public class TOTPKeyGenerator {
             if (isFederatedUser(context)) {
                 displayUsername = getTOTPIssuerDisplayNameForFederatedUser(context, displayUsername);
             }
-            String qrCodeURL =
-                    "otpauth://totp/" + issuer + ":" + displayUsername + "?secret=" + secretKey + "&issuer=" +
-                            issuer + "&period=" + timeStep;
-            encodedQRCodeURL = Base64.encodeBase64String(qrCodeURL.getBytes());
-            claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, encodedQRCodeURL);
+            try {
+                String encodedDisplayUsername = URLEncoder.encode(displayUsername, "UTF-8");
+                String qrCodeURL =
+                        "otpauth://totp/" + issuer + ":" + encodedDisplayUsername + "?secret=" + secretKey + "&issuer=" +
+                                issuer + "&period=" + timeStep;
+                encodedQRCodeURL = Base64.encodeBase64String(qrCodeURL.getBytes());
+                claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, encodedQRCodeURL);
+            } catch (UnsupportedEncodingException e) {
+                throw new TOTPException("Error while encoding username for QR code generation", e);
+            }
         } catch (AuthenticationFailedException e) {
             throw new TOTPException(
                     "TOTPKeyGenerator cannot find the property value for encoding method", e);
