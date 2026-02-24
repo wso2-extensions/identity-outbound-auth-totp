@@ -34,6 +34,8 @@ import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -128,8 +130,8 @@ public class TOTPKeyGenerator {
                     displayUsername = getTOTPIssuerDisplayNameForFederatedUser(context, displayUsername);
                 }
                 String qrCodeURL =
-                        "otpauth://totp/" + issuer + ":" + displayUsername + "?secret=" + String.valueOf(secretKey) +
-                                "&issuer=" + issuer + "&period=" + timeStep;
+                        "otpauth://totp/" + issuer + ":" + URLEncoder.encode(displayUsername, StandardCharsets.UTF_8)
+                                + "?secret=" + String.valueOf(secretKey) + "&issuer=" + issuer + "&period=" + timeStep;
                 encodedQRCodeURL = Base64.encodeBase64String(qrCodeURL.getBytes());
                 claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, encodedQRCodeURL);
             }
@@ -197,8 +199,8 @@ public class TOTPKeyGenerator {
                 displayUsername = getTOTPIssuerDisplayNameForFederatedUser(context, displayUsername);
             }
             String qrCodeURL =
-                    "otpauth://totp/" + issuer + ":" + displayUsername + "?secret=" + secretKey + "&issuer=" +
-                            issuer + "&period=" + timeStep;
+                    "otpauth://totp/" + issuer + ":" + URLEncoder.encode(displayUsername, StandardCharsets.UTF_8)
+                            + "?secret=" + secretKey + "&issuer=" + issuer + "&period=" + timeStep;
             encodedQRCodeURL = Base64.encodeBase64String(qrCodeURL.getBytes());
             claims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, encodedQRCodeURL);
         } catch (AuthenticationFailedException e) {
