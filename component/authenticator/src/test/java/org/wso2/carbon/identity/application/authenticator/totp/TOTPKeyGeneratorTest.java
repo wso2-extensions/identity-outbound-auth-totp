@@ -72,6 +72,7 @@ public class TOTPKeyGeneratorTest {
         String username = "admin";
         staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
         staticTOTPUtil.when(() -> TOTPUtil.getTOTPIssuerDisplayName(anyString(), any())).thenReturn("carbon.super");
+        staticTOTPUtil.when(() -> TOTPUtil.getTOTPDisplayUsername(anyString())).thenReturn(username);
         claims.put(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, "AnySecretKey");
         when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
         when(userStoreManager.getUserClaimValues(MultitenantUtils.getTenantAwareUsername(username), new String[] {
