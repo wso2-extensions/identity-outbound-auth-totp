@@ -29,6 +29,8 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 import org.wso2.carbon.identity.application.authentication.framework.ApplicationAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticator;
 import org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConfigImpl;
+import org.wso2.carbon.identity.application.authenticator.totp.executor.TOTPExecutor;
+import org.wso2.carbon.identity.flow.execution.engine.graph.Executor;
 import org.wso2.carbon.identity.branding.preference.management.core.BrandingPreferenceManager;
 import org.wso2.carbon.identity.claim.metadata.mgt.ClaimMetadataManagementService;
 import org.wso2.carbon.identity.event.services.IdentityEventService;
@@ -73,6 +75,12 @@ public class TOTPAuthenticatorServiceComponent {
 			}
 		} catch (IllegalStateException | IllegalArgumentException e) {
 			log.error("Failed to register TOTPAuthenticatorConfigImpl: " + e.getMessage(), e);
+		}
+
+		// Register TOTP Executor for flow engine.
+		ctxt.getBundleContext().registerService(Executor.class.getName(), new TOTPExecutor(), null);
+		if (log.isDebugEnabled()) {
+			log.debug("TOTPExecutor is registered as Executor service");
 		}
 
 		if (log.isDebugEnabled()) {
