@@ -52,7 +52,6 @@ import org.wso2.carbon.identity.application.common.model.JustInTimeProvisioningC
 import org.wso2.carbon.identity.application.common.model.Property;
 import org.wso2.carbon.identity.central.log.mgt.utils.LogConstants;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
-import org.wso2.carbon.identity.claim.metadata.mgt.exception.ClaimMetadataException;
 import org.wso2.carbon.identity.core.ServiceURLBuilder;
 import org.wso2.carbon.identity.core.URLBuilderException;
 import org.wso2.carbon.identity.core.model.IdentityErrorMsgContext;
@@ -966,7 +965,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
             throws TOTPException {
 
         TOTPAuthenticatorCredentials totpAuthenticator = getTotpAuthenticator(context, context.getTenantDomain());
-        return totpAuthenticator.authorizeAndStoreSecret(token, authenticatedUser.getUserName(), authenticatedUser);
+        return totpAuthenticator.authorizeAndStoreSecretForFederatedUser(token, context);
     }
 
     /**
