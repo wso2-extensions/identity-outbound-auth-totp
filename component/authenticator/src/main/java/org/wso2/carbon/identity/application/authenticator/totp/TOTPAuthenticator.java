@@ -365,15 +365,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
                     diagnosticLogBuilder.inputParam("user enrollment enabled", enrolUserInAuthenticationFlowEnabled);
                 }
-                if (enrolUserInAuthenticationFlowEnabled && StringUtils.isNotBlank(retryParam)) {
-                    // if retrying after a failure during enrolment, redirect to the TOTP enter page to retry.
-                    if (!showAuthFailureReasonOnLoginPage) {
-                        errorParam = StringUtils.EMPTY;
-                    }
-                    String totpLoginPageUrl =
-                            buildTOTPLoginPageURL(context, username, retryParam, errorParam, multiOptionURI);
-                    response.sendRedirect(totpLoginPageUrl);
-                } else if (enrolUserInAuthenticationFlowEnabled &&
+                if (enrolUserInAuthenticationFlowEnabled &&
                         request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP) == null) {
                     if (context.getProperty(IS_API_BASED) == null) {
                         // If TOTP is not enabled for the user and he hasn't redirected to the enrollment page yet.
@@ -382,23 +374,20 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         }
                         Map<String, String> claims;
                         if (isInitialFederationAttempt) {
-                            claims = TOTPKeyGenerator.generateClaimsForFedUserVerifySecretKey(username, tenantDomain,
-                                    context);
+                            claims = TOTPKeyGenerator.generateClaimsForFedUser(username, tenantDomain, context);
                         } else {
-                            claims = TOTPKeyGenerator.generateClaimsWithVerifySecretKey(
-                                    UserCoreUtil.addDomainToName(username, authenticatingUser.getUserStoreDomain()),
-                                    false, context);
+                            claims = TOTPKeyGenerator.generateClaims(UserCoreUtil.addDomainToName(username,
+                                    authenticatingUser.getUserStoreDomain()), false, context);
                         }
                         Map<String, String> claimProperties = TOTPUtil.getClaimProperties(tenantDomain,
-                                TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL);
+                                TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
                         // Context will have the decrypted secret key all the time.
                         if (claimProperties.containsKey(TOTPAuthenticatorConstants.ENABLE_ENCRYPTION)) {
-                            context.setProperty(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL,
-                                    claims.get(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL));
+                            context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
+                                    claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL));
                         } else {
-                            context.setProperty(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL,
-                                    TOTPUtil.decrypt(claims.get(TOTPAuthenticatorConstants.
-                                            VERIFY_SECRET_KEY_CLAIM_URL)));
+                            context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
+                                    TOTPUtil.decrypt(claims.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL)));
                         }
                         context.setProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL,
                                 claims.get(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL));
@@ -409,7 +398,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                             LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
                         }
                     }
-                } else if (Boolean.parseBoolean(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)) ||
+                } else if (Boolean.valueOf(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)) ||
                         isTOTPEnabledByAdmin) {
                     //if TOTP is not enabled for the user and user continued the enrollment.
                     context.setProperty(TOTPAuthenticatorConstants.ENABLE_TOTP, true);
@@ -567,13 +556,13 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         try {
             int tokenValue = Integer.parseInt(token);
             if (isInitialFederationAttempt(context)) {
-                if (!isValidTokenFederatedUser(tokenValue, context, authenticatingUser)) {
+                if (!isValidTokenFederatedUser(tokenValue, context)) {
                     throw new AuthenticationFailedException("Invalid Token. Authentication failed for federated user: "
                             + loggableUsername);
                 }
             } else {
                 checkTotpEnabled(context, username);
-                if (!isValidTokenLocalUser(tokenValue, username, context, authenticatingUser)) {
+                if (!isValidTokenLocalUser(tokenValue, username, context)) {
                     handleTotpVerificationFail(context);
                     throw new AuthenticationFailedException("Invalid Token. Authentication failed, user :  "
                             + loggableUsername);
@@ -616,18 +605,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     private void checkTotpEnabled(AuthenticationContext context, String username) throws AuthenticationFailedException {
 
         if (context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP) != null && Boolean
-                .parseBoolean(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString())) {
+                .valueOf(context.getProperty(TOTPAuthenticatorConstants.ENABLE_TOTP).toString())) {
             try {
                 checkForUpdatedSecretKey(context, username);
-                // Adds the claims to the profile if the user enrol and continued.
+                //adds the claims to the profile if the user enrol and continued.
                 Map<String, String> claims = new HashMap<>();
-                if (context.getProperty(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL) != null) {
-                    String secretKey = context.getProperty(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL)
-                            .toString();
-                    String tenantDomain = context.getTenantDomain();
-                    claims.put(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL, TOTPUtil.getProcessedClaimValue(
-                            TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL, secretKey, tenantDomain));
-                }
                 if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null &&
                         !isSecretKeyExistForUser(username)) {
                     String secretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
@@ -906,31 +888,64 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     /**
      * Verify whether a given token is valid for a stored local user.
      *
-     * @param token             TOTP Token which needs to be validated
-     * @param context           Authentication context
-     * @param username          Username of the user
-     * @param authenticatedUser Authenticated user object
+     * @param token    TOTP Token which needs to be validated
+     * @param context  Authentication context
+     * @param username Username of the user
      * @return true if token is valid otherwise false
      * @throws TOTPException UserRealm for user or tenant domain is null
      */
-    private boolean isValidTokenLocalUser(int token, String username, AuthenticationContext context,
-                                          AuthenticatedUser authenticatedUser)
+    private boolean isValidTokenLocalUser(int token, String username, AuthenticationContext context)
             throws TOTPException {
 
         String tenantDomain = MultitenantUtils.getTenantDomain(username);
+        String tenantAwareUsername = null;
         try {
             TOTPAuthenticatorCredentials totpAuthenticator = getTotpAuthenticator(context, tenantDomain);
+            tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
             UserRealm userRealm = TOTPUtil.getUserRealm(username);
             if (userRealm != null) {
-                return totpAuthenticator.authorizeAndStoreSecret(token, username, authenticatedUser);
+                Map<String, String> userClaimValues;
+
+                // Confirm if TOTP reuse is disabled and if required claims are present.
+                if (TOTPUtil.isPreventTOTPCodeReuseEnabled() && TOTPUtil.doesUsedTimeWindowsClaimExist(tenantDomain)) {
+                    userClaimValues = userRealm
+                            .getUserStoreManager().getUserClaimValues
+                                    (tenantAwareUsername, new String[] {
+                                            TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL,
+                                            TOTPAuthenticatorConstants.USED_TIME_WINDOWS
+                                    }, null);
+                } else {
+                    userClaimValues = userRealm
+                            .getUserStoreManager().getUserClaimValues
+                                    (tenantAwareUsername, new String[]
+                                            {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL}, null);
+                }
+                String secretKeyClaimValue = userClaimValues.get(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
+                if (secretKeyClaimValue == null) {
+                    throw new TOTPException("Secret key claim is null for the user : " +
+                            (LoggerUtils.isLogMaskingEnable ? LoggerUtils.getMaskedContent(tenantAwareUsername) :
+                                    tenantAwareUsername));
+                }
+                String secretKey = TOTPUtil.decrypt(secretKeyClaimValue);
+                return totpAuthenticator.authorize(secretKey, token, context,
+                        userClaimValues.get(TOTPAuthenticatorConstants.USED_TIME_WINDOWS), tenantDomain, null);
             } else {
                 throw new TOTPException(
                         "Cannot find the user realm for the given tenant domain : " +
                                 CarbonContext.getThreadLocalCarbonContext().getTenantDomain());
             }
+        } catch (UserStoreException e) {
+            throw new TOTPException(
+                    "TOTPTokenVerifier failed while trying to access userRealm of the user : " +
+                            (LoggerUtils.isLogMaskingEnable ? LoggerUtils.getMaskedContent(tenantAwareUsername) :
+                                    tenantAwareUsername), e);
+        } catch (CryptoException e) {
+            throw new TOTPException("Error while decrypting the key", e);
         } catch (AuthenticationFailedException e) {
             throw new TOTPException(
                     "TOTPTokenVerifier cannot find the property value for encodingMethod");
+        } catch (ClaimMetadataException e) {
+            throw new TOTPException("Error while obtaining used tokens", e);
         }
     }
 
@@ -955,18 +970,20 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
     /**
      * Verify whether a given token is valid for the federated user.
      *
-     * @param token                 TOTP Token which needs to be validated
-     * @param context               Authentication context
-     * @param authenticatedUser     Authenticated user object
+     * @param token   TOTP Token which needs to be validated
+     * @param context Authentication context
      * @return true if token is valid otherwise false
      * @throws TOTPException If an error occurred while validating token
      */
-    private boolean isValidTokenFederatedUser(int token, AuthenticationContext context,
-                                              AuthenticatedUser authenticatedUser)
+    private boolean isValidTokenFederatedUser(int token, AuthenticationContext context)
             throws TOTPException {
 
+        String secretKey = null;
+        if (context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL) != null) {
+            secretKey = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL).toString();
+        }
         TOTPAuthenticatorCredentials totpAuthenticator = getTotpAuthenticator(context, context.getTenantDomain());
-        return totpAuthenticator.authorizeAndStoreSecret(token, authenticatedUser.getUserName(), authenticatedUser);
+        return totpAuthenticator.authorize(secretKey, token, context, null, null, null);
     }
 
     /**
