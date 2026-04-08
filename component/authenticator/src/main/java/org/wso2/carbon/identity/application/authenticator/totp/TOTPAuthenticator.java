@@ -221,15 +221,16 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                     ErrorMessages.ERROR_CODE_NO_AUTHENTICATED_USER.getCode(),
                     ErrorMessages.ERROR_CODE_NO_AUTHENTICATED_USER.getMessage());
         }
-        String tenantDomain = authenticatedUserFromContext.getTenantDomain();
-        if (StringUtils.isBlank(tenantDomain)) {
+        String userTenantDomain = authenticatedUserFromContext.getTenantDomain();
+        String tenantDomain = context.getTenantDomain();
+        if (StringUtils.isBlank(userTenantDomain)) {
             throw new AuthenticationFailedException(
                     ErrorMessages.ERROR_CODE_NO_USER_TENANT.getCode(),
                     ErrorMessages.ERROR_CODE_NO_USER_TENANT.getMessage());
         }
         context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
                 TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
-        if (!tenantDomain.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN)) {
+        if (!StringUtils.equals(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN, tenantDomain)) {
             IdentityHelperUtil
                     .loadApplicationAuthenticationXMLFromRegistry(context, getName(), tenantDomain);
         }
@@ -259,8 +260,8 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
         try {
             AuthenticatedUser authenticatingUser = resolveAuthenticatingUser(context, authenticatedUserFromContext,
-                    mappedLocalUsername, tenantDomain, isInitialFederationAttempt);
-            username = UserCoreUtil.addTenantDomainToEntry(authenticatingUser.getUserName(), tenantDomain);
+                    mappedLocalUsername, userTenantDomain, isInitialFederationAttempt);
+            username = UserCoreUtil.addTenantDomainToEntry(authenticatingUser.getUserName(), userTenantDomain);
             loggableUsername = LoggerUtils.isLogMaskingEnable ? LoggerUtils.getMaskedContent(username) :
                     username;
             context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATED_USER, authenticatingUser);
@@ -382,14 +383,14 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         }
                         Map<String, String> claims;
                         if (isInitialFederationAttempt) {
-                            claims = TOTPKeyGenerator.generateClaimsForFedUserVerifySecretKey(username, tenantDomain,
-                                    context);
+                            claims = TOTPKeyGenerator.generateClaimsForFedUserVerifySecretKey(username,
+                                    userTenantDomain, context);
                         } else {
                             claims = TOTPKeyGenerator.generateClaimsWithVerifySecretKey(
                                     UserCoreUtil.addDomainToName(username, authenticatingUser.getUserStoreDomain()),
                                     false, context);
                         }
-                        Map<String, String> claimProperties = TOTPUtil.getClaimProperties(tenantDomain,
+                        Map<String, String> claimProperties = TOTPUtil.getClaimProperties(userTenantDomain,
                                 TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL);
                         // Context will have the decrypted secret key all the time.
                         if (claimProperties.containsKey(TOTPAuthenticatorConstants.ENABLE_ENCRYPTION)) {
