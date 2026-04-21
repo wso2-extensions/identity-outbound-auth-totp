@@ -35,7 +35,6 @@ import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
 import org.wso2.carbon.user.api.UserStoreManager;
-import org.wso2.carbon.user.core.UserCoreConstants;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.security.InvalidKeyException;
@@ -650,6 +649,70 @@ public final class TOTPAuthenticatorCredentials {
 					"stored SecretKey ", e);
 		} catch (ClaimMetadataException e) {
 			throw new TOTPAuthenticatorException("Error while obtaining used tokens", e);
+		}
+	}
+
+	/**
+	 * Check whether the verification code is valid for a federated user and if so, store the verified
+	 * secret key in the authentication context. This avoids accessing the user store with the federated
+	 * user's external domain (e.g., gmail.com), which is not a valid tenant domain in IS.
+	 * <p>
+	 * The secret key is read from the context (set during enrollment) and, upon successful verification,
+	 * promoted from {@code VERIFY_SECRET_KEY_CLAIM_URL} to {@code SECRET_KEY_CLAIM_URL} in the context.
+	 * The actual persistence to the user store is deferred to JIT provisioning.
+	 *
+	 * @param verificationCode Verification code to validate.
+	 * @param context          Authentication context containing the pending secret key.
+	 * @return true if the verification code is valid; false otherwise.
+	 */
+	public boolean authorizeAndStoreSecretForFederatedUser(int verificationCode, AuthenticationContext context) {
+
+		if (context == null) {
+			return false;
+		}
+
+		String tenantDomain = context.getTenantDomain();
+		try {
+			String usedTimeWindows = null;
+			if (TOTPUtil.isPreventTOTPCodeReuseEnabled() && TOTPUtil.doesUsedTimeWindowsClaimExist(tenantDomain)) {
+				Object usedTimeWindowsObj = context.getProperty(TOTPAuthenticatorConstants.USED_TIME_WINDOWS);
+				if (usedTimeWindowsObj != null) {
+					usedTimeWindows = usedTimeWindowsObj.toString();
+				}
+			}
+
+			Object verifySecretKeyObj = context.getProperty(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL);
+			if (verifySecretKeyObj != null && StringUtils.isNotBlank(verifySecretKeyObj.toString())) {
+				/*
+				 * The context always holds the decrypted (plaintext) secret key — see the enrollment flow in
+				 * TOTPAuthenticator where the value is decrypted before being stored in the context.
+				 * Verify the TOTP code and, on success, promote the key to SECRET_KEY_CLAIM_URL so that
+				 * checkTotpEnabled can persist it to the user store during JIT provisioning.
+				 */
+				String verifySecretKey = verifySecretKeyObj.toString();
+				if (authorize(verifySecretKey, verificationCode, new Date().getTime(), context, usedTimeWindows,
+						tenantDomain, null)) {
+					context.setProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL, verifySecretKey);
+					context.setProperty(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL, null);
+					return true;
+				}
+				return false;
+			}
+
+			/*
+			 * No pending enrollment secret: the user already completed TOTP enrollment in a prior session.
+			 * The validated secret key was previously stored in the context by checkForUpdatedSecretKey.
+			 */
+			Object secretKeyObj = context.getProperty(TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL);
+			if (secretKeyObj == null || StringUtils.isBlank(secretKeyObj.toString())) {
+				return false;
+			}
+			return authorize(secretKeyObj.toString(), verificationCode, new Date().getTime(), context,
+					usedTimeWindows, tenantDomain, null);
+
+		} catch (ClaimMetadataException e) {
+			throw new TOTPAuthenticatorException(
+					"Error while obtaining used TOTP time windows for federated user", e);
 		}
 	}
 
