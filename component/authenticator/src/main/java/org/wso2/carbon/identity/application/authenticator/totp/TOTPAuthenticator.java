@@ -163,6 +163,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 return AuthenticatorFlowStatus.SUCCESS_COMPLETED;
             }
         } else if (request.getParameter(TOTPAuthenticatorConstants.TOKEN) == null) {
+            context.setRetrying(false);
             initiateAuthenticationRequest(request, response, context);
             if (context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION)
                     .equals(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)) {
