@@ -80,6 +80,9 @@ public abstract class TOTPAuthenticatorConstants {
 	public static final String TIME_STEP_SIZE = "timeStepSize";
 	public static final String ENCODING_METHOD = "encodingMethod";
 	public static final String ENABLE_TOTP = "ENABLE_TOTP";
+	// Authentication context property set for process() to fail the step, since the required AMR for enrollment is
+	// not satisfied.
+	public static final String ENROLLMENT_FAIL_STEP = "totp.enrollment.failStep";
 	public static final String SUPER_TENANT = "carbon.super";
 	public static final String TOTP_AUTHENTICATION_ENDPOINT_URL = "TOTPAuthenticationEndpointURL";
 	public static final String TOTP_ISSUER = "Issuer";

@@ -39,6 +39,7 @@ import org.wso2.carbon.identity.application.authentication.framework.config.mode
 import org.wso2.carbon.identity.application.authentication.framework.config.model.ExternalIdPConfig;
 import org.wso2.carbon.identity.application.authentication.framework.config.model.SequenceConfig;
 import org.wso2.carbon.identity.application.authentication.framework.config.model.StepConfig;
+import org.wso2.carbon.identity.application.authentication.framework.context.AuthHistory;
 import org.wso2.carbon.identity.application.authentication.framework.context.AuthenticationContext;
 import org.wso2.carbon.identity.application.authentication.framework.exception.AuthenticationFailedException;
 import org.wso2.carbon.identity.application.authentication.framework.exception.LogoutFailedException;
@@ -81,12 +82,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthenticatorConstants.DISPLAY_TOKEN;
@@ -96,6 +99,7 @@ import static org.wso2.carbon.identity.application.authenticator.totp.TOTPAuthen
 public class TOTPAuthenticatorTest {
 
     private static final String USER_STORE_DOMAIN = "PRIMARY";
+    private static final String REQUIRED_AMR = "email-otp-authenticator";
 
     // Static mocks
     private MockedStatic<TOTPUtil> staticTOTPUtil;
@@ -564,6 +568,93 @@ public class TOTPAuthenticatorTest {
         when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
 
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, authenticationContext);
+    }
+
+    @Test(description = "Test case for process() method when a local user without a TOTP secret is to be enrolled, " +
+            "but none of the AMR values required for enrollment is authenticated in the login. The step must fail " +
+            "without generating a secret, and the pending authenticator must be reported to the script.")
+    public void testProcessFailsStepWhenRequiredAmrForEnrollmentIsNotSatisfied() throws Exception {
+
+        AuthenticationContext authenticationContext = buildContextForEnrollmentWithRequiredAmr();
+
+        try (MockedStatic<TOTPKeyGenerator> staticTOTPKeyGenerator = Mockito.mockStatic(TOTPKeyGenerator.class)) {
+            AuthenticatorFlowStatus status = totpAuthenticator.process(httpServletRequest, httpServletResponse,
+                    authenticationContext);
+
+            Assert.assertEquals(status, AuthenticatorFlowStatus.FAIL_COMPLETED);
+            staticTOTPKeyGenerator.verifyNoInteractions();
+        }
+        verify(httpServletResponse, times(0)).sendRedirect(anyString());
+        Assert.assertEquals(authenticationContext.getEndpointParams()
+                .get(FrameworkConstants.ENROLLMENT_PENDING_AUTHENTICATOR), TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
+        Assert.assertNull(authenticationContext.getProperty(TOTPAuthenticatorConstants.ENROLLMENT_FAIL_STEP),
+                "The fail flag must be cleared once the step is failed.");
+    }
+
+    @Test(description = "Test case for initiateAuthenticationRequest() method when a local user without a TOTP " +
+            "secret is to be enrolled, and one of the AMR values required for enrollment is authenticated in the " +
+            "login. The enrollment must start.")
+    public void testInitiateAuthenticationRequestEnrolsWhenRequiredAmrForEnrollmentIsSatisfied() throws Exception {
+
+        AuthenticationContext authenticationContext = buildContextForEnrollmentWithRequiredAmr();
+        AuthHistory authHistory = new AuthHistory(REQUIRED_AMR, "LOCAL");
+        authHistory.setSuccess(true);
+        authenticationContext.addAuthenticationStepHistory(authHistory);
+        Map<String, String> generatedClaims = new HashMap<>();
+        generatedClaims.put(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL, "FreshSecretKey");
+        generatedClaims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, "FreshQRCode");
+
+        try (MockedStatic<TOTPKeyGenerator> staticTOTPKeyGenerator = Mockito.mockStatic(TOTPKeyGenerator.class)) {
+            staticTOTPKeyGenerator.when(() -> TOTPKeyGenerator.generateClaimsWithVerifySecretKey(anyString(),
+                    anyBoolean(), any(AuthenticationContext.class))).thenReturn(generatedClaims);
+
+            totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse,
+                    authenticationContext);
+
+            staticTOTPKeyGenerator.verify(() -> TOTPKeyGenerator.generateClaimsWithVerifySecretKey(anyString(),
+                    eq(false), eq(authenticationContext)), times(1));
+        }
+        Assert.assertNull(authenticationContext.getProperty(TOTPAuthenticatorConstants.ENROLLMENT_FAIL_STEP));
+        Assert.assertFalse(authenticationContext.getEndpointParams()
+                .containsKey(FrameworkConstants.ENROLLMENT_PENDING_AUTHENTICATOR));
+    }
+
+    private AuthenticationContext buildContextForEnrollmentWithRequiredAmr() throws Exception {
+
+        String username = "admin";
+        staticIdentityUtil.when(IdentityUtil::getPrimaryDomainName).thenReturn(USER_STORE_DOMAIN);
+        AuthenticatedUser authenticatedUser =
+                AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
+        authenticatedUser.setFederatedUser(false);
+        authenticatedUser.setUserName(username);
+        authenticatedUser.setUserId("dummyUserId");
+        AuthenticationContext authenticationContext = new AuthenticationContext();
+        authenticationContext.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+        authenticationContext.setProperty("username", username);
+        authenticationContext.setProperty("authenticatedUser", authenticatedUser);
+        authenticationContext.setContextIdentifier(UUID.randomUUID().toString());
+        Map<String, String> params = new HashMap<>();
+        params.put(FrameworkConstants.REQUIRED_AMR_FOR_ENROLLMENT, REQUIRED_AMR);
+        Map<String, Map<String, String>> authenticatorParams = new HashMap<>();
+        authenticatorParams.put(FrameworkConstants.JSAttributes.JS_COMMON_OPTIONS, params);
+        authenticationContext.addAuthenticatorParams(authenticatorParams);
+
+        // No secret key claim for the user, so the enrolment flow is triggered.
+        staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
+        when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
+        when(userStoreManager.getUserClaimValues(username, new String[]
+                {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL}, null)).thenReturn(new HashMap<>());
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(authenticatedUser);
+        staticTOTPUtil.when(() -> TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
+        staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any())).thenReturn(true);
+        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance)
+                .thenReturn(fileBasedConfigurationBuilder);
+        when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
+        Map<String, String> claimProperties = new HashMap<>();
+        claimProperties.put(TOTPAuthenticatorConstants.ENABLE_ENCRYPTION, "true");
+        staticTOTPUtil.when(() -> TOTPUtil.getClaimProperties(anyString(), anyString())).thenReturn(claimProperties);
+        return authenticationContext;
     }
 
     @Test(description = "Test case for initiateAuthenticationRequest() method federated user who authenticates with " +

@@ -156,6 +156,10 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                 .isNotEmpty(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP))) {
             // if the request comes with MOBILE_NUMBER, it will go through this flow.
             initiateAuthenticationRequest(request, response, context);
+            if (consumeEnrollmentFailStep(context)) {
+                // The required AMR for enrollment is not satisfied. The script handles the failed step.
+                return AuthenticatorFlowStatus.FAIL_COMPLETED;
+            }
             if (context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION)
                     .equals(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)) {
                 return AuthenticatorFlowStatus.INCOMPLETE;
@@ -165,6 +169,10 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         } else if (request.getParameter(TOTPAuthenticatorConstants.TOKEN) == null) {
             context.setRetrying(false);
             initiateAuthenticationRequest(request, response, context);
+            if (consumeEnrollmentFailStep(context)) {
+                // The required AMR for enrollment is not satisfied. The script handles the failed step.
+                return AuthenticatorFlowStatus.FAIL_COMPLETED;
+            }
             if (context.getProperty(TOTPAuthenticatorConstants.AUTHENTICATION)
                     .equals(TOTPAuthenticatorConstants.AUTHENTICATOR_NAME)) {
                 return AuthenticatorFlowStatus.INCOMPLETE;
@@ -365,6 +373,17 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         context, runtimeParams);
                 if (LoggerUtils.isDiagnosticLogsEnabled() && diagnosticLogBuilder != null) {
                     diagnosticLogBuilder.inputParam("user enrollment enabled", enrolUserInAuthenticationFlowEnabled);
+                }
+                boolean isEnrollment = enrolUserInAuthenticationFlowEnabled || isTOTPEnabledByAdmin ||
+                        Boolean.parseBoolean(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP));
+                if (isEnrollment &&
+                        !FrameworkUtils.isRequiredAmrForEnrollmentSatisfied(context, runtimeParams, getName())) {
+                    // The step is failed from process(), so that the authentication script can prompt a
+                    // required authenticator and run TOTP again. Nothing is generated or stored for the user.
+                    context.setProperty(TOTPAuthenticatorConstants.ENROLLMENT_FAIL_STEP, true);
+                    context.setProperty(TOTPAuthenticatorConstants.AUTHENTICATION,
+                            TOTPAuthenticatorConstants.AUTHENTICATOR_NAME);
+                    return;
                 }
                 if (enrolUserInAuthenticationFlowEnabled && StringUtils.isNotBlank(retryParam)) {
                     // if retrying after a failure during enrolment, redirect to the TOTP enter page to retry.
@@ -1315,6 +1334,22 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         authenticatingUser.setUserName(mappedLocalUsername);
         authenticatingUser.setUserStoreDomain(getFederatedUserStoreDomain(authenticatedUserInContext, tenantDomain));
         return authenticatingUser;
+    }
+
+    /**
+     * Check whether the step must be failed since the required AMR for enrollment is not satisfied, and clear the
+     * flag.
+     *
+     * @param context Authentication context.
+     * @return True if the step must be failed.
+     */
+    private boolean consumeEnrollmentFailStep(AuthenticationContext context) {
+
+        if (Boolean.TRUE.equals(context.getProperty(TOTPAuthenticatorConstants.ENROLLMENT_FAIL_STEP))) {
+            context.removeProperty(TOTPAuthenticatorConstants.ENROLLMENT_FAIL_STEP);
+            return true;
+        }
+        return false;
     }
 
     private boolean isInitialFederationAttempt(AuthenticationContext context) {
