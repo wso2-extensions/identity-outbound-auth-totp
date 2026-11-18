@@ -146,7 +146,11 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
 
         if (context.isLogoutRequest()) {
             return AuthenticatorFlowStatus.SUCCESS_COMPLETED;
-        } else if (request.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN) != null) {
+        }
+        if (isEnrollmentBlockedByRequiredAmr(request, context)) {
+            return AuthenticatorFlowStatus.FAIL_COMPLETED;
+        }
+        if (request.getParameter(TOTPAuthenticatorConstants.SEND_TOKEN) != null) {
             if (generateOTPAndSendByEmail(context)) {
                 return AuthenticatorFlowStatus.INCOMPLETE;
             } else {
@@ -1315,6 +1319,85 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
         authenticatingUser.setUserName(mappedLocalUsername);
         authenticatingUser.setUserStoreDomain(getFederatedUserStoreDomain(authenticatedUserInContext, tenantDomain));
         return authenticatingUser;
+    }
+
+    /**
+     * Check whether the user is about to be enrolled with TOTP while none of the AMR values required for
+     * enrollment is authenticated in the login.
+     *
+     * @param request Http servlet request.
+     * @param context Authentication context.
+     * @return True if the step must be failed without enrolling the user.
+     * @throws AuthenticationFailedException If the enrollment state of the user could not be resolved.
+     */
+    private boolean isEnrollmentBlockedByRequiredAmr(HttpServletRequest request, AuthenticationContext context)
+            throws AuthenticationFailedException {
+
+        // The rule check also clears the pending authenticator reported to the endpoint when it is satisfied.
+        if (FrameworkUtils.isRequiredAmrForEnrollmentSatisfied(context, getRuntimeParams(context), getName())) {
+            return false;
+        }
+        if (!isEnrollmentFlow(request, context)) {
+            return false;
+        }
+        if (LoggerUtils.isDiagnosticLogsEnabled()) {
+            DiagnosticLog.DiagnosticLogBuilder diagnosticLogBuilder = new DiagnosticLog.DiagnosticLogBuilder(
+                    TOTP_AUTH_SERVICE, INITIATE_TOTP_REQUEST);
+            diagnosticLogBuilder.resultMessage("Failing the step since none of the AMR values required for TOTP " +
+                            "enrollment is authenticated in the login.")
+                    .logDetailLevel(DiagnosticLog.LogDetailLevel.APPLICATION)
+                    .resultStatus(DiagnosticLog.ResultStatus.FAILED)
+                    .inputParam(LogConstants.InputKeys.STEP, context.getCurrentStep())
+                    .inputParams(getApplicationDetails(context));
+            LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
+        }
+        return true;
+    }
+
+    /**
+     * Check whether the current request would enrol the user with TOTP, rather than authenticate a user who
+     * already has a TOTP secret.
+     *
+     * @param request Http servlet request.
+     * @param context Authentication context.
+     * @return True if the user is to be enrolled.
+     * @throws AuthenticationFailedException If the enrollment state of the user could not be resolved.
+     */
+    private boolean isEnrollmentFlow(HttpServletRequest request, AuthenticationContext context)
+            throws AuthenticationFailedException {
+
+        AuthenticatedUser authenticatedUserFromContext = TOTPUtil.getAuthenticatedUser(context);
+        if (authenticatedUserFromContext == null ||
+                StringUtils.isBlank(authenticatedUserFromContext.getTenantDomain())) {
+            // The user is not resolved. The error is reported from initiateAuthenticationRequest().
+            return false;
+        }
+        String userTenantDomain = authenticatedUserFromContext.getTenantDomain();
+        String mappedLocalUsername = getMappedLocalUsername(authenticatedUserFromContext, context);
+        // A blank mapped username means an initial login attempt by a non provisioned federated user.
+        boolean isInitialFederationAttempt = StringUtils.isBlank(mappedLocalUsername);
+        AuthenticatedUser authenticatingUser = resolveAuthenticatingUser(context, authenticatedUserFromContext,
+                mappedLocalUsername, userTenantDomain, isInitialFederationAttempt);
+        boolean isSecretKeyExistForUser = false;
+        if (!isInitialFederationAttempt) {
+            String username = UserCoreUtil.addTenantDomainToEntry(authenticatingUser.getUserName(), userTenantDomain);
+            try {
+                isSecretKeyExistForUser = isSecretKeyExistForUser(
+                        UserCoreUtil.addDomainToName(username, authenticatingUser.getUserStoreDomain()));
+            } catch (TOTPException e) {
+                throw new AuthenticationFailedException(
+                        "Error when checking TOTP enabled for the user : " + (LoggerUtils.isLogMaskingEnable ?
+                                LoggerUtils.getMaskedContent(username) : username), e);
+            }
+        }
+        if (isSecretKeyExistForUser) {
+            // The user is already enrolled with TOTP.
+            return false;
+        }
+        Map<String, String> runtimeParams = getRuntimeParams(context);
+        return TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(context, runtimeParams)
+                || IdentityHelperUtil.checkSecondStepEnableByAdmin(context)
+                || Boolean.parseBoolean(request.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP));
     }
 
     private boolean isInitialFederationAttempt(AuthenticationContext context) {
