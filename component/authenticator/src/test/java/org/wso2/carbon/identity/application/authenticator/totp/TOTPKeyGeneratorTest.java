@@ -81,6 +81,30 @@ public class TOTPKeyGeneratorTest {
         Assert.assertNotNull(TOTPKeyGenerator.generateClaims(username,false, authenticationContext));
     }
 
+    @Test
+    public void testExistingVerifySecretKeyFollowsClaimEncryptionConfig() throws Exception {
+
+        String username = "admin";
+        Map<String, String> storedClaims = new HashMap<>();
+        storedClaims.put(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL, "storedCipherText");
+        staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
+        staticTOTPUtil.when(() -> TOTPUtil.getTOTPIssuerDisplayName(anyString(), any())).thenReturn("carbon.super");
+        staticTOTPUtil.when(() -> TOTPUtil.getTOTPDisplayUsername(anyString())).thenReturn(username);
+        staticTOTPUtil.when(() -> TOTPUtil.decrypt("storedCipherText")).thenReturn("PLAINSECRET");
+        // With EnableEncryption on the claim, the processed value is the plain secret: the framework encrypts it.
+        staticTOTPUtil.when(() -> TOTPUtil.getProcessedClaimValue(
+                TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL, "PLAINSECRET", "carbon.super"))
+                .thenReturn("PLAINSECRET");
+        when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
+        when(userStoreManager.getUserClaimValues(username,
+                new String[]{TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL}, null)).thenReturn(storedClaims);
+
+        Map<String, String> claims = TOTPKeyGenerator.generateClaimsWithVerifySecretKey(username, false);
+
+        Assert.assertEquals(claims.get(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL), "PLAINSECRET");
+        staticTOTPUtil.verify(() -> TOTPUtil.encrypt(anyString()), Mockito.never());
+    }
+
     @Test(expectedExceptions = {TOTPException.class})
     public void testResetLocalWithException() throws AuthenticationFailedException, TOTPException, UserStoreException {
         TOTPKeyGenerator.resetLocal("admin");

@@ -119,9 +119,9 @@ public class TOTPKeyGenerator {
                 } else {
                     secretKey = StringUtils.isBlank(TOTPUtil.decrypt(storedSecretKey)) ? new char[0]
                             : TOTPUtil.decrypt(storedSecretKey).toCharArray();
-                    // The value is encrypted here as, the claim property config is ignored in other places as well.
                     claims.put(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL,
-                            TOTPUtil.encrypt(String.valueOf(secretKey)));
+                            TOTPUtil.getProcessedClaimValue(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL,
+                                    String.valueOf(secretKey), tenantDomain));
                 }
 
                 String issuer = TOTPUtil.getTOTPIssuerDisplayName(tenantDomain, context);
