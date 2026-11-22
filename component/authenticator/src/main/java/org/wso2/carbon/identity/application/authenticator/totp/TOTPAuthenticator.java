@@ -392,7 +392,7 @@ public class TOTPAuthenticator extends AbstractApplicationAuthenticator
                         } else {
                             claims = TOTPKeyGenerator.generateClaimsWithVerifySecretKey(
                                     UserCoreUtil.addDomainToName(username, authenticatingUser.getUserStoreDomain()),
-                                    false, context);
+                                    true, context);
                         }
                         Map<String, String> claimProperties = TOTPUtil.getClaimProperties(userTenantDomain,
                                 TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL);

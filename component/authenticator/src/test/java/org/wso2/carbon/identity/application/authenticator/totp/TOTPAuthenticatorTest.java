@@ -570,6 +570,59 @@ public class TOTPAuthenticatorTest {
         totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse, authenticationContext);
     }
 
+    @Test(description = "Test case for initiateAuthenticationRequest() method when a local user without a TOTP " +
+            "secret is enrolled in the authentication flow. A fresh secret must be generated every time, so a " +
+            "previously stored, unverified secret is never reused.")
+    public void testInitiateAuthenticationRequestEnrolmentGeneratesFreshSecret() throws Exception {
+
+        String username = "admin";
+        staticIdentityUtil.when(IdentityUtil::getPrimaryDomainName).thenReturn(USER_STORE_DOMAIN);
+        AuthenticatedUser authenticatedUser =
+                AuthenticatedUser.createLocalAuthenticatedUserFromSubjectIdentifier(username);
+        authenticatedUser.setFederatedUser(false);
+        authenticatedUser.setUserName(username);
+        authenticatedUser.setUserId("dummyUserId");
+        AuthenticationContext authenticationContext = new AuthenticationContext();
+        authenticationContext.setTenantDomain(TOTPAuthenticatorConstants.SUPER_TENANT_DOMAIN);
+        authenticationContext.setProperty("username", username);
+        authenticationContext.setProperty("authenticatedUser", authenticatedUser);
+        authenticationContext.setContextIdentifier(UUID.randomUUID().toString());
+
+        staticTOTPUtil.when(() -> TOTPUtil.getUserRealm(anyString())).thenReturn(userRealm);
+        when(userRealm.getUserStoreManager()).thenReturn(userStoreManager);
+        when(userStoreManager.getUserClaimValues(username, new String[]
+                {TOTPAuthenticatorConstants.SECRET_KEY_CLAIM_URL}, null)).thenReturn(new HashMap<>());
+        when(httpServletRequest.getParameter(TOTPAuthenticatorConstants.ENABLE_TOTP)).thenReturn(null);
+        staticTOTPUtil.when(() -> TOTPUtil.getAuthenticatedUser(authenticationContext)).thenReturn(authenticatedUser);
+        staticTOTPUtil.when(() -> TOTPUtil.isLocalUser(any(AuthenticationContext.class))).thenReturn(true);
+        staticTOTPUtil.when(() -> TOTPUtil.isEnrolUserInAuthenticationFlowEnabled(any(), any())).thenReturn(true);
+        staticFileBasedConfigurationBuilder.when(FileBasedConfigurationBuilder::getInstance)
+                .thenReturn(fileBasedConfigurationBuilder);
+        when(fileBasedConfigurationBuilder.getAuthenticatorBean(anyString())).thenReturn(authenticatorConfig);
+        Map<String, String> claimProperties = new HashMap<>();
+        claimProperties.put(TOTPAuthenticatorConstants.ENABLE_ENCRYPTION, "true");
+        staticTOTPUtil.when(() -> TOTPUtil.getClaimProperties(anyString(), anyString())).thenReturn(claimProperties);
+
+        Map<String, String> generatedClaims = new HashMap<>();
+        generatedClaims.put(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL, "FreshSecretKey");
+        generatedClaims.put(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL, "FreshQRCode");
+
+        try (MockedStatic<TOTPKeyGenerator> staticTOTPKeyGenerator = Mockito.mockStatic(TOTPKeyGenerator.class)) {
+            staticTOTPKeyGenerator.when(() -> TOTPKeyGenerator.generateClaimsWithVerifySecretKey(anyString(),
+                    anyBoolean(), any(AuthenticationContext.class))).thenReturn(generatedClaims);
+
+            totpAuthenticator.initiateAuthenticationRequest(httpServletRequest, httpServletResponse,
+                    authenticationContext);
+
+            staticTOTPKeyGenerator.verify(() -> TOTPKeyGenerator.generateClaimsWithVerifySecretKey(anyString(),
+                    eq(true), eq(authenticationContext)), times(1));
+        }
+        Assert.assertEquals(authenticationContext.getProperty(TOTPAuthenticatorConstants.VERIFY_SECRET_KEY_CLAIM_URL),
+                "FreshSecretKey");
+        Assert.assertEquals(authenticationContext.getProperty(TOTPAuthenticatorConstants.QR_CODE_CLAIM_URL),
+                "FreshQRCode");
+    }
+
     @Test(description = "Test case for process() method when the AMR required for enrollment is not satisfied.")
     public void testProcessFailsStepWhenRequiredAmrForEnrollmentIsNotSatisfied() throws Exception {
 
@@ -626,7 +679,7 @@ public class TOTPAuthenticatorTest {
                     authenticationContext);
 
             staticTOTPKeyGenerator.verify(() -> TOTPKeyGenerator.generateClaimsWithVerifySecretKey(anyString(),
-                    eq(false), eq(authenticationContext)), times(1));
+                    eq(true), eq(authenticationContext)), times(1));
         }
         Assert.assertFalse(authenticationContext.getEndpointParams()
                 .containsKey(FrameworkConstants.ENROLLMENT_PENDING_AUTHENTICATOR));
