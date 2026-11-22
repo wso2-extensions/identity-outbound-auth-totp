@@ -1389,6 +1389,38 @@ public class TOTPUtil {
     }
 
     /**
+     * Get claim properties of a claim in a given tenant, failing when the claim metadata cannot be resolved.
+     * <p>
+     * Whether this component or the identity framework encrypts a claim value is decided only by the
+     * EnableEncryption claim property. If the lookup failed and an empty map was assumed, this component would
+     * encrypt a value that the framework also encrypts, nesting the cipher text. So the failure is surfaced.
+     *
+     * @param tenantDomain The tenant domain.
+     * @param claimURI     Claim URI.
+     * @return Properties of the claim, empty if the claim has none or does not exist in the tenant.
+     * @throws TOTPAuthenticatorException When the claim metadata cannot be retrieved.
+     */
+    private static Map<String, String> getClaimPropertiesOrFail(String tenantDomain, String claimURI) {
+
+        try {
+            List<LocalClaim> localClaims =
+                    TOTPDataHolder.getClaimManagementService().getLocalClaims(tenantDomain);
+            if (localClaims != null) {
+                for (LocalClaim localClaim : localClaims) {
+                    if (StringUtils.equalsIgnoreCase(claimURI, localClaim.getClaimURI())) {
+                        Map<String, String> claimProperties = localClaim.getClaimProperties();
+                        return claimProperties != null ? claimProperties : Collections.emptyMap();
+                    }
+                }
+            }
+            return Collections.emptyMap();
+        } catch (ClaimMetadataException e) {
+            throw new TOTPAuthenticatorException("Error while retrieving the claim metadata of: " + claimURI +
+                    " in tenant: " + tenantDomain, e);
+        }
+    }
+
+    /**
      * Returns the encrypted claim value if EnableEncryption property is available for the claim. Otherwise, return the
      * plain text.
      *
@@ -1400,7 +1432,7 @@ public class TOTPUtil {
      */
     public static String getProcessedClaimValue(String claimURI, String claimValue, String tenantDomain) {
 
-        Map<String, String> claimProperties = getClaimProperties(tenantDomain, claimURI);
+        Map<String, String> claimProperties = getClaimPropertiesOrFail(tenantDomain, claimURI);
         try {
             if (claimProperties.containsKey(TOTPAuthenticatorConstants.ENABLE_ENCRYPTION)) {
                 return claimValue;
